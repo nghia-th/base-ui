@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { Link as RouterLink, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
@@ -8,6 +8,8 @@ import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import Avatar from "@mui/material/Avatar";
+import Link from "@mui/material/Link";
+import Stack from "@mui/material/Stack";
 import LockOutlined from "@mui/icons-material/LockOutlined";
 import { AppContext, reUseBloc } from "../../base/AppContext";
 import { BlocLogin } from "../bloc/BlocLogin";
@@ -86,6 +88,11 @@ export default function Login() {
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={onKeyDown}
                 />
+                <Box sx={{ textAlign: 'right', mt: 0.5 }}>
+                    <Link component={RouterLink} to="/forgot-password" variant="body2">
+                        {t('forgot-password')}
+                    </Link>
+                </Box>
 
                 <Button
                     fullWidth
@@ -101,6 +108,12 @@ export default function Login() {
                 <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center' }}>
                     {t('demo-login-hint')}
                 </Typography>
+
+                <Stack sx={{ mt: 2 }}>
+                    <Typography variant="body2" sx={{ textAlign: 'center' }}>
+                        {t('dont-have-account')} <Link component={RouterLink} to="/register">{t('register')}</Link>
+                    </Typography>
+                </Stack>
             </Paper>
         </Box>
     );

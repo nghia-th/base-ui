@@ -9,12 +9,16 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import BottomNavigation from "@mui/material/BottomNavigation";
 import BottomNavigationAction from "@mui/material/BottomNavigationAction";
+import Breadcrumbs from "@mui/material/Breadcrumbs";
+import Link from "@mui/material/Link";
+import Typography from "@mui/material/Typography";
 import HomeOutlined from "@mui/icons-material/HomeOutlined";
 import FavoriteOutlined from "@mui/icons-material/FavoriteOutlined";
 import PersonOutline from "@mui/icons-material/PersonOutline";
 import TabOutlined from "@mui/icons-material/TabOutlined";
 import MoreVertOutlined from "@mui/icons-material/MoreVertOutlined";
 import DockOutlined from "@mui/icons-material/DockOutlined";
+import NavigateNextOutlined from "@mui/icons-material/NavigateNextOutlined";
 import DemoSection from "./common/DemoSection";
 
 export default function MenuDemo() {
@@ -25,6 +29,15 @@ export default function MenuDemo() {
 
     return (
         <Grid container spacing={2}>
+            <Grid item xs={12}>
+                <DemoSection title={t('breadcrumbs')} icon={NavigateNextOutlined} color="#607D8B">
+                    <Breadcrumbs separator={<NavigateNextOutlined fontSize="small" />}>
+                        <Link underline="hover" color="inherit" href="#">{t('dashboard')}</Link>
+                        <Link underline="hover" color="inherit" href="#">{t('ui-kit')}</Link>
+                        <Typography color="text.primary">{t('menu')}</Typography>
+                    </Breadcrumbs>
+                </DemoSection>
+            </Grid>
             <Grid item xs={12}>
                 <DemoSection title={t('tabs')} icon={TabOutlined} color="#2196F3">
                     <Tabs value={tab} onChange={(_, v) => setTab(v)}>

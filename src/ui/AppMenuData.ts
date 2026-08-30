@@ -31,6 +31,7 @@ export const MENU_DATA: MenuItem[] = [
             { label: 'list', icon: 'ViewListOutlined', to: '/list' },
             { label: 'tree', icon: 'AccountTreeOutlined', to: '/tree' },
             { label: 'panel', icon: 'ViewCompactOutlined', to: '/panel' },
+            { label: 'stepper', icon: 'LinearScaleOutlined', to: '/stepper' },
             { label: 'overlay', icon: 'LayersOutlined', to: '/overlay' },
             { label: 'media', icon: 'PermMediaOutlined', to: '/media' },
             { label: 'menu', icon: 'MenuOutlined', to: '/menu' },
@@ -48,6 +49,7 @@ export const MENU_DATA: MenuItem[] = [
     {
         label: 'pages', icon: 'AutoAwesomeMosaicOutlined', section: 'menu-section-pages', items: [
             { label: 'crud', icon: 'TableRowsOutlined', to: '/crud', badge: 12 },
+            { label: 'profile', icon: 'AccountCircleOutlined', to: '/profile' },
             { label: 'calendar', icon: 'CalendarMonthOutlined', to: '/calendar' },
             { label: 'timeline', icon: 'TimelineOutlined', to: '/timeline' },
             { label: 'invoice', icon: 'ReceiptLongOutlined', to: '/invoice', badge: 3 },

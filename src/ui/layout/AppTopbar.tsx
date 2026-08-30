@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import AppBar from "@mui/material/AppBar";
 import Toolbar from "@mui/material/Toolbar";
@@ -59,6 +60,7 @@ const NOTIFICATIONS: NotificationItem[] = [
 // Inbox/Log out), và nút mở AppRightMenu (panel bên phải) - tương đương .right-sidebar-item.
 export default function AppTopbar({ leftOffset, onMenuClick, onConfigClick, onRightMenuClick, fullName, onLogout }: AppTopbarProps) {
     const { t } = useTranslation();
+    const navigate = useNavigate();
     const [userAnchor, setUserAnchor] = useState<null | HTMLElement>(null);
     const [langAnchor, setLangAnchor] = useState<null | HTMLElement>(null);
     const [notifAnchor, setNotifAnchor] = useState<null | HTMLElement>(null);
@@ -165,7 +167,7 @@ export default function AppTopbar({ leftOffset, onMenuClick, onConfigClick, onRi
                         </Typography>
                     </Box>
                     <Divider />
-                    <MenuItemMui onClick={() => setUserAnchor(null)}>
+                    <MenuItemMui onClick={() => { setUserAnchor(null); navigate('/profile'); }}>
                         <ListItemIcon><PersonOutlined fontSize="small" /></ListItemIcon>
                         {t('profile')}
                     </MenuItemMui>
@@ -173,11 +175,11 @@ export default function AppTopbar({ leftOffset, onMenuClick, onConfigClick, onRi
                         <ListItemIcon><SettingsOutlined fontSize="small" /></ListItemIcon>
                         {t('settings')}
                     </MenuItemMui>
-                    <MenuItemMui onClick={() => setUserAnchor(null)}>
+                    <MenuItemMui onClick={() => { setUserAnchor(null); navigate('/calendar'); }}>
                         <ListItemIcon><CalendarMonthOutlined fontSize="small" /></ListItemIcon>
                         {t('calendar')}
                     </MenuItemMui>
-                    <MenuItemMui onClick={() => setUserAnchor(null)}>
+                    <MenuItemMui onClick={() => { setUserAnchor(null); navigate('/messages'); }}>
                         <ListItemIcon><InboxOutlined fontSize="small" /></ListItemIcon>
                         {t('inbox')}
                     </MenuItemMui>

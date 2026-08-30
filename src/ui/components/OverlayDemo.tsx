@@ -9,6 +9,8 @@ import DialogActions from "@mui/material/DialogActions";
 import Popover from "@mui/material/Popover";
 import Tooltip from "@mui/material/Tooltip";
 import Drawer from "@mui/material/Drawer";
+import Backdrop from "@mui/material/Backdrop";
+import CircularProgress from "@mui/material/CircularProgress";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import LayersOutlined from "@mui/icons-material/LayersOutlined";
@@ -19,6 +21,12 @@ export default function OverlayDemo() {
     const [dialogOpen, setDialogOpen] = useState(false);
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
+    const [backdropOpen, setBackdropOpen] = useState(false);
+
+    const showBackdrop = () => {
+        setBackdropOpen(true);
+        setTimeout(() => setBackdropOpen(false), 1500);
+    };
 
     return (
         <DemoSection title={t('overlay')} icon={LayersOutlined} color="#3F51B5">
@@ -29,6 +37,7 @@ export default function OverlayDemo() {
                     <Button variant="outlined">{t('hover-me')}</Button>
                 </Tooltip>
                 <Button variant="outlined" onClick={() => setDrawerOpen(true)}>{t('open-drawer')}</Button>
+                <Button variant="outlined" onClick={showBackdrop}>{t('show-loading-overlay')}</Button>
             </Stack>
 
             <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)}>
@@ -54,6 +63,16 @@ export default function OverlayDemo() {
                     <Typography variant="body2" color="text.secondary">{t('panel-content-placeholder')}</Typography>
                 </Box>
             </Drawer>
+
+            <Backdrop
+                open={backdropOpen}
+                sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 10 }}
+            >
+                <Stack alignItems="center" spacing={1.5}>
+                    <CircularProgress color="inherit" />
+                    <Typography variant="body2">{t('loading')}</Typography>
+                </Stack>
+            </Backdrop>
         </DemoSection>
     );
 }

@@ -21,6 +21,8 @@ import LocalStorage from "../base/LocalStorage";
 import { BASE_URL } from "../base/PrefixService";
 
 import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
+import StepperDemo from "./components/StepperDemo";
 import FormLayoutDemo from "./components/FormLayoutDemo";
 import InputDemo from "./components/InputDemo";
 import FloatLabelDemo from "./components/FloatLabelDemo";
@@ -161,6 +163,7 @@ export default function AppShell() {
                                                     <Route path="/list" element={<ListDemo />} />
                                                     <Route path="/tree" element={<TreeDemo />} />
                                                     <Route path="/panel" element={<PanelDemo />} />
+                                                    <Route path="/stepper" element={<StepperDemo />} />
                                                     <Route path="/overlay" element={<OverlayDemo />} />
                                                     <Route path="/media" element={<MediaDemo />} />
                                                     <Route path="/menu" element={<MenuDemo />} />
@@ -170,6 +173,7 @@ export default function AppShell() {
                                                     <Route path="/misc" element={<MiscDemo />} />
                                                     <Route path="/icons" element={<IconsDemo />} />
                                                     <Route path="/crud" element={<CrudDemo />} />
+                                                    <Route path="/profile" element={<Profile />} />
                                                     <Route path="/calendar" element={<CalendarDemo />} />
                                                     <Route path="/timeline" element={<TimelineDemo />} />
                                                     <Route path="/invoice" element={<Invoice />} />

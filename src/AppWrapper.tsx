@@ -10,6 +10,8 @@ import UIStream from "./ui/components/common/UIStream";
 import AlertDialog from "./ui/components/dialogs/AlertDialog";
 import ConfirmDialog from "./ui/components/dialogs/ConfirmDialog";
 import Login from "./ui/pages/Login";
+import Register from "./ui/pages/Register";
+import ForgotPassword from "./ui/pages/ForgotPassword";
 import NotFound from "./ui/pages/NotFound";
 import ErrorPage from "./ui/pages/ErrorPage";
 import AccessDenied from "./ui/pages/AccessDenied";
@@ -72,6 +74,8 @@ export default function AppWrapper({ app }: AppWrapperProps) {
                         {snapshot.data?.finish ? (
                             <Routes>
                                 <Route path="/login" element={<Login />} />
+                                <Route path="/register" element={<Register />} />
+                                <Route path="/forgot-password" element={<ForgotPassword />} />
                                 <Route path="/error" element={<ErrorPage />} />
                                 <Route path="/access-denied" element={<AccessDenied />} />
                                 <Route path="/notfound" element={<NotFound />} />
