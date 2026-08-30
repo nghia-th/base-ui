@@ -24,7 +24,7 @@ export function createAppTheme(colorScheme: "light" | "dark", componentTheme: st
                 paper: isDark ? "#1e1e1e" : "#ffffff"
             }
         },
-        shape: { borderRadius: 8 },
+        shape: { borderRadius: 10 },
         typography: {
             fontFamily: [
                 "Roboto",
@@ -34,7 +34,11 @@ export function createAppTheme(colorScheme: "light" | "dark", componentTheme: st
                 "Helvetica Neue",
                 "Arial",
                 "sans-serif"
-            ].join(",")
+            ].join(","),
+            h4: { fontWeight: 700 },
+            h5: { fontWeight: 700 },
+            h6: { fontWeight: 700 },
+            subtitle1: { fontWeight: 700 }
         },
         components: {
             MuiAppBar: {
@@ -48,7 +52,36 @@ export function createAppTheme(colorScheme: "light" | "dark", componentTheme: st
                 }
             },
             MuiButton: {
-                defaultProps: { disableElevation: true }
+                defaultProps: { disableElevation: true },
+                styleOverrides: {
+                    root: { borderRadius: 8 }
+                }
+            },
+            MuiCard: {
+                defaultProps: { elevation: 0 },
+                styleOverrides: {
+                    root: {
+                        border: "1px solid",
+                        borderColor: isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.06)",
+                        boxShadow: isDark ? "none" : "0 1px 3px rgba(0,0,0,0.05)",
+                        backgroundImage: "none"
+                    }
+                }
+            },
+            MuiChip: {
+                styleOverrides: {
+                    root: { fontWeight: 600 }
+                }
+            },
+            MuiPaper: {
+                styleOverrides: {
+                    root: { backgroundImage: "none" }
+                }
+            },
+            MuiLinearProgress: {
+                styleOverrides: {
+                    root: { borderRadius: 4 }
+                }
             }
         }
     });

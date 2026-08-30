@@ -5,6 +5,8 @@ import Stack from "@mui/material/Stack";
 import Alert from "@mui/material/Alert";
 import AlertTitle from "@mui/material/AlertTitle";
 import Button from "@mui/material/Button";
+import ReportOutlined from "@mui/icons-material/ReportOutlined";
+import CampaignOutlined from "@mui/icons-material/CampaignOutlined";
 import DemoSection from "./common/DemoSection";
 
 const SEVERITIES = ['success', 'info', 'warning', 'error'] as const;
@@ -16,7 +18,7 @@ export default function MessagesDemo() {
 
     return (
         <>
-            <DemoSection title={t('inline-messages')}>
+            <DemoSection title={t('inline-messages')} icon={ReportOutlined} color="#FF9800">
                 <Stack spacing={1.5}>
                     {SEVERITIES.filter((s) => shown.includes(s)).map((s) => (
                         <Alert key={s} severity={s} onClose={() => setShown((arr) => arr.filter((x) => x !== s))}>
@@ -26,7 +28,7 @@ export default function MessagesDemo() {
                     ))}
                 </Stack>
             </DemoSection>
-            <DemoSection title={t('toast-messages')}>
+            <DemoSection title={t('toast-messages')} icon={CampaignOutlined} color="#4CAF50">
                 <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
                     {SEVERITIES.map((s) => (
                         <Button key={s} variant="outlined" onClick={() => enqueueSnackbar(t(`toast-${s}-message`) as string, { variant: s })}>

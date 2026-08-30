@@ -4,6 +4,9 @@ import Grid from "@mui/material/Grid";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { LineChart } from "@mui/x-charts/LineChart";
+import BarChartOutlined from "@mui/icons-material/BarChartOutlined";
+import ShowChartOutlined from "@mui/icons-material/ShowChartOutlined";
+import PieChartOutlined from "@mui/icons-material/PieChartOutlined";
 import DemoSection from "./common/DemoSection";
 
 const MONTHS = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6'];
@@ -13,7 +16,7 @@ export default function ChartDemo() {
     return (
         <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
-                <DemoSection title={t('bar-chart')}>
+                <DemoSection title={t('bar-chart')} icon={BarChartOutlined} color="#2196F3">
                     <BarChart
                         height={280}
                         xAxis={[{ scaleType: 'band', data: MONTHS }]}
@@ -25,7 +28,7 @@ export default function ChartDemo() {
                 </DemoSection>
             </Grid>
             <Grid item xs={12} md={6}>
-                <DemoSection title={t('line-chart')}>
+                <DemoSection title={t('line-chart')} icon={ShowChartOutlined} color="#4CAF50">
                     <LineChart
                         height={280}
                         xAxis={[{ scaleType: 'point', data: MONTHS }]}
@@ -34,7 +37,7 @@ export default function ChartDemo() {
                 </DemoSection>
             </Grid>
             <Grid item xs={12} md={6}>
-                <DemoSection title={t('pie-chart')}>
+                <DemoSection title={t('pie-chart')} icon={PieChartOutlined} color="#9C27B0">
                     <PieChart
                         height={280}
                         series={[{

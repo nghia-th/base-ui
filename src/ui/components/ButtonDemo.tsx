@@ -8,6 +8,8 @@ import ButtonGroup from "@mui/material/ButtonGroup";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import FavoriteOutlined from "@mui/icons-material/FavoriteOutlined";
+import SmartButtonOutlined from "@mui/icons-material/SmartButtonOutlined";
+import TouchAppOutlined from "@mui/icons-material/TouchAppOutlined";
 import DemoSection from "./common/DemoSection";
 
 const COLORS = ['primary', 'secondary', 'success', 'error', 'warning', 'info'] as const;
@@ -16,7 +18,7 @@ export default function ButtonDemo() {
     const { t } = useTranslation();
     return (
         <>
-            <DemoSection title={t('button')}>
+            <DemoSection title={t('button')} icon={SmartButtonOutlined} color="#2196F3">
                 <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap sx={{ mb: 2 }}>
                     {COLORS.map((c) => <Button key={c} variant="contained" color={c}>{t(c)}</Button>)}
                 </Stack>
@@ -34,7 +36,7 @@ export default function ButtonDemo() {
                     </ButtonGroup>
                 </Stack>
             </DemoSection>
-            <DemoSection title={t('icon-fab-buttons')}>
+            <DemoSection title={t('icon-fab-buttons')} icon={TouchAppOutlined} color="#9C27B0">
                 <Stack direction="row" spacing={2} alignItems="center">
                     <IconButton color="primary"><FavoriteOutlined /></IconButton>
                     <IconButton color="error"><DeleteOutlined /></IconButton>

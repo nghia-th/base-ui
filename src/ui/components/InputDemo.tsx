@@ -10,6 +10,7 @@ import FormControlLabel from "@mui/material/FormControlLabel";
 import SearchOutlined from "@mui/icons-material/SearchOutlined";
 import AttachMoneyOutlined from "@mui/icons-material/AttachMoneyOutlined";
 import Typography from "@mui/material/Typography";
+import InputOutlined from "@mui/icons-material/InputOutlined";
 import DemoSection from "./common/DemoSection";
 
 const TOP_OPTIONS = ['react', 'vue', 'angular', 'svelte'];
@@ -17,7 +18,7 @@ const TOP_OPTIONS = ['react', 'vue', 'angular', 'svelte'];
 export default function InputDemo() {
     const { t } = useTranslation();
     return (
-        <DemoSection title={t('input')}>
+        <DemoSection title={t('input')} icon={InputOutlined} color="#4CAF50">
             <Grid container spacing={2}>
                 <Grid item xs={12} sm={4}><TextField label={t('outlined')} variant="outlined" fullWidth /></Grid>
                 <Grid item xs={12} sm={4}><TextField label={t('filled')} variant="filled" fullWidth /></Grid>

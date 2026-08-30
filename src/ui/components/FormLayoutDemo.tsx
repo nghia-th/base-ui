@@ -6,6 +6,7 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
 import Button from "@mui/material/Button";
+import ViewAgendaOutlined from "@mui/icons-material/ViewAgendaOutlined";
 import DemoSection from "./common/DemoSection";
 
 const COUNTRIES = ['vietnam', 'usa', 'japan', 'korea'];
@@ -13,7 +14,7 @@ const COUNTRIES = ['vietnam', 'usa', 'japan', 'korea'];
 export default function FormLayoutDemo() {
     const { t } = useTranslation();
     return (
-        <DemoSection title={t('form-layout')} description={t('form-layout-desc') as string}>
+        <DemoSection title={t('form-layout')} description={t('form-layout-desc') as string} icon={ViewAgendaOutlined} color="#2196F3">
             <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                     <TextField label={t('full-name')} fullWidth />

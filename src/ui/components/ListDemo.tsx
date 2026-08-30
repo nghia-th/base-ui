@@ -10,6 +10,8 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import Avatar from "@mui/material/Avatar";
 import Checkbox from "@mui/material/Checkbox";
 import Divider from "@mui/material/Divider";
+import ContactsOutlined from "@mui/icons-material/ContactsOutlined";
+import FactCheckOutlined from "@mui/icons-material/FactCheckOutlined";
 import DemoSection from "./common/DemoSection";
 
 const CONTACTS = ['Nguyen Van A', 'Tran Thi B', 'Le Van C', 'Pham Thi D'];
@@ -20,7 +22,7 @@ export default function ListDemo() {
     return (
         <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
-                <DemoSection title={t('contact-list')}>
+                <DemoSection title={t('contact-list')} icon={ContactsOutlined} color="#2196F3">
                     <List>
                         {CONTACTS.map((name, i) => (
                             <React.Fragment key={name}>
@@ -35,7 +37,7 @@ export default function ListDemo() {
                 </DemoSection>
             </Grid>
             <Grid item xs={12} md={6}>
-                <DemoSection title={t('checklist')}>
+                <DemoSection title={t('checklist')} icon={FactCheckOutlined} color="#4CAF50">
                     <List>
                         {TASKS.map((task) => (
                             <ListItem key={task} disablePadding>

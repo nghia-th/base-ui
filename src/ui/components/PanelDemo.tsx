@@ -10,6 +10,8 @@ import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
 import ExpandMoreOutlined from "@mui/icons-material/ExpandMoreOutlined";
 import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
+import ViewCompactOutlined from "@mui/icons-material/ViewCompactOutlined";
+import Box from "@mui/material/Box";
 import DemoSection from "./common/DemoSection";
 
 export default function PanelDemo() {
@@ -17,7 +19,7 @@ export default function PanelDemo() {
     return (
         <Grid container spacing={2}>
             <Grid item xs={12} md={6}>
-                <DemoSection title={t('accordion')}>
+                <DemoSection title={t('accordion')} icon={ViewCompactOutlined} color="#3F51B5">
                     {[1, 2, 3].map((i) => (
                         <Accordion key={i}>
                             <AccordionSummary expandIcon={<ExpandMoreOutlined />}>
@@ -31,10 +33,24 @@ export default function PanelDemo() {
                 </DemoSection>
             </Grid>
             <Grid item xs={12} md={6}>
-                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>{t('card-panel')}</Typography>
-                <Card>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+                    <Box sx={{
+                        width: 38, height: 38, borderRadius: 2, bgcolor: "#9C27B01f",
+                        display: "flex", alignItems: "center", justifyContent: "center"
+                    }}>
+                        <SettingsOutlined sx={{ color: "#9C27B0", fontSize: 20 }} />
+                    </Box>
+                    <Typography variant="subtitle1" fontWeight={700}>{t('card-panel')}</Typography>
+                </Box>
+                <Card sx={{ mb: 2 }}>
                     <CardHeader avatar={<SettingsOutlined color="primary" />} title={t('server-settings')} subheader={t('panel-content-placeholder')} />
                     <CardContent>
+                        <Typography variant="body2" color="text.secondary">{t('panel-content-placeholder')}</Typography>
+                    </CardContent>
+                </Card>
+                <Card variant="outlined">
+                    <CardContent>
+                        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>{t('outlined')}</Typography>
                         <Typography variant="body2" color="text.secondary">{t('panel-content-placeholder')}</Typography>
                     </CardContent>
                 </Card>

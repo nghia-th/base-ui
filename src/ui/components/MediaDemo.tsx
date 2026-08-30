@@ -7,6 +7,8 @@ import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
 import Avatar from "@mui/material/Avatar";
 import AvatarGroup from "@mui/material/AvatarGroup";
+import PermMediaOutlined from "@mui/icons-material/PermMediaOutlined";
+import GroupsOutlined from "@mui/icons-material/GroupsOutlined";
 import DemoSection from "./common/DemoSection";
 
 const COLORS = ['#2196F3', '#4CAF50', '#FF9800', '#9C27B0', '#009688'];
@@ -15,7 +17,7 @@ export default function MediaDemo() {
     const { t } = useTranslation();
     return (
         <>
-            <DemoSection title={t('media')}>
+            <DemoSection title={t('media')} icon={PermMediaOutlined} color="#2196F3">
                 <Grid container spacing={2}>
                     {[1, 2, 3].map((i) => (
                         <Grid item xs={12} sm={4} key={i}>
@@ -30,7 +32,7 @@ export default function MediaDemo() {
                     ))}
                 </Grid>
             </DemoSection>
-            <DemoSection title={t('avatars')}>
+            <DemoSection title={t('avatars')} icon={GroupsOutlined} color="#FF9800">
                 <AvatarGroup max={4}>
                     {COLORS.map((c) => <Avatar key={c} sx={{ bgcolor: c }}>A</Avatar>)}
                 </AvatarGroup>

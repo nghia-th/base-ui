@@ -3,6 +3,10 @@ export interface MenuItem {
     icon?: string
     to?: string | null
     items?: MenuItem[] | null
+    badge?: string | number
+    // Chỉ set ở item cấp cao nhất: khi có giá trị, sidebar sẽ chèn 1 tiêu đề nhóm (uppercase)
+    // ngay phía trên item này - tương tự nhãn "PAGES" / "ELEMENTS" của Mira.
+    section?: string
 }
 
 export interface BreadcrumbItem {
@@ -15,9 +19,9 @@ export interface BreadcrumbItem {
 // Trong module-ui, menu này được build động từ UserApi.myPermission()/module() trong BlocApp.initData()
 // - xem ghi chú trong ui/bloc/BlocApp.ts để biết cách thay bằng menu động khi có backend thật.
 export const MENU_DATA: MenuItem[] = [
-    { label: 'dashboard', icon: 'DashboardOutlined', to: '/', items: null },
+    { label: 'dashboard', icon: 'DashboardOutlined', to: '/', items: null, section: 'menu-section-main' },
     {
-        label: 'ui-kit', icon: 'WidgetsOutlined', items: [
+        label: 'ui-kit', icon: 'WidgetsOutlined', section: 'menu-section-elements', items: [
             { label: 'form-layout', icon: 'ViewAgendaOutlined', to: '/formlayout' },
             { label: 'input', icon: 'InputOutlined', to: '/input' },
             { label: 'float-label', icon: 'LabelOutlined', to: '/floatlabel' },
@@ -42,16 +46,16 @@ export const MENU_DATA: MenuItem[] = [
         ]
     },
     {
-        label: 'pages', icon: 'AutoAwesomeMosaicOutlined', items: [
-            { label: 'crud', icon: 'TableRowsOutlined', to: '/crud' },
+        label: 'pages', icon: 'AutoAwesomeMosaicOutlined', section: 'menu-section-pages', items: [
+            { label: 'crud', icon: 'TableRowsOutlined', to: '/crud', badge: 12 },
             { label: 'calendar', icon: 'CalendarMonthOutlined', to: '/calendar' },
             { label: 'timeline', icon: 'TimelineOutlined', to: '/timeline' },
-            { label: 'invoice', icon: 'ReceiptLongOutlined', to: '/invoice' },
+            { label: 'invoice', icon: 'ReceiptLongOutlined', to: '/invoice', badge: 3 },
             { label: 'help', icon: 'HelpOutlineOutlined', to: '/help' },
             { label: 'empty-page', icon: 'InsertDriveFileOutlined', to: '/empty' }
         ]
     },
-    { label: 'documentation', icon: 'MenuBookOutlined', to: '/documentation', items: null }
+    { label: 'documentation', icon: 'MenuBookOutlined', to: '/documentation', items: null, badge: 'new' }
 ]
 
 function flatten(items: MenuItem[], out: BreadcrumbItem[], parentLabel = 'dashboard') {

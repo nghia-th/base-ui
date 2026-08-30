@@ -4,6 +4,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Divider from "@mui/material/Divider";
 import Paper from "@mui/material/Paper";
+import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 
 const CODE_SX = {
     fontFamily: 'monospace',
@@ -21,7 +22,15 @@ export default function Documentation() {
     const { t } = useTranslation();
     return (
         <Paper sx={{ p: 4 }}>
-            <Typography variant="h5" fontWeight={700} gutterBottom>{t('documentation')}</Typography>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1 }}>
+                <Box sx={{
+                    width: 44, height: 44, borderRadius: 2, bgcolor: "#00968822",
+                    display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
+                }}>
+                    <MenuBookOutlined sx={{ color: "#009688" }} />
+                </Box>
+                <Typography variant="h5" fontWeight={700}>{t('documentation')}</Typography>
+            </Box>
             <Typography color="text.secondary" sx={{ mb: 3 }}>
                 base-ui = layout Material (MUI) + kiến trúc quản lý state Bloc/RxJS lấy từ module-ui.
             </Typography>

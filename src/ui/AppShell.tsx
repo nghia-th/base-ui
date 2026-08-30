@@ -106,6 +106,7 @@ export default function AppShell() {
                                                 mode={isOverlay ? 'overlay' : 'static'}
                                                 mobileOpen={mobileOpen}
                                                 onCloseMobile={() => setMobileOpen(false)}
+                                                fullName={LocalStorage.getItem('fullName') ?? undefined}
                                             />
                                         )}
                                         {(isSlim || isHorizontal) && (
@@ -114,6 +115,7 @@ export default function AppShell() {
                                                 mode="overlay"
                                                 mobileOpen={mobileOpen}
                                                 onCloseMobile={() => setMobileOpen(false)}
+                                                fullName={LocalStorage.getItem('fullName') ?? undefined}
                                             />
                                         )}
 

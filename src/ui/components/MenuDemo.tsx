@@ -12,6 +12,9 @@ import BottomNavigationAction from "@mui/material/BottomNavigationAction";
 import HomeOutlined from "@mui/icons-material/HomeOutlined";
 import FavoriteOutlined from "@mui/icons-material/FavoriteOutlined";
 import PersonOutline from "@mui/icons-material/PersonOutline";
+import TabOutlined from "@mui/icons-material/TabOutlined";
+import MoreVertOutlined from "@mui/icons-material/MoreVertOutlined";
+import DockOutlined from "@mui/icons-material/DockOutlined";
 import DemoSection from "./common/DemoSection";
 
 export default function MenuDemo() {
@@ -23,7 +26,7 @@ export default function MenuDemo() {
     return (
         <Grid container spacing={2}>
             <Grid item xs={12}>
-                <DemoSection title={t('tabs')}>
+                <DemoSection title={t('tabs')} icon={TabOutlined} color="#2196F3">
                     <Tabs value={tab} onChange={(_, v) => setTab(v)}>
                         <Tab label={t('overview') as string} />
                         <Tab label={t('settings') as string} />
@@ -33,7 +36,7 @@ export default function MenuDemo() {
                 </DemoSection>
             </Grid>
             <Grid item xs={12} md={6}>
-                <DemoSection title={t('context-menu')}>
+                <DemoSection title={t('context-menu')} icon={MoreVertOutlined} color="#9C27B0">
                     <Button variant="outlined" onClick={(e) => setAnchorEl(e.currentTarget)}>{t('open-menu')}</Button>
                     <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
                         <MenuItem onClick={() => setAnchorEl(null)}>{t('edit')}</MenuItem>
@@ -43,7 +46,7 @@ export default function MenuDemo() {
                 </DemoSection>
             </Grid>
             <Grid item xs={12} md={6}>
-                <DemoSection title={t('bottom-navigation')}>
+                <DemoSection title={t('bottom-navigation')} icon={DockOutlined} color="#4CAF50">
                     <BottomNavigation value={bottomNav} onChange={(_, v) => setBottomNav(v)} showLabels sx={{ borderRadius: 2 }}>
                         <BottomNavigationAction label={t('dashboard') as string} icon={<HomeOutlined />} />
                         <BottomNavigationAction label={t('favorites') as string} icon={<FavoriteOutlined />} />

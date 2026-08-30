@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
+import TimelineOutlined from "@mui/icons-material/TimelineOutlined";
 import DemoSection from "../components/common/DemoSection";
 
 const EVENTS = [
@@ -16,7 +17,7 @@ const EVENTS = [
 export default function TimelineDemo() {
     const { t } = useTranslation();
     return (
-        <DemoSection title={t('timeline')}>
+        <DemoSection title={t('timeline')} icon={TimelineOutlined} color="#9C27B0">
             <Box sx={{ position: 'relative', pl: 4 }}>
                 <Box sx={{ position: 'absolute', left: 11, top: 8, bottom: 8, width: 2, bgcolor: 'divider' }} />
                 {EVENTS.map((e, i) => (

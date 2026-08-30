@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import Box from "@mui/material/Box";
 import Chip from "@mui/material/Chip";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import TableChartOutlined from "@mui/icons-material/TableChartOutlined";
 import DemoSection from "./common/DemoSection";
 
 const ROWS = [
@@ -28,7 +29,7 @@ export default function TableDemo() {
     ];
 
     return (
-        <DemoSection title={t('table')} description={t('table-desc') as string}>
+        <DemoSection title={t('table')} description={t('table-desc') as string} icon={TableChartOutlined} color="#3F51B5">
             <Box sx={{ height: 380 }}>
                 <DataGrid
                     rows={ROWS}

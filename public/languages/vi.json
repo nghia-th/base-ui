@@ -216,6 +216,15 @@
     "activity-new-order": "Đơn hàng mới trị giá $79 vừa được tạo",
     "activity-comment": "Có bình luận mới cần phản hồi",
     "activity-review": "Sản phẩm nhận được đánh giá 5 sao",
-    "activity-report": "Báo cáo tuần đã sẵn sàng để xem"
+    "activity-report": "Báo cáo tuần đã sẵn sàng để xem",
+    "menu-section-main": "Chính",
+    "menu-section-elements": "Thành phần",
+    "menu-section-pages": "Trang",
+    "demo-role": "Thành viên demo",
+    "since-last-week": "So với tuần trước",
+    "monthly": "Hàng tháng",
+    "monthly-goal": "Mục tiêu tháng này",
+    "monthly-goal-desc": "Doanh thu hiện tại so với mục tiêu đề ra.",
+    "pagination": "Phân trang"
   }
 }

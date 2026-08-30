@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
+import ErrorOutlineOutlined from "@mui/icons-material/ErrorOutlineOutlined";
 import DemoSection from "./common/DemoSection";
 
 export default function InvalidStateDemo() {
@@ -12,7 +13,7 @@ export default function InvalidStateDemo() {
     const isValid = /.+@.+\..+/.test(email);
 
     return (
-        <DemoSection title={t('invalid-state')} description={t('invalid-state-desc') as string}>
+        <DemoSection title={t('invalid-state')} description={t('invalid-state-desc') as string} icon={ErrorOutlineOutlined} color="#F44336">
             <Grid container spacing={2}>
                 <Grid item xs={12} sm={6}>
                     <TextField

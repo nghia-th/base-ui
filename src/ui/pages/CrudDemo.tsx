@@ -12,6 +12,7 @@ import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import EditOutlined from "@mui/icons-material/EditOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
+import TableRowsOutlined from "@mui/icons-material/TableRowsOutlined";
 import DemoSection from "../components/common/DemoSection";
 
 interface Product {
@@ -67,7 +68,7 @@ export default function CrudDemo() {
     ];
 
     return (
-        <DemoSection title={t('crud')} description={t('crud-desc') as string}>
+        <DemoSection title={t('crud')} description={t('crud-desc') as string} icon={TableRowsOutlined} color="#2196F3">
             <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1 }}>
                 <Button variant="contained" startIcon={<AddOutlined />} onClick={openNew}>{t('new')}</Button>
             </Stack>

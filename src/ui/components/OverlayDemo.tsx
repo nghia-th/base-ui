@@ -11,6 +11,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Drawer from "@mui/material/Drawer";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
+import LayersOutlined from "@mui/icons-material/LayersOutlined";
 import DemoSection from "./common/DemoSection";
 
 export default function OverlayDemo() {
@@ -20,7 +21,7 @@ export default function OverlayDemo() {
     const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
 
     return (
-        <DemoSection title={t('overlay')}>
+        <DemoSection title={t('overlay')} icon={LayersOutlined} color="#3F51B5">
             <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
                 <Button variant="outlined" onClick={() => setDialogOpen(true)}>{t('open-dialog')}</Button>
                 <Button variant="outlined" onClick={(e) => setAnchorEl(e.currentTarget)}>{t('open-popover')}</Button>

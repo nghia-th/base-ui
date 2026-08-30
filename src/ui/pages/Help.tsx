@@ -5,6 +5,7 @@ import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import Typography from "@mui/material/Typography";
 import ExpandMoreOutlined from "@mui/icons-material/ExpandMoreOutlined";
+import HelpOutlineOutlined from "@mui/icons-material/HelpOutlineOutlined";
 import DemoSection from "../components/common/DemoSection";
 
 const FAQ_KEYS = ['faq-1', 'faq-2', 'faq-3'];
@@ -12,7 +13,7 @@ const FAQ_KEYS = ['faq-1', 'faq-2', 'faq-3'];
 export default function Help() {
     const { t } = useTranslation();
     return (
-        <DemoSection title={t('help')} description={t('help-desc') as string}>
+        <DemoSection title={t('help')} description={t('help-desc') as string} icon={HelpOutlineOutlined} color="#2196F3">
             {FAQ_KEYS.map((k) => (
                 <Accordion key={k}>
                     <AccordionSummary expandIcon={<ExpandMoreOutlined />}>

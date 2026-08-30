@@ -216,6 +216,15 @@
     "activity-new-order": "A new $79 order was just placed",
     "activity-comment": "A new comment needs your reply",
     "activity-review": "A product just received a 5-star review",
-    "activity-report": "The weekly report is ready to view"
+    "activity-report": "The weekly report is ready to view",
+    "menu-section-main": "Main",
+    "menu-section-elements": "Elements",
+    "menu-section-pages": "Pages",
+    "demo-role": "Demo member",
+    "since-last-week": "Since last week",
+    "monthly": "Monthly",
+    "monthly-goal": "Monthly goal",
+    "monthly-goal-desc": "Current revenue against the target for this month.",
+    "pagination": "Pagination"
   }
 }

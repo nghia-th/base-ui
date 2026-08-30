@@ -11,6 +11,7 @@ import LinearProgress from "@mui/material/LinearProgress";
 import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
 import InsertDriveFileOutlined from "@mui/icons-material/InsertDriveFileOutlined";
 import CloseOutlined from "@mui/icons-material/CloseOutlined";
+import AttachFileOutlined from "@mui/icons-material/AttachFileOutlined";
 import DemoSection from "./common/DemoSection";
 
 export default function FileDemo() {
@@ -19,7 +20,7 @@ export default function FileDemo() {
     const [files, setFiles] = useState<File[]>([]);
 
     return (
-        <DemoSection title={t('file')} description={t('file-desc') as string}>
+        <DemoSection title={t('file')} description={t('file-desc') as string} icon={AttachFileOutlined} color="#2196F3">
             <input
                 ref={inputRef}
                 type="file"

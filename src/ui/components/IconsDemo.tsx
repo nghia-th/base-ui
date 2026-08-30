@@ -3,13 +3,14 @@ import { useTranslation } from "react-i18next";
 import Grid from "@mui/material/Grid";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
+import AutoAwesomeMosaicOutlined from "@mui/icons-material/AutoAwesomeMosaicOutlined";
 import { ICON_MAP } from "../layout/iconMap";
 import DemoSection from "./common/DemoSection";
 
 export default function IconsDemo() {
     const { t } = useTranslation();
     return (
-        <DemoSection title={t('icons')} description={t('icons-desc') as string}>
+        <DemoSection title={t('icons')} description={t('icons-desc') as string} icon={AutoAwesomeMosaicOutlined} color="#009688">
             <Grid container spacing={2}>
                 {Object.entries(ICON_MAP).map(([name, Icon]) => (
                     <Grid item xs={6} sm={4} md={3} lg={2} key={name}>

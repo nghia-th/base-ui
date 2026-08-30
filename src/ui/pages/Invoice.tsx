@@ -10,6 +10,7 @@ import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Button from "@mui/material/Button";
+import Chip from "@mui/material/Chip";
 import PrintOutlined from "@mui/icons-material/PrintOutlined";
 
 const ITEMS = [
@@ -27,7 +28,7 @@ export default function Invoice() {
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
                 <Button variant="outlined" startIcon={<PrintOutlined />} onClick={() => window.print()}>{t('print')}</Button>
             </Box>
-            <Paper sx={{ p: 4 }}>
+            <Paper sx={{ p: 4, borderTop: '4px solid', borderTopColor: 'primary.main' }}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
                     <Box>
                         <Typography variant="h5" fontWeight={700}>base-ui</Typography>
@@ -35,7 +36,8 @@ export default function Invoice() {
                     </Box>
                     <Box textAlign="right">
                         <Typography variant="h6">{t('invoice')} #INV-0001</Typography>
-                        <Typography variant="body2" color="text.secondary">{new Date().toLocaleDateString()}</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>{new Date().toLocaleDateString()}</Typography>
+                        <Chip label={t('completed')} color="success" size="small" />
                     </Box>
                 </Box>
                 <Divider sx={{ mb: 2 }} />
