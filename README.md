@@ -1,70 +1,65 @@
-# Getting Started with Create React App
+# base-ui
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Template UI dùng **Material UI (MUI)** thay cho PrimeReact (như template-ui), kết hợp kiến trúc
+quản lý state **Bloc + RxJS + AppContext + UIStream** lấy từ module-ui.
 
-## Available Scripts
+## Chạy thử
 
-In the project directory, you can run:
+```bash
+npm install
+npm start
+```
 
-### `npm start`
+Mở http://localhost:3000 — màn hình đầu tiên là trang Login. Đây là bản demo chưa nối backend
+thật nên **nhập bất kỳ username/password nào** cũng đăng nhập được (xem `src/ui/bloc/BlocLogin.ts`
+để biết cách bật lại API thật khi có backend).
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Sau khi "đăng nhập", vào menu **Trang > Tài liệu** (route `/documentation`) để xem giải thích chi
+tiết kiến trúc Bloc/AppContext/UIStream và hướng dẫn thêm 1 trang mới.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Cấu trúc chính
 
-### `npm test`
+```
+src/
+  base/            # Tầng lõi copy từ module-ui: IBloc, IBlocUI, AppContext, ApiService, CallApi, RequestBase
+  api/              # Định nghĩa API (RequestBase) theo từng service
+  theme/            # MUI theme (thay cho theme PrimeReact/sass của template-ui)
+  ui/
+    bloc/           # Bloc cho từng trang/shell (BlocApplication, BlocApp, BlocLogin, BlocDashboard, ...)
+    layout/         # Topbar, Sidebar, Footer, Breadcrumb, Config drawer (MUI, thay cho IApp* của template-ui)
+    pages/          # Các trang: Login, Dashboard, Crud, Calendar, Invoice, Help, Documentation, ...
+    components/     # Các trang demo UI-kit (Form, Input, Button, Table, Tree, Chart, Icons, ...)
+    AppMenuData.ts  # Cấu hình menu/breadcrumb tĩnh
+    AppShell.tsx    # Khung layout đã đăng nhập (topbar+sidebar+content), tương đương ISmartApp.js
+  AppWrapper.tsx    # Điều phối loadInit + routing công khai (login/error/notfound) + shell
+  App.tsx           # Root: BlocApplication instance + ThemeProvider + SnackbarProvider + Router
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Kiến trúc tóm tắt
 
-### `npm run build`
+1. **Bloc** (`base/IBloc.ts`, `base/IBlocUI.ts`) giữ state + phát dữ liệu qua RxJS `Subject`
+   (`setStream`/`getStream`), gọi API qua `apiRequest`/`apiRequestAwait`.
+2. **AppContext** (`base/AppContext.ts`) truyền `app` (BlocApplication) + `apiHandler` + `translate`
+   xuống toàn bộ cây component; `reUseBloc`/`reUseBlocContent` lấy/khởi tạo Bloc đúng phạm vi
+   (shell hay từng trang), tự dispose khi đổi route.
+3. **UIStream** (`ui/components/common/UIStream.ts`) là 1 "StreamBuilder" kiểu Flutter: subscribe
+   1 Subject rồi render lại khi có dữ liệu mới.
+4. Gọi API qua `RequestBase` (`base/RequestBase.ts`) + `ApiService.ts` (axios, tự refresh token).
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Xem chi tiết + ví dụ code tại trang **Documentation** trong app (`src/ui/pages/Documentation.tsx`).
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Việc cần làm khi nối backend thật
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+- `src/base/PrefixService.ts`: đổi các prefix service cho đúng backend thật.
+- `src/ui/bloc/BlocLogin.ts`: bật lại khối `apiRequest(UserApi.login(...))`, xoá khối mock demo.
+- `src/ui/bloc/BlocApp.ts` (`initData`): thay menu tĩnh bằng `apiSyncMultiRequest` gọi
+  `UserApi.myPermission()`/`UserApi.module()` giống module-ui.
+- `src/api/ApiLanguage.ts`: đổi sang gọi API ngôn ngữ thật thay vì đọc file tĩnh trong `public/languages`.
 
-### `npm run eject`
+## Build production
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+npm run build
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Đã build thử thành công (không lỗi, không cảnh báo ESLint) trước khi bàn giao.
