@@ -8,6 +8,7 @@ import Box from "@mui/material/Box";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Chip from "@mui/material/Chip";
@@ -165,28 +166,32 @@ export default function Dashboard() {
                                                 <MenuItemMui value="last">{t('last-week')}</MenuItemMui>
                                             </Select>
                                         </Box>
-                                        <Table size="small">
-                                            <TableHead>
-                                                <TableRow>
-                                                    <TableCell>{t('id')}</TableCell>
-                                                    <TableCell>{t('customer')}</TableCell>
-                                                    <TableCell>{t('status')}</TableCell>
-                                                    <TableCell align="right">{t('amount')}</TableCell>
-                                                </TableRow>
-                                            </TableHead>
-                                            <TableBody>
-                                                {recentRows.map((row: any) => (
-                                                    <TableRow key={row.id} hover>
-                                                        <TableCell>{row.id}</TableCell>
-                                                        <TableCell>{row.customer}</TableCell>
-                                                        <TableCell>
-                                                            <Chip size="small" label={t(row.status)} color={STATUS_COLOR[row.status]} />
-                                                        </TableCell>
-                                                        <TableCell align="right">${row.amount}</TableCell>
+                                        {/* TableContainer (overflowX: auto) để bảng cuộn ngang TRONG card khi màn hình hẹp
+                                            (mobile) thay vì đẩy tràn cả layout - <table> mặc định không tự co theo cha. */}
+                                        <TableContainer sx={{ overflowX: 'auto' }}>
+                                            <Table size="small">
+                                                <TableHead>
+                                                    <TableRow>
+                                                        <TableCell>{t('id')}</TableCell>
+                                                        <TableCell>{t('customer')}</TableCell>
+                                                        <TableCell>{t('status')}</TableCell>
+                                                        <TableCell align="right">{t('amount')}</TableCell>
                                                     </TableRow>
-                                                ))}
-                                            </TableBody>
-                                        </Table>
+                                                </TableHead>
+                                                <TableBody>
+                                                    {recentRows.map((row: any) => (
+                                                        <TableRow key={row.id} hover>
+                                                            <TableCell>{row.id}</TableCell>
+                                                            <TableCell>{row.customer}</TableCell>
+                                                            <TableCell>
+                                                                <Chip size="small" label={t(row.status)} color={STATUS_COLOR[row.status]} />
+                                                            </TableCell>
+                                                            <TableCell align="right">${row.amount}</TableCell>
+                                                        </TableRow>
+                                                    ))}
+                                                </TableBody>
+                                            </Table>
+                                        </TableContainer>
                                     </CardContent>
                                 </Card>
                             </Grid>

@@ -298,6 +298,7 @@
     "no": "No",
     "home-title": "Nothing here yet",
     "home-desc": "This is where your new project's real UI will live. While you build it, browse the template and UI Kit reference at /demo.",
-    "view-demo": "View demo / UI Kit"
+    "view-demo": "View demo / UI Kit",
+    "home": "Home"
   }
 }

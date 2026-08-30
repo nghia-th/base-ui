@@ -7,6 +7,7 @@ import Divider from "@mui/material/Divider";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
 import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Button from "@mui/material/Button";
@@ -28,8 +29,8 @@ export default function Invoice() {
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
                 <Button variant="outlined" startIcon={<PrintOutlined />} onClick={() => window.print()}>{t('print')}</Button>
             </Box>
-            <Paper sx={{ p: 4, borderTop: '4px solid', borderTopColor: 'primary.main' }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+            <Paper sx={{ p: { xs: 2, sm: 4 }, borderTop: '4px solid', borderTopColor: 'primary.main' }}>
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, justifyContent: 'space-between', mb: 3 }}>
                     <Box>
                         <Typography variant="h5" fontWeight={700}>base-ui</Typography>
                         <Typography variant="body2" color="text.secondary">123 Nguyen Trai, TP.HCM</Typography>
@@ -41,30 +42,34 @@ export default function Invoice() {
                     </Box>
                 </Box>
                 <Divider sx={{ mb: 2 }} />
-                <Table>
-                    <TableHead>
-                        <TableRow>
-                            <TableCell>{t('product-name')}</TableCell>
-                            <TableCell align="right">{t('quantity')}</TableCell>
-                            <TableCell align="right">{t('price')}</TableCell>
-                            <TableCell align="right">{t('total')}</TableCell>
-                        </TableRow>
-                    </TableHead>
-                    <TableBody>
-                        {ITEMS.map((i) => (
-                            <TableRow key={i.name}>
-                                <TableCell>{i.name}</TableCell>
-                                <TableCell align="right">{i.qty}</TableCell>
-                                <TableCell align="right">{i.price.toLocaleString()}</TableCell>
-                                <TableCell align="right">{(i.qty * i.price).toLocaleString()}</TableCell>
+                {/* TableContainer (overflowX: auto) để bảng cuộn ngang trong Paper khi màn hình hẹp
+                    thay vì đẩy tràn cả layout - <table> mặc định không tự co theo cha. */}
+                <TableContainer sx={{ overflowX: 'auto' }}>
+                    <Table>
+                        <TableHead>
+                            <TableRow>
+                                <TableCell>{t('product-name')}</TableCell>
+                                <TableCell align="right">{t('quantity')}</TableCell>
+                                <TableCell align="right">{t('price')}</TableCell>
+                                <TableCell align="right">{t('total')}</TableCell>
                             </TableRow>
-                        ))}
-                        <TableRow>
-                            <TableCell colSpan={3} align="right"><strong>{t('total')}</strong></TableCell>
-                            <TableCell align="right"><strong>{total.toLocaleString()} đ</strong></TableCell>
-                        </TableRow>
-                    </TableBody>
-                </Table>
+                        </TableHead>
+                        <TableBody>
+                            {ITEMS.map((i) => (
+                                <TableRow key={i.name}>
+                                    <TableCell>{i.name}</TableCell>
+                                    <TableCell align="right">{i.qty}</TableCell>
+                                    <TableCell align="right">{i.price.toLocaleString()}</TableCell>
+                                    <TableCell align="right">{(i.qty * i.price).toLocaleString()}</TableCell>
+                                </TableRow>
+                            ))}
+                            <TableRow>
+                                <TableCell colSpan={3} align="right"><strong>{t('total')}</strong></TableCell>
+                                <TableCell align="right"><strong>{total.toLocaleString()} đ</strong></TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                </TableContainer>
             </Paper>
         </Box>
     );

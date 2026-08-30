@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
@@ -23,6 +23,7 @@ import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
 import TranslateOutlined from "@mui/icons-material/TranslateOutlined";
 import NotificationsOutlined from "@mui/icons-material/NotificationsOutlined";
 import ViewSidebarOutlined from "@mui/icons-material/ViewSidebarOutlined";
+import MoreVertOutlined from "@mui/icons-material/MoreVertOutlined";
 import PersonOutlined from "@mui/icons-material/PersonOutlined";
 import CalendarMonthOutlined from "@mui/icons-material/CalendarMonthOutlined";
 import InboxOutlined from "@mui/icons-material/InboxOutlined";
@@ -104,6 +105,12 @@ export default function AppTopbar({ leftOffset, breadcrumb, onMenuClick, onConfi
     const [langAnchor, setLangAnchor] = useState<null | HTMLElement>(null);
     const [notifAnchor, setNotifAnchor] = useState<null | HTMLElement>(null);
     const [appsAnchor, setAppsAnchor] = useState<null | HTMLElement>(null);
+    const [moreAnchor, setMoreAnchor] = useState<null | HTMLElement>(null);
+    // Trên màn hình hẹp (mobile), nút "Ứng dụng nội bộ" tự thu vào menu "more" (3 chấm dọc) thay
+    // vì hiện riêng từng icon - moreButtonRef dùng làm anchor chung cho Popover app-launcher khi
+    // mở từ trong menu "more" (menu "more" đã đóng lúc đó nên không thể anchor vào chính item vừa
+    // bấm được).
+    const moreButtonRef = useRef<HTMLButtonElement>(null);
 
     const changeLanguage = async (code: string) => {
         await lang.loadLang(code, i18n);
@@ -131,19 +138,26 @@ export default function AppTopbar({ leftOffset, breadcrumb, onMenuClick, onConfi
                 })
             }}
         >
-            <Toolbar sx={{ gap: 1 }}>
+            <Toolbar sx={{ gap: { xs: 0.25, sm: 1 } }}>
                 <IconButton color="inherit" edge="start" onClick={onMenuClick}>
                     <MenuIcon />
                 </IconButton>
 
-                <Typography variant="subtitle1" fontWeight={700} noWrap sx={{ ml: 0.5 }}>
+                <Typography variant="subtitle1" fontWeight={700} noWrap sx={{ ml: 0.5, minWidth: 0, flexShrink: 1 }}>
                     {pageTitle}
                 </Typography>
 
                 <Box sx={{ flexGrow: 1 }} />
 
+                {/* Ứng dụng nội bộ / ngôn ngữ / panel phải / cài đặt giao diện: hiện riêng từng icon
+                    từ "sm" trở lên, gộp vào nút "more" (3 chấm) trên mobile để topbar không tràn -
+                    xem nút more bên dưới. */}
                 <Tooltip title={t('internal-apps') as string}>
-                    <IconButton color="inherit" onClick={(e) => setAppsAnchor(e.currentTarget)}>
+                    <IconButton
+                        color="inherit"
+                        onClick={(e) => setAppsAnchor(e.currentTarget)}
+                        sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+                    >
                         <AppsOutlined />
                     </IconButton>
                 </Tooltip>
@@ -181,7 +195,11 @@ export default function AppTopbar({ leftOffset, breadcrumb, onMenuClick, onConfi
                 </Popover>
 
                 <Tooltip title={t('language') as string}>
-                    <IconButton color="inherit" onClick={(e) => setLangAnchor(e.currentTarget)}>
+                    <IconButton
+                        color="inherit"
+                        onClick={(e) => setLangAnchor(e.currentTarget)}
+                        sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+                    >
                         <TranslateOutlined />
                     </IconButton>
                 </Tooltip>
@@ -216,16 +234,58 @@ export default function AppTopbar({ leftOffset, breadcrumb, onMenuClick, onConfi
                 </Menu>
 
                 <Tooltip title={t('right-menu') as string}>
-                    <IconButton color="inherit" onClick={onRightMenuClick}>
+                    <IconButton
+                        color="inherit"
+                        onClick={onRightMenuClick}
+                        sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+                    >
                         <ViewSidebarOutlined sx={{ transform: "scaleX(-1)" }} />
                     </IconButton>
                 </Tooltip>
 
                 <Tooltip title={t('theme-settings') as string}>
-                    <IconButton color="inherit" onClick={onConfigClick}>
+                    <IconButton
+                        color="inherit"
+                        onClick={onConfigClick}
+                        sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
+                    >
                         <SettingsOutlined />
                     </IconButton>
                 </Tooltip>
+
+                {/* Nút "more" (3 chấm dọc) - chỉ hiện trên mobile (xs), gộp 4 hành động ít quan
+                    trọng hơn ở trên (app nội bộ/ngôn ngữ/panel phải/cài đặt) vào 1 menu duy nhất
+                    để topbar không tràn ngang trên màn hình hẹp. */}
+                <IconButton
+                    ref={moreButtonRef}
+                    color="inherit"
+                    onClick={(e) => setMoreAnchor(e.currentTarget)}
+                    sx={{ display: { xs: 'inline-flex', sm: 'none' } }}
+                >
+                    <MoreVertOutlined />
+                </IconButton>
+                <Menu anchorEl={moreAnchor} open={!!moreAnchor} onClose={() => setMoreAnchor(null)}>
+                    <MenuItemMui onClick={() => { setMoreAnchor(null); setAppsAnchor(moreButtonRef.current); }}>
+                        <ListItemIcon><AppsOutlined fontSize="small" /></ListItemIcon>
+                        {t('internal-apps')}
+                    </MenuItemMui>
+                    <MenuItemMui onClick={() => { setMoreAnchor(null); changeLanguage('vi'); }}>
+                        <ListItemIcon><TranslateOutlined fontSize="small" /></ListItemIcon>
+                        {t('vietnamese')}
+                    </MenuItemMui>
+                    <MenuItemMui onClick={() => { setMoreAnchor(null); changeLanguage('en'); }}>
+                        <ListItemIcon><TranslateOutlined fontSize="small" /></ListItemIcon>
+                        {t('english')}
+                    </MenuItemMui>
+                    <MenuItemMui onClick={() => { setMoreAnchor(null); onRightMenuClick(); }}>
+                        <ListItemIcon><ViewSidebarOutlined fontSize="small" sx={{ transform: "scaleX(-1)" }} /></ListItemIcon>
+                        {t('right-menu')}
+                    </MenuItemMui>
+                    <MenuItemMui onClick={() => { setMoreAnchor(null); onConfigClick(); }}>
+                        <ListItemIcon><SettingsOutlined fontSize="small" /></ListItemIcon>
+                        {t('theme-settings')}
+                    </MenuItemMui>
+                </Menu>
 
                 <Tooltip title={fullName ?? t('account') as string}>
                     <IconButton onClick={(e) => setUserAnchor(e.currentTarget)} sx={{ ml: 0.5 }}>

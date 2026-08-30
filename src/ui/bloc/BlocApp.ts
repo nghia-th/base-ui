@@ -31,10 +31,22 @@ const DEFAULT_UI: UIState = {
 // BlocApp là Bloc của "shell" đã đăng nhập (topbar/sidebar/footer) - tương đương BlocApp bên
 // module-ui. Nó giữ state UI (theme/menu mode) + menu/breadcrumb, phát qua "ui" và "loadInitStream".
 export class BlocApp extends IBlocUI {
-    ui = 'base-ui'
+    // "ui" là property KHÔNG được set qua field initializer thường (`ui = 'base-ui'`) mà qua
+    // getter - lý do: field initializer của class con chỉ chạy SAU KHI constructor của class cha
+    // (IBloc) chạy xong, mà IBloc's constructor lại gọi this.init() ngay bên trong nó. init() ở
+    // đây (override của BlocApp) cần đọc this.ui NGAY LÚC ĐÓ để biết key localStorage cần đọc -
+    // nếu ui là field initializer thường, this.ui vẫn là undefined tại thời điểm này (bug thật đã
+    // gặp: đọc/ghi nhầm key "undefined-ui" thay vì "base-ui-ui", khiến cài đặt giao diện KHÔNG
+    // bao giờ được khôi phục đúng sau khi tải lại trang, dù saveUI() vẫn lưu đúng key). Getter thì
+    // nằm trên prototype ngay từ lúc định nghĩa class, đọc được bất kể thứ tự khởi tạo field.
+    get ui() { return 'base-ui' }
 
     init() {
         super.init()
+        // Dọn key rác "undefined-ui" - do bug field-initializer-ordering ở trên (đã fix bằng
+        // getter), các bản build trước đây có thể đã lỡ ghi nhầm cài đặt mặc định vào key này thay
+        // vì "base-ui-ui" thật. Xoá 1 lần cho sạch, không ảnh hưởng gì nếu key này chưa từng tồn tại.
+        LocalStorage.delete('undefined-ui')
         this._blocData['UI'] = { ...DEFAULT_UI }
         const saved = LocalStorage.getItem(`${this.ui}-ui`)
         if (saved) {

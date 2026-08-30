@@ -77,3 +77,18 @@ export const BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
     flatten(MENU_DATA, out)
     return out
 })()
+
+// Menu riêng cho "/" (root) - KHÔNG dùng chung MENU_DATA ở trên vì các mục đó ("Thành phần",
+// "Bộ giao diện"...) chỉ thuộc về /demo. Root dùng chung khung (topbar/sidebar) với /demo
+// (xem AppShell.tsx) nhưng phải có menu riêng, để trống/tối giản cho tới khi bắt đầu build
+// project thật - thêm item vào đây (giống cấu trúc MENU_DATA) khi cần, "to" nên trỏ vào path
+// thật của project (vd "/users", "/settings"...), không cần tiền tố "/demo".
+export const ROOT_MENU_DATA: MenuItem[] = [
+    { label: 'home', icon: 'DashboardOutlined', to: '/', items: null }
+]
+
+export const ROOT_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
+    const out: BreadcrumbItem[] = []
+    flatten(ROOT_MENU_DATA, out)
+    return out
+})()

@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Route, Routes } from "react-router-dom";
+import { Route, Routes, useLocation } from "react-router-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import CssBaseline from "@mui/material/CssBaseline";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
@@ -9,6 +10,7 @@ import { BlocApp } from "./bloc/BlocApp";
 import UIStream from "./components/common/UIStream";
 import { createAppTheme } from "../theme/muiTheme";
 import { DRAWER_WIDTH, SLIM_WIDTH, HORIZONTAL_MENU_HEIGHT } from "./layout/layoutConstants";
+import { ROOT_MENU_DATA, ROOT_BREADCRUMB_DATA } from "./AppMenuData";
 import AppTopbar from "./layout/AppTopbar";
 import AppSidebar from "./layout/AppSidebar";
 import AppSlimMenu from "./layout/AppSlimMenu";
@@ -56,8 +58,19 @@ import SearchOffOutlined from "@mui/icons-material/SearchOffOutlined";
 export default function AppShell() {
     const appContext = useContext(AppContext);
     const blocApp = reUseBloc(appContext, BlocApp);
+    const location = useLocation();
+    // "/demo" và "/demo/*" dùng menu template/UI Kit (viewMain.menu từ BlocApp); "/" và mọi path
+    // khác NGOÀI /demo (project thật của anh sau này) dùng ROOT_MENU_DATA riêng, để trống/tối
+    // giản - xem AppMenuData.ts. 2 khu vực này dùng chung 1 khung (topbar/sidebar) nhưng KHÔNG
+    // dùng chung menu, tránh lẫn menu demo (Thành phần/Bộ giao diện...) vào project thật.
+    const isDemoRoute = location.pathname === '/demo' || location.pathname.startsWith('/demo/');
+    // Sidebar tự thu gọn theo mặc định trên tablet/mobile (< 960px, giống breakpoint "md" của MUI)
+    // để không chiếm hết màn hình hẹp - vẫn mở lại được qua nút menu (3 gạch). Chỉ đọc 1 lần lúc
+    // mount (lazy initializer) để không tự ý đóng lại sidebar mà người dùng đã chủ động mở/đóng
+    // khi resize/xoay màn hình sau đó.
+    const isCompactViewport = useMediaQuery('(max-width:959.95px)');
     const [mobileOpen, setMobileOpen] = useState(false);
-    const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
+    const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(() => !isCompactViewport);
     const [configOpen, setConfigOpen] = useState(false);
     const [rightMenuOpen, setRightMenuOpen] = useState(false);
 
@@ -96,6 +109,8 @@ export default function AppShell() {
             stream={blocApp.getStream('loadInitStream')}
             builder={(snapshot) => {
                 const viewMain = snapshot.data ?? blocApp.getField('viewMain');
+                const menu = isDemoRoute ? viewMain.menu : ROOT_MENU_DATA;
+                const breadcrumb = isDemoRoute ? viewMain.breadcrumb : ROOT_BREADCRUMB_DATA;
                 return (
                     <UIStream
                         initialData={blocApp.getUI()}
@@ -115,7 +130,7 @@ export default function AppShell() {
                                     <Box sx={{ display: 'flex' }}>
                                         <AppTopbar
                                             leftOffset={leftOffset}
-                                            breadcrumb={viewMain.breadcrumb}
+                                            breadcrumb={breadcrumb}
                                             onMenuClick={handleMenuClick}
                                             onConfigClick={() => setConfigOpen(true)}
                                             onRightMenuClick={() => setRightMenuOpen(true)}
@@ -123,11 +138,11 @@ export default function AppShell() {
                                             onLogout={handleLogout}
                                         />
 
-                                        {isHorizontal && <AppHorizontalMenu menu={viewMain.menu} />}
-                                        {isSlim && <AppSlimMenu menu={viewMain.menu} />}
+                                        {isHorizontal && <AppHorizontalMenu menu={menu} />}
+                                        {isSlim && <AppSlimMenu menu={menu} />}
                                         {!isSlim && !isHorizontal && (
                                             <AppSidebar
-                                                menu={viewMain.menu}
+                                                menu={menu}
                                                 mode={isOverlay ? 'overlay' : 'static'}
                                                 mobileOpen={mobileOpen}
                                                 onCloseMobile={() => setMobileOpen(false)}
@@ -137,7 +152,7 @@ export default function AppShell() {
                                         )}
                                         {(isSlim || isHorizontal) && (
                                             <AppSidebar
-                                                menu={viewMain.menu}
+                                                menu={menu}
                                                 mode="overlay"
                                                 mobileOpen={mobileOpen}
                                                 onCloseMobile={() => setMobileOpen(false)}
@@ -149,7 +164,12 @@ export default function AppShell() {
                                             component="main"
                                             sx={{
                                                 flexGrow: 1,
-                                                p: 3,
+                                                // minWidth: 0 để main luôn co được theo khoảng trống thực tế còn lại - mặc định
+                                                // 1 flex item có min-width: auto (co theo nội dung), nên nếu bên trong lỡ có gì
+                                                // không tự co được (bảng <Table> thường, nội dung không wrap...) main (và cả
+                                                // hàng flex cha) sẽ bị đẩy tràn ngang thay vì hiện scrollbar cục bộ ở đúng chỗ.
+                                                minWidth: 0,
+                                                p: { xs: 2, sm: 3 },
                                                 width: { sm: `calc(100% - ${leftOffset}px)` },
                                                 minHeight: '100vh',
                                                 display: 'flex',

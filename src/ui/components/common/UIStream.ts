@@ -1,4 +1,4 @@
-import {Subject} from "rxjs";
+import {Subject, Subscription} from "rxjs";
 import {Component} from "react";
 class ConnectionState {
     public static none = 0;
@@ -44,7 +44,14 @@ export interface StreamBuilderProps {
 class UIStream extends Component<StreamBuilderProps, any> {
     // private snapshot: AsyncSnapshot = new AsyncSnapshot(ConnectionState.none);
 
-    // private stream
+    // Subscription hiện tại, để huỷ đúng lúc unmount hoặc khi props.stream đổi - trước đây
+    // componentDidUpdate() subscribe() lại vô điều kiện ở MỌI lần re-render (kể cả khi stream
+    // không đổi) mà không bao giờ unsubscribe (componentWillUnmount() để trống), nên mỗi lần
+    // component cha re-render (bấm nút menu, mở drawer...) lại cộng dồn thêm 1 subscription vào
+    // CÙNG 1 Subject (các stream của BlocApp/BlocApplication là singleton sống suốt vòng đời) -
+    // lần phát dữ liệu tiếp theo sẽ chạy setState() nhiều lần chồng chéo, càng dùng lâu càng nặng.
+    private subscription: Subscription | null = null;
+
     constructor(props: StreamBuilderProps) {
         super(props);
         const {initialData} = props;
@@ -57,60 +64,47 @@ class UIStream extends Component<StreamBuilderProps, any> {
         };
     }
 
-    componentDidMount() {
-        if (this.props.stream) {
-            this.props.stream.subscribe(
-                data => {
-
+    private subscribeToStream(stream: Subject<any>) {
+        this.subscription = stream.subscribe(
+            data => {
+                this.setState({
+                    snapshot: new AsyncSnapshot(ConnectionState.active, data, null),
+                });
+            },
+            error => {
+                if (error) {
                     this.setState({
-                        snapshot: new AsyncSnapshot(ConnectionState.active, data, null),
-                    })
-                    ;
-                },
-                error => {
-                    if (error) {
-                        this.setState({
-                            snapshot: new AsyncSnapshot(ConnectionState.active, null, error),
-                        });
-                    }
-
-                },
-                () => {
-                    this.setState({
-                        snapshot: new AsyncSnapshot(ConnectionState.done, null, null),
+                        snapshot: new AsyncSnapshot(ConnectionState.active, null, error),
                     });
                 }
-            );
+            },
+            () => {
+                this.setState({
+                    snapshot: new AsyncSnapshot(ConnectionState.done, null, null),
+                });
+            }
+        );
+    }
+
+    componentDidMount() {
+        if (this.props.stream) {
+            this.subscribeToStream(this.props.stream);
         }
     }
 
     componentDidUpdate(prevProps: Readonly<StreamBuilderProps>, prevState: Readonly<any>, snapshot?: any) {
-        if (this.props.stream) {
-            this.props.stream.subscribe(
-                data => {
-                    this.setState({
-                        snapshot: new AsyncSnapshot(ConnectionState.active, data, null),
-                    })
-                    ;
-                },
-                error => {
-                    if (error) {
-                        this.setState({
-                            snapshot: new AsyncSnapshot(ConnectionState.active, null, error),
-                        });
-                    }
-
-                },
-                () => {
-                    this.setState({
-                        snapshot: new AsyncSnapshot(ConnectionState.done, null, null),
-                    });
-                }
-            );
+        if (prevProps.stream !== this.props.stream) {
+            this.subscription?.unsubscribe();
+            this.subscription = null;
+            if (this.props.stream) {
+                this.subscribeToStream(this.props.stream);
+            }
         }
     }
 
     componentWillUnmount() {
+        this.subscription?.unsubscribe();
+        this.subscription = null;
     }
 
     render() {

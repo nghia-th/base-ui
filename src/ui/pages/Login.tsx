@@ -45,9 +45,9 @@ export default function Login() {
             LocalStorage.setItem('i18nextLng', res?.data?.lang ?? 'vi');
             LocalStorage.setItem('avatar', res?.data?.avatar ?? '');
             const url = locSearch.get('url');
-            // "/" giờ là trang chủ trống (không cần đăng nhập) - đăng nhập chỉ thật sự cần thiết
-            // để vào /demo, nên khi không có "url" redirect cụ thể (vào /login trực tiếp), đưa
-            // thẳng vào /demo thay vì "/".
+            // "/" và "/demo" đều nằm trong cùng khung AppShell và đều cần đăng nhập (xem
+            // AppWrapper.tsx) - khi không có "url" redirect cụ thể (vào /login trực tiếp), đưa
+            // vào /demo (có nội dung sẵn để xem) thay vì "/" (còn trống, chưa build gì).
             window.location.href = BASE_URL + (url ?? '/demo');
         }, (error: any) => {
             setSubmitting(false);
