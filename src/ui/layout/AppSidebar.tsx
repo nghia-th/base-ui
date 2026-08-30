@@ -11,13 +11,16 @@ import { DRAWER_WIDTH } from "./layoutConstants";
 
 interface AppSidebarProps {
     menu: MenuItem[];
+    mode: 'static' | 'overlay';
     mobileOpen: boolean;
     onCloseMobile: () => void;
 }
 
-// Sidebar responsive chuẩn MUI: Drawer "temporary" trên mobile, "permanent" trên desktop.
-// Thay cho AppMenu.js (PrimeReact) bên template-ui.
-export default function AppSidebar({ menu, mobileOpen, onCloseMobile }: AppSidebarProps) {
+// Sidebar responsive chuẩn MUI. Thay cho AppMenu.js (PrimeReact) bên template-ui.
+// - mode="static": Drawer "permanent" trên desktop (luôn chiếm chỗ), "temporary" trên mobile.
+// - mode="overlay": luôn là Drawer "temporary" (nổi đè lên nội dung, không chiếm chỗ) ở mọi kích
+//   thước màn hình - mở/đóng qua nút menu trên AppTopbar, giống chế độ "overlay" của IAppConfig.js.
+export default function AppSidebar({ menu, mode, mobileOpen, onCloseMobile }: AppSidebarProps) {
     const content = (
         <div>
             <Toolbar sx={{ gap: 1 }}>
@@ -30,6 +33,22 @@ export default function AppSidebar({ menu, mobileOpen, onCloseMobile }: AppSideb
             <AppMenuList items={menu} onNavigate={onCloseMobile} />
         </div>
     );
+
+    if (mode === 'overlay') {
+        return (
+            <Drawer
+                variant="temporary"
+                open={mobileOpen}
+                onClose={onCloseMobile}
+                ModalProps={{ keepMounted: true }}
+                sx={{
+                    "& .MuiDrawer-paper": { boxSizing: "border-box", width: DRAWER_WIDTH }
+                }}
+            >
+                {content}
+            </Drawer>
+        );
+    }
 
     return (
         <Box component="nav" sx={{ width: { sm: DRAWER_WIDTH }, flexShrink: { sm: 0 } }}>

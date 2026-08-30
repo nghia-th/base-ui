@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
@@ -11,11 +11,14 @@ import TableCell from "@mui/material/TableCell";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Chip from "@mui/material/Chip";
+import Select from "@mui/material/Select";
+import MenuItemMui from "@mui/material/MenuItem";
 import ShoppingCartOutlined from "@mui/icons-material/ShoppingCartOutlined";
 import PaidOutlined from "@mui/icons-material/PaidOutlined";
 import PeopleOutlined from "@mui/icons-material/PeopleOutlined";
 import ChatBubbleOutlineOutlined from "@mui/icons-material/ChatBubbleOutlineOutlined";
 import { LineChart } from "@mui/x-charts/LineChart";
+import { PieChart } from "@mui/x-charts/PieChart";
 import { AppContext, reUseBlocContent } from "../../base/AppContext";
 import { BlocDashboard } from "../bloc/BlocDashboard";
 import UIStream from "../components/common/UIStream";
@@ -39,6 +42,7 @@ export default function Dashboard() {
     const { t } = useTranslation();
     const appContext = useContext(AppContext);
     const bloc = reUseBlocContent(appContext, BlocDashboard);
+    const [week, setWeek] = useState<'this' | 'last'>('this');
 
     useEffect(() => {
         bloc.initData();
@@ -51,6 +55,7 @@ export default function Dashboard() {
             stream={bloc.getStream('stats')}
             builder={(snapshot) => {
                 const data = snapshot.data;
+                const recentRows = data ? (week === 'this' ? data.recent : data.recentLastWeek) : [];
                 return (
                     <Box>
                         <Grid container spacing={2} sx={{ mb: 2 }}>
@@ -76,7 +81,7 @@ export default function Dashboard() {
                             ))}
                         </Grid>
 
-                        <Grid container spacing={2}>
+                        <Grid container spacing={2} sx={{ mb: 2 }}>
                             <Grid item xs={12} md={7}>
                                 <Card>
                                     <CardContent>
@@ -97,8 +102,44 @@ export default function Dashboard() {
                                 <Card>
                                     <CardContent>
                                         <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
-                                            {t('recent-orders')}
+                                            {t('revenue-by-channel')}
                                         </Typography>
+                                        {data ? (
+                                            <PieChart
+                                                height={280}
+                                                series={[{
+                                                    innerRadius: 50,
+                                                    outerRadius: 100,
+                                                    paddingAngle: 2,
+                                                    cornerRadius: 3,
+                                                    data: data.channels.map((c: any) => ({
+                                                        id: c.id, value: c.value, label: t(c.labelKey) as string, color: c.color
+                                                    }))
+                                                }]}
+                                            />
+                                        ) : <Box sx={{ height: 280 }} />}
+                                    </CardContent>
+                                </Card>
+                            </Grid>
+                        </Grid>
+
+                        <Grid container spacing={2}>
+                            <Grid item xs={12}>
+                                <Card>
+                                    <CardContent>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>
+                                            <Typography variant="subtitle1" fontWeight={700}>
+                                                {t('recent-orders')}
+                                            </Typography>
+                                            <Select
+                                                size="small"
+                                                value={week}
+                                                onChange={(e) => setWeek(e.target.value as 'this' | 'last')}
+                                            >
+                                                <MenuItemMui value="this">{t('this-week')}</MenuItemMui>
+                                                <MenuItemMui value="last">{t('last-week')}</MenuItemMui>
+                                            </Select>
+                                        </Box>
                                         <Table size="small">
                                             <TableHead>
                                                 <TableRow>
@@ -109,7 +150,7 @@ export default function Dashboard() {
                                                 </TableRow>
                                             </TableHead>
                                             <TableBody>
-                                                {(data?.recent ?? []).map((row: any) => (
+                                                {recentRows.map((row: any) => (
                                                     <TableRow key={row.id} hover>
                                                         <TableCell>{row.id}</TableCell>
                                                         <TableCell>{row.customer}</TableCell>

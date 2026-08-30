@@ -8,9 +8,12 @@ import { AppContext, reUseBloc } from "../base/AppContext";
 import { BlocApp } from "./bloc/BlocApp";
 import UIStream from "./components/common/UIStream";
 import { createAppTheme } from "../theme/muiTheme";
-import { DRAWER_WIDTH } from "./layout/layoutConstants";
+import { DRAWER_WIDTH, SLIM_WIDTH, HORIZONTAL_MENU_HEIGHT } from "./layout/layoutConstants";
 import AppTopbar from "./layout/AppTopbar";
 import AppSidebar from "./layout/AppSidebar";
+import AppSlimMenu from "./layout/AppSlimMenu";
+import AppHorizontalMenu from "./layout/AppHorizontalMenu";
+import AppRightMenu from "./layout/AppRightMenu";
 import AppFooter from "./layout/AppFooter";
 import AppBreadcrumbBar from "./layout/AppBreadcrumbBar";
 import AppConfigDrawer from "./layout/AppConfigDrawer";
@@ -52,6 +55,7 @@ export default function AppShell() {
     const blocApp = reUseBloc(appContext, BlocApp);
     const [mobileOpen, setMobileOpen] = useState(false);
     const [configOpen, setConfigOpen] = useState(false);
+    const [rightMenuOpen, setRightMenuOpen] = useState(false);
 
     useEffect(() => {
         blocApp.initData();
@@ -76,33 +80,56 @@ export default function AppShell() {
                         builder={(uiSnapshot) => {
                             const ui = uiSnapshot.data ?? blocApp.getUI();
                             const theme = createAppTheme(ui.colorScheme, ui.componentTheme);
+                            const menuMode = ui.menuMode ?? 'static';
+                            const isHorizontal = menuMode === 'horizontal';
+                            const isSlim = menuMode === 'slim';
+                            const isOverlay = menuMode === 'overlay';
+                            const leftOffset = (isHorizontal || isOverlay) ? 0 : (isSlim ? SLIM_WIDTH : DRAWER_WIDTH);
                             return (
                                 <ThemeProvider theme={theme}>
                                     <CssBaseline />
                                     <Box sx={{ display: 'flex' }}>
                                         <AppTopbar
+                                            leftOffset={leftOffset}
                                             onMenuClick={() => setMobileOpen(true)}
                                             onConfigClick={() => setConfigOpen(true)}
+                                            onRightMenuClick={() => setRightMenuOpen(true)}
                                             fullName={LocalStorage.getItem('fullName') ?? undefined}
                                             onLogout={handleLogout}
                                         />
-                                        <AppSidebar
-                                            menu={viewMain.menu}
-                                            mobileOpen={mobileOpen}
-                                            onCloseMobile={() => setMobileOpen(false)}
-                                        />
+
+                                        {isHorizontal && <AppHorizontalMenu menu={viewMain.menu} />}
+                                        {isSlim && <AppSlimMenu menu={viewMain.menu} />}
+                                        {!isSlim && !isHorizontal && (
+                                            <AppSidebar
+                                                menu={viewMain.menu}
+                                                mode={isOverlay ? 'overlay' : 'static'}
+                                                mobileOpen={mobileOpen}
+                                                onCloseMobile={() => setMobileOpen(false)}
+                                            />
+                                        )}
+                                        {(isSlim || isHorizontal) && (
+                                            <AppSidebar
+                                                menu={viewMain.menu}
+                                                mode="overlay"
+                                                mobileOpen={mobileOpen}
+                                                onCloseMobile={() => setMobileOpen(false)}
+                                            />
+                                        )}
+
                                         <Box
                                             component="main"
                                             sx={{
                                                 flexGrow: 1,
                                                 p: 3,
-                                                width: { sm: `calc(100% - ${DRAWER_WIDTH}px)` },
+                                                width: { sm: `calc(100% - ${leftOffset}px)` },
                                                 minHeight: '100vh',
                                                 display: 'flex',
                                                 flexDirection: 'column'
                                             }}
                                         >
                                             <Toolbar />
+                                            {isHorizontal && <Box sx={{ height: { xs: 0, sm: HORIZONTAL_MENU_HEIGHT } }} />}
                                             <AppBreadcrumbBar breadcrumb={viewMain.breadcrumb} />
                                             <Box sx={{ flexGrow: 1 }}>
                                                 <Routes>
@@ -141,6 +168,10 @@ export default function AppShell() {
                                             onClose={() => setConfigOpen(false)}
                                             ui={ui}
                                             onChange={(patch) => blocApp.saveUI(patch)}
+                                        />
+                                        <AppRightMenu
+                                            open={rightMenuOpen}
+                                            onClose={() => setRightMenuOpen(false)}
                                         />
                                     </Box>
                                 </ThemeProvider>

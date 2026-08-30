@@ -7,6 +7,9 @@ import Divider from "@mui/material/Divider";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import ToggleButton from "@mui/material/ToggleButton";
 import IconButton from "@mui/material/IconButton";
+import RadioGroup from "@mui/material/RadioGroup";
+import FormControlLabel from "@mui/material/FormControlLabel";
+import Radio from "@mui/material/Radio";
 import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import LightModeOutlined from "@mui/icons-material/LightModeOutlined";
 import DarkModeOutlined from "@mui/icons-material/DarkModeOutlined";
@@ -31,6 +34,19 @@ export default function AppConfigDrawer({ open, onClose, ui, onChange }: AppConf
                     <Typography variant="subtitle1" fontWeight={700}>{t('theme-settings')}</Typography>
                     <IconButton size="small" onClick={onClose}><CloseOutlined fontSize="small" /></IconButton>
                 </Box>
+                <Divider sx={{ mb: 2 }} />
+
+                <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>{t('menu-type')}</Typography>
+                <RadioGroup
+                    value={ui.menuMode}
+                    onChange={(_, v) => onChange({ menuMode: v })}
+                    sx={{ mb: 3 }}
+                >
+                    <FormControlLabel value="static" control={<Radio size="small" />} label={t('static')} />
+                    <FormControlLabel value="overlay" control={<Radio size="small" />} label={t('overlay')} />
+                    <FormControlLabel value="slim" control={<Radio size="small" />} label={t('slim')} />
+                    <FormControlLabel value="horizontal" control={<Radio size="small" />} label={t('horizontal')} />
+                </RadioGroup>
                 <Divider sx={{ mb: 2 }} />
 
                 <Typography variant="body2" fontWeight={600} sx={{ mb: 1 }}>{t('color-scheme')}</Typography>
