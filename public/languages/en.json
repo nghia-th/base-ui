@@ -281,6 +281,20 @@
     "register-success": "Account created successfully",
     "create-account": "Create account",
     "already-have-account": "Already have an account?",
-    "dont-have-account": "Don't have an account?"
+    "dont-have-account": "Don't have an account?",
+    "internal-apps": "Internal apps",
+    "app-hr": "HR",
+    "app-payroll": "Payroll",
+    "app-attendance": "Attendance",
+    "app-access-control": "Access control",
+    "app-visitor": "Visitor",
+    "app-canteen": "Canteen",
+    "app-parking": "Parking",
+    "app-camera-ai": "Camera AI",
+    "app-assets": "Assets",
+    "open-app-toast": "Opening {{app}}...",
+    "confirm-logout-message": "Are you sure you want to log out?",
+    "yes": "Yes",
+    "no": "No"
   }
 }

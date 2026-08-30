@@ -15,7 +15,6 @@ import AppSlimMenu from "./layout/AppSlimMenu";
 import AppHorizontalMenu from "./layout/AppHorizontalMenu";
 import AppRightMenu from "./layout/AppRightMenu";
 import AppFooter from "./layout/AppFooter";
-import AppBreadcrumbBar from "./layout/AppBreadcrumbBar";
 import AppConfigDrawer from "./layout/AppConfigDrawer";
 import LocalStorage from "../base/LocalStorage";
 import { BASE_URL } from "../base/PrefixService";
@@ -65,9 +64,19 @@ export default function AppShell() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Giống customConfirm bên module-ui (IAppTopbar.js gọi trước khi logout thật): hỏi lại qua
+    // dialogConfirm dùng chung của app (BlocApplication.showConfirm - xem ConfirmDialog.tsx trong
+    // AppWrapper.tsx) trước khi xoá token/điều hướng về /login, tránh bấm nhầm nút Log out.
     const handleLogout = () => {
-        LocalStorage.deleteToken();
-        window.location.href = BASE_URL + '/login';
+        appContext.app?.showConfirm(
+            { title: 'log-out', message: 'confirm-logout-message', labelYes: 'log-out', labelNo: 'cancel' },
+            (result: { action: string }) => {
+                if (result.action === 'yes') {
+                    LocalStorage.deleteToken();
+                    window.location.href = BASE_URL + '/login';
+                }
+            }
+        );
     };
 
     // Nút menu (3 gạch) trên AppTopbar dùng chung 1 handler cho mọi kích thước màn hình: ở mobile
@@ -104,6 +113,7 @@ export default function AppShell() {
                                     <Box sx={{ display: 'flex' }}>
                                         <AppTopbar
                                             leftOffset={leftOffset}
+                                            breadcrumb={viewMain.breadcrumb}
                                             onMenuClick={handleMenuClick}
                                             onConfigClick={() => setConfigOpen(true)}
                                             onRightMenuClick={() => setRightMenuOpen(true)}
@@ -150,7 +160,6 @@ export default function AppShell() {
                                         >
                                             <Toolbar />
                                             {isHorizontal && <Box sx={{ height: { xs: 0, sm: HORIZONTAL_MENU_HEIGHT } }} />}
-                                            <AppBreadcrumbBar breadcrumb={viewMain.breadcrumb} />
                                             <Box sx={{ flexGrow: 1 }}>
                                                 <Routes>
                                                     <Route path="/" element={<Dashboard />} />

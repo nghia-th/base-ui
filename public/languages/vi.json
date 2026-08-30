@@ -281,6 +281,20 @@
     "register-success": "Tạo tài khoản thành công",
     "create-account": "Tạo tài khoản",
     "already-have-account": "Đã có tài khoản?",
-    "dont-have-account": "Chưa có tài khoản?"
+    "dont-have-account": "Chưa có tài khoản?",
+    "internal-apps": "Ứng dụng nội bộ",
+    "app-hr": "Nhân sự",
+    "app-payroll": "Lương",
+    "app-attendance": "Chấm công",
+    "app-access-control": "Kiểm soát ra vào",
+    "app-visitor": "Khách đến",
+    "app-canteen": "Căn tin",
+    "app-parking": "Bãi xe",
+    "app-camera-ai": "Camera AI",
+    "app-assets": "Tài sản",
+    "open-app-toast": "Đang mở {{app}}...",
+    "confirm-logout-message": "Bạn có chắc muốn đăng xuất không?",
+    "yes": "Đồng ý",
+    "no": "Không"
   }
 }
