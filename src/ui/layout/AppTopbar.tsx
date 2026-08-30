@@ -111,7 +111,7 @@ export default function AppTopbar({ leftOffset, breadcrumb, onMenuClick, onConfi
     };
 
     const currentCrumb = breadcrumb.find((b) => b.path === location.pathname);
-    const pageTitle = location.pathname === '/' ? t('dashboard') : t(currentCrumb?.label ?? 'dashboard');
+    const pageTitle = currentCrumb ? t(currentCrumb.label) : '';
 
     const openApp = (app: InternalApp) => {
         setAppsAnchor(null);
@@ -241,7 +241,7 @@ export default function AppTopbar({ leftOffset, breadcrumb, onMenuClick, onConfi
                         </Typography>
                     </Box>
                     <Divider />
-                    <MenuItemMui onClick={() => { setUserAnchor(null); navigate('/profile'); }}>
+                    <MenuItemMui onClick={() => { setUserAnchor(null); navigate('/demo/profile'); }}>
                         <ListItemIcon><PersonOutlined fontSize="small" /></ListItemIcon>
                         {t('profile')}
                     </MenuItemMui>
@@ -249,11 +249,11 @@ export default function AppTopbar({ leftOffset, breadcrumb, onMenuClick, onConfi
                         <ListItemIcon><SettingsOutlined fontSize="small" /></ListItemIcon>
                         {t('settings')}
                     </MenuItemMui>
-                    <MenuItemMui onClick={() => { setUserAnchor(null); navigate('/calendar'); }}>
+                    <MenuItemMui onClick={() => { setUserAnchor(null); navigate('/demo/calendar'); }}>
                         <ListItemIcon><CalendarMonthOutlined fontSize="small" /></ListItemIcon>
                         {t('calendar')}
                     </MenuItemMui>
-                    <MenuItemMui onClick={() => { setUserAnchor(null); navigate('/messages'); }}>
+                    <MenuItemMui onClick={() => { setUserAnchor(null); navigate('/demo/messages'); }}>
                         <ListItemIcon><InboxOutlined fontSize="small" /></ListItemIcon>
                         {t('inbox')}
                     </MenuItemMui>

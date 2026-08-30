@@ -295,6 +295,9 @@
     "open-app-toast": "Đang mở {{app}}...",
     "confirm-logout-message": "Bạn có chắc muốn đăng xuất không?",
     "yes": "Đồng ý",
-    "no": "Không"
+    "no": "Không",
+    "home-title": "Chưa có gì ở đây",
+    "home-desc": "Đây là nơi sẽ chứa giao diện thật của project mới. Trong lúc build, xem template và UI Kit tham khảo tại /demo.",
+    "view-demo": "Xem demo / UI Kit"
   }
 }

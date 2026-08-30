@@ -15,6 +15,7 @@ import ForgotPassword from "./ui/pages/ForgotPassword";
 import NotFound from "./ui/pages/NotFound";
 import ErrorPage from "./ui/pages/ErrorPage";
 import AccessDenied from "./ui/pages/AccessDenied";
+import Home from "./ui/pages/Home";
 import AppShell from "./ui/AppShell";
 
 interface AppWrapperProps {
@@ -73,20 +74,24 @@ export default function AppWrapper({ app }: AppWrapperProps) {
                     }}>
                         {snapshot.data?.finish ? (
                             <Routes>
+                                <Route path="/" element={<Home />} />
                                 <Route path="/login" element={<Login />} />
                                 <Route path="/register" element={<Register />} />
                                 <Route path="/forgot-password" element={<ForgotPassword />} />
                                 <Route path="/error" element={<ErrorPage />} />
                                 <Route path="/access-denied" element={<AccessDenied />} />
                                 <Route path="/notfound" element={<NotFound />} />
+                                {/* Toàn bộ template/UI Kit demo cũ (trước đây ở "/") giờ sống dưới /demo - xem
+                                    Home.tsx và AppMenuData.ts. "/" đã tách riêng ở trên, public, không cần đăng nhập. */}
                                 <Route
-                                    path="/*"
+                                    path="/demo/*"
                                     element={
                                         snapshot.data.loginRequire.status === 0
                                             ? <AppShell />
                                             : <Navigate replace to={`/login?url=${snapshot.data.loginRequire.url}`} />
                                     }
                                 />
+                                <Route path="*" element={<NotFound />} />
                             </Routes>
                         ) : <></>}
                     </AppContext.Provider>

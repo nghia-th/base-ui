@@ -12,10 +12,14 @@ interface StatusPageProps {
     messageKey: string;
     icon: typeof SvgIcon;
     color?: string;
+    // Nút "Về trang chủ" trỏ tới đâu - mặc định "/" (trang chủ trống ở gốc). AppShell.tsx tự
+    // render StatusPage trực tiếp với homeTo="/demo" cho lỗi 404 xảy ra BÊN TRONG /demo/* (còn
+    // đang đăng nhập, còn trong khung sidebar/topbar) để không đẩy người dùng ra khỏi demo.
+    homeTo?: string;
 }
 
 // Component dùng chung cho NotFound/Error/AccessDenied - 1 khung "trạng thái" đơn giản.
-export default function StatusPage({ code, titleKey, messageKey, icon: Icon, color = 'text.secondary' }: StatusPageProps) {
+export default function StatusPage({ code, titleKey, messageKey, icon: Icon, color = 'text.secondary', homeTo = '/' }: StatusPageProps) {
     const { t } = useTranslation();
     return (
         <Box sx={{
@@ -28,7 +32,7 @@ export default function StatusPage({ code, titleKey, messageKey, icon: Icon, col
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1, mb: 3, maxWidth: 420 }}>
                 {t(messageKey)}
             </Typography>
-            <Button component={RouterLink} to="/" variant="contained">{t('back-to-home')}</Button>
+            <Button component={RouterLink} to={homeTo} variant="contained">{t('back-to-home')}</Button>
         </Box>
     );
 }

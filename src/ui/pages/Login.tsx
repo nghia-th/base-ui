@@ -45,7 +45,10 @@ export default function Login() {
             LocalStorage.setItem('i18nextLng', res?.data?.lang ?? 'vi');
             LocalStorage.setItem('avatar', res?.data?.avatar ?? '');
             const url = locSearch.get('url');
-            window.location.href = BASE_URL + (url ?? '/');
+            // "/" giờ là trang chủ trống (không cần đăng nhập) - đăng nhập chỉ thật sự cần thiết
+            // để vào /demo, nên khi không có "url" redirect cụ thể (vào /login trực tiếp), đưa
+            // thẳng vào /demo thay vì "/".
+            window.location.href = BASE_URL + (url ?? '/demo');
         }, (error: any) => {
             setSubmitting(false);
             enqueueSnackbar(t(error.messageKey ?? 'error') as string, { variant: 'error' });

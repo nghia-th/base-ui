@@ -46,7 +46,8 @@ import Invoice from "./pages/Invoice";
 import Help from "./pages/Help";
 import EmptyPage from "./pages/EmptyPage";
 import Documentation from "./pages/Documentation";
-import NotFound from "./pages/NotFound";
+import StatusPage from "./pages/StatusPage";
+import SearchOffOutlined from "@mui/icons-material/SearchOffOutlined";
 
 // AppShell = khung đã đăng nhập (topbar + sidebar + footer + content), tương đương ISmartApp.js
 // bên module-ui - dùng reUseBloc(appContext, BlocApp) để lấy menu/theme, UIStream để re-render
@@ -161,35 +162,43 @@ export default function AppShell() {
                                             <Toolbar />
                                             {isHorizontal && <Box sx={{ height: { xs: 0, sm: HORIZONTAL_MENU_HEIGHT } }} />}
                                             <Box sx={{ flexGrow: 1 }}>
+                                                {/* AppShell được mount ở path="/demo/*" (xem AppWrapper.tsx) - Routes lồng bên trong
+                                                    này khớp phần đường dẫn còn lại SAU "/demo", nên path="/" ở đây tương ứng đúng
+                                                    "/demo" (gốc của demo), các path con không có dấu "/" đầu để khớp tương đối
+                                                    (giống ví dụ "splitting routes" chính thức của react-router v6). */}
                                                 <Routes>
                                                     <Route path="/" element={<Dashboard />} />
-                                                    <Route path="/formlayout" element={<FormLayoutDemo />} />
-                                                    <Route path="/input" element={<InputDemo />} />
-                                                    <Route path="/floatlabel" element={<FloatLabelDemo />} />
-                                                    <Route path="/invalidstate" element={<InvalidStateDemo />} />
-                                                    <Route path="/button" element={<ButtonDemo />} />
-                                                    <Route path="/table" element={<TableDemo />} />
-                                                    <Route path="/list" element={<ListDemo />} />
-                                                    <Route path="/tree" element={<TreeDemo />} />
-                                                    <Route path="/panel" element={<PanelDemo />} />
-                                                    <Route path="/stepper" element={<StepperDemo />} />
-                                                    <Route path="/overlay" element={<OverlayDemo />} />
-                                                    <Route path="/media" element={<MediaDemo />} />
-                                                    <Route path="/menu" element={<MenuDemo />} />
-                                                    <Route path="/messages" element={<MessagesDemo />} />
-                                                    <Route path="/file" element={<FileDemo />} />
-                                                    <Route path="/chart" element={<ChartDemo />} />
-                                                    <Route path="/misc" element={<MiscDemo />} />
-                                                    <Route path="/icons" element={<IconsDemo />} />
-                                                    <Route path="/crud" element={<CrudDemo />} />
-                                                    <Route path="/profile" element={<Profile />} />
-                                                    <Route path="/calendar" element={<CalendarDemo />} />
-                                                    <Route path="/timeline" element={<TimelineDemo />} />
-                                                    <Route path="/invoice" element={<Invoice />} />
-                                                    <Route path="/help" element={<Help />} />
-                                                    <Route path="/empty" element={<EmptyPage />} />
-                                                    <Route path="/documentation" element={<Documentation />} />
-                                                    <Route path="*" element={<NotFound />} />
+                                                    <Route path="formlayout" element={<FormLayoutDemo />} />
+                                                    <Route path="input" element={<InputDemo />} />
+                                                    <Route path="floatlabel" element={<FloatLabelDemo />} />
+                                                    <Route path="invalidstate" element={<InvalidStateDemo />} />
+                                                    <Route path="button" element={<ButtonDemo />} />
+                                                    <Route path="table" element={<TableDemo />} />
+                                                    <Route path="list" element={<ListDemo />} />
+                                                    <Route path="tree" element={<TreeDemo />} />
+                                                    <Route path="panel" element={<PanelDemo />} />
+                                                    <Route path="stepper" element={<StepperDemo />} />
+                                                    <Route path="overlay" element={<OverlayDemo />} />
+                                                    <Route path="media" element={<MediaDemo />} />
+                                                    <Route path="menu" element={<MenuDemo />} />
+                                                    <Route path="messages" element={<MessagesDemo />} />
+                                                    <Route path="file" element={<FileDemo />} />
+                                                    <Route path="chart" element={<ChartDemo />} />
+                                                    <Route path="misc" element={<MiscDemo />} />
+                                                    <Route path="icons" element={<IconsDemo />} />
+                                                    <Route path="crud" element={<CrudDemo />} />
+                                                    <Route path="profile" element={<Profile />} />
+                                                    <Route path="calendar" element={<CalendarDemo />} />
+                                                    <Route path="timeline" element={<TimelineDemo />} />
+                                                    <Route path="invoice" element={<Invoice />} />
+                                                    <Route path="help" element={<Help />} />
+                                                    <Route path="empty" element={<EmptyPage />} />
+                                                    <Route path="documentation" element={<Documentation />} />
+                                                    {/* homeTo="/demo" (thay vì mặc định "/") để nút "Về trang chủ" không đẩy người
+                                                        dùng ra khỏi demo khi gõ nhầm URL con của /demo. */}
+                                                    <Route path="*" element={
+                                                        <StatusPage code="404" titleKey="page-not-found" messageKey="page-not-found-message" icon={SearchOffOutlined} homeTo="/demo" />
+                                                    } />
                                                 </Routes>
                                             </Box>
                                             <AppFooter />
