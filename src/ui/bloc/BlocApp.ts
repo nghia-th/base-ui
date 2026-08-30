@@ -7,13 +7,25 @@ export interface UIState {
     colorScheme: 'light' | 'dark'
     menuTheme: string
     componentTheme: string
+    visualStyle: 'a' | 'b' | 'c'
+    // true: nền/viền/trạng thái active của sidebar tự "hoà" theo màu accent (componentTheme)
+    // đang chọn (xem harmonizeSidebarTone trong theme/muiTheme.ts). false: giữ nguyên bảng màu
+    // tĩnh riêng của từng visual style, không phụ thuộc accent (hành vi trước khi có tính năng này).
+    sidebarSyncAccent: boolean
+    // Màu nền sidebar do người dùng tự chọn (hex) - null/undefined nghĩa là dùng màu mặc định của
+    // visual style đang chọn. Khi có giá trị, nó thay cho màu nền mặc định rồi (nếu
+    // sidebarSyncAccent bật) vẫn được hoà thêm với accent - xem createAppTheme trong theme/muiTheme.ts.
+    sidebarColor: string | null
 }
 
 const DEFAULT_UI: UIState = {
     menuMode: 'static',
     colorScheme: 'light',
     menuTheme: 'dark',
-    componentTheme: 'blue'
+    componentTheme: 'blue',
+    visualStyle: 'a',
+    sidebarSyncAccent: true,
+    sidebarColor: null
 }
 
 // BlocApp là Bloc của "shell" đã đăng nhập (topbar/sidebar/footer) - tương đương BlocApp bên

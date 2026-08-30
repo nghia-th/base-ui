@@ -30,11 +30,13 @@ function SlimLeafItem({ item }: { item: MenuItem }) {
         <Tooltip title={t(item.label) as string} placement="right">
             <IconButton
                 onClick={() => item.to && navigate(item.to)}
-                color={isActive ? "primary" : "default"}
-                sx={{
+                sx={(theme) => ({
                     width: 48, height: 48, mx: "auto", mb: 0.5,
-                    bgcolor: isActive ? "action.selected" : "transparent"
-                }}
+                    borderRadius: theme.custom.activeRadius,
+                    color: isActive ? "sidebar.activeInk" : "inherit",
+                    bgcolor: isActive ? "sidebar.activeBg" : "transparent",
+                    "&:hover": { bgcolor: isActive ? "sidebar.activeBg" : "action.hover" }
+                })}
             >
                 <Icon />
             </IconButton>
@@ -56,7 +58,12 @@ function SlimGroupItem({ item }: { item: MenuItem }) {
             onMouseLeave={() => setAnchorEl(null)}
         >
             <Tooltip title={open ? "" : (t(item.label) as string)} placement="right">
-                <IconButton sx={{ width: 48, height: 48, mx: "auto", mb: 0.5 }}>
+                <IconButton
+                    sx={(theme) => ({
+                        width: 48, height: 48, mx: "auto", mb: 0.5,
+                        borderRadius: theme.custom.activeRadius, color: "inherit"
+                    })}
+                >
                     <Icon />
                 </IconButton>
             </Tooltip>
@@ -81,7 +88,10 @@ export default function AppSlimMenu({ menu }: AppSlimMenuProps) {
                 variant="permanent"
                 open
                 sx={{
-                    "& .MuiDrawer-paper": { boxSizing: "border-box", width: SLIM_WIDTH, overflowX: "visible", alignItems: "center" }
+                    "& .MuiDrawer-paper": {
+                        boxSizing: "border-box", width: SLIM_WIDTH, overflowX: "visible", alignItems: "center",
+                        bgcolor: "sidebar.bg", color: "sidebar.ink", borderRight: "1px solid", borderColor: "sidebar.border"
+                    }
                 }}
             >
                 <Toolbar sx={{ justifyContent: "center", width: "100%" }}>

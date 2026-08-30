@@ -5,6 +5,7 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
+import { useTheme } from "@mui/material/styles";
 import TrendingUpOutlined from "@mui/icons-material/TrendingUpOutlined";
 import TrendingDownOutlined from "@mui/icons-material/TrendingDownOutlined";
 
@@ -23,6 +24,7 @@ interface StatCardProps {
 // badge nhỏ góc phải (vd "Monthly"), giá trị lớn, và chip xu hướng tăng/giảm màu xanh/đỏ kèm
 // mô tả - tham khảo bố cục các stat card của Mira (mira.bootlab.io) để thay cho card trần cũ.
 export default function StatCard({ icon: Icon, color, label, value, trend, trendLabel, badge, highlighted }: StatCardProps) {
+    const theme = useTheme();
     const positive = (trend ?? 0) >= 0;
     return (
         <Card
@@ -34,7 +36,7 @@ export default function StatCard({ icon: Icon, color, label, value, trend, trend
             <CardContent>
                 <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", mb: 1.5 }}>
                     <Box sx={{
-                        width: 44, height: 44, borderRadius: 2, bgcolor: `${color}22`,
+                        width: 44, height: 44, borderRadius: theme.custom.iconRadius, bgcolor: `${color}22`,
                         display: "flex", alignItems: "center", justifyContent: "center"
                     }}>
                         <Icon sx={{ color }} />
@@ -47,7 +49,9 @@ export default function StatCard({ icon: Icon, color, label, value, trend, trend
                         />
                     )}
                 </Box>
-                <Typography variant="h5" fontWeight={700}>{value}</Typography>
+                <Typography variant="h5" fontWeight={700} sx={{ fontFamily: theme.custom.fontMono, fontVariantNumeric: "tabular-nums" }}>
+                    {value}
+                </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: trend !== undefined ? 1 : 0 }}>
                     {label}
                 </Typography>

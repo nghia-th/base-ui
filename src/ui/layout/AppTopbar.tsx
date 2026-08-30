@@ -74,7 +74,11 @@ export default function AppTopbar({ leftOffset, onMenuClick, onConfigClick, onRi
             color="inherit"
             sx={{
                 width: { sm: `calc(100% - ${leftOffset}px)` },
-                ml: { sm: `${leftOffset}px` }
+                ml: { sm: `${leftOffset}px` },
+                transition: (theme) => theme.transitions.create(['width', 'margin'], {
+                    easing: theme.transitions.easing.sharp,
+                    duration: theme.transitions.duration.enteringScreen
+                })
             }}
         >
             <Toolbar sx={{ gap: 1 }}>

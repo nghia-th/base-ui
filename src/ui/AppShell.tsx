@@ -54,6 +54,7 @@ export default function AppShell() {
     const appContext = useContext(AppContext);
     const blocApp = reUseBloc(appContext, BlocApp);
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
     const [configOpen, setConfigOpen] = useState(false);
     const [rightMenuOpen, setRightMenuOpen] = useState(false);
 
@@ -65,6 +66,15 @@ export default function AppShell() {
     const handleLogout = () => {
         LocalStorage.deleteToken();
         window.location.href = BASE_URL + '/login';
+    };
+
+    // Nút menu (3 gạch) trên AppTopbar dùng chung 1 handler cho mọi kích thước màn hình: ở mobile
+    // chỉ Drawer "temporary" (điều khiển bởi mobileOpen) hiển thị nên việc toggle desktopSidebarOpen
+    // không có tác dụng gì (Drawer desktop đang bị ẩn theo breakpoint), và ngược lại ở desktop -
+    // nên không cần useMediaQuery để phân biệt, toggle cả hai cùng lúc là an toàn.
+    const handleMenuClick = () => {
+        setMobileOpen((o) => !o);
+        setDesktopSidebarOpen((o) => !o);
     };
 
     return (
@@ -79,19 +89,20 @@ export default function AppShell() {
                         stream={blocApp.getStream('ui')}
                         builder={(uiSnapshot) => {
                             const ui = uiSnapshot.data ?? blocApp.getUI();
-                            const theme = createAppTheme(ui.colorScheme, ui.componentTheme);
+                            const theme = createAppTheme(ui.colorScheme, ui.componentTheme, ui.visualStyle ?? 'a', ui.sidebarSyncAccent ?? true, ui.sidebarColor);
                             const menuMode = ui.menuMode ?? 'static';
                             const isHorizontal = menuMode === 'horizontal';
                             const isSlim = menuMode === 'slim';
                             const isOverlay = menuMode === 'overlay';
-                            const leftOffset = (isHorizontal || isOverlay) ? 0 : (isSlim ? SLIM_WIDTH : DRAWER_WIDTH);
+                            const isStaticCollapsed = !isHorizontal && !isSlim && !isOverlay && !desktopSidebarOpen;
+                            const leftOffset = (isHorizontal || isOverlay || isStaticCollapsed) ? 0 : (isSlim ? SLIM_WIDTH : DRAWER_WIDTH);
                             return (
                                 <ThemeProvider theme={theme}>
                                     <CssBaseline />
                                     <Box sx={{ display: 'flex' }}>
                                         <AppTopbar
                                             leftOffset={leftOffset}
-                                            onMenuClick={() => setMobileOpen(true)}
+                                            onMenuClick={handleMenuClick}
                                             onConfigClick={() => setConfigOpen(true)}
                                             onRightMenuClick={() => setRightMenuOpen(true)}
                                             fullName={LocalStorage.getItem('fullName') ?? undefined}
@@ -107,6 +118,7 @@ export default function AppShell() {
                                                 mobileOpen={mobileOpen}
                                                 onCloseMobile={() => setMobileOpen(false)}
                                                 fullName={LocalStorage.getItem('fullName') ?? undefined}
+                                                desktopOpen={desktopSidebarOpen}
                                             />
                                         )}
                                         {(isSlim || isHorizontal) && (
@@ -127,7 +139,11 @@ export default function AppShell() {
                                                 width: { sm: `calc(100% - ${leftOffset}px)` },
                                                 minHeight: '100vh',
                                                 display: 'flex',
-                                                flexDirection: 'column'
+                                                flexDirection: 'column',
+                                                transition: (t) => t.transitions.create('width', {
+                                                    easing: t.transitions.easing.sharp,
+                                                    duration: t.transitions.duration.enteringScreen
+                                                })
                                             }}
                                         >
                                             <Toolbar />

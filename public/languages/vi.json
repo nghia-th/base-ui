@@ -225,6 +225,15 @@
     "monthly": "Hàng tháng",
     "monthly-goal": "Mục tiêu tháng này",
     "monthly-goal-desc": "Doanh thu hiện tại so với mục tiêu đề ra.",
-    "pagination": "Phân trang"
+    "pagination": "Phân trang",
+    "visual-style": "Kiểu giao diện",
+    "visual-style-a-desc": "Sidebar navy, font IBM Plex",
+    "visual-style-b-desc": "Tối giản, viền mảnh, 1 màu nhấn",
+    "visual-style-c-desc": "Nền ấm, bo tròn, thân thiện",
+    "sidebar-sync-accent": "Đồng bộ leftmenu theo accent",
+    "sidebar-sync-accent-desc": "Màu nền và trạng thái active của menu trái sẽ hoà theo màu accent bạn chọn.",
+    "sidebar-bg-color": "Màu nền leftmenu",
+    "use-default": "Dùng mặc định",
+    "custom-color": "Tuỳ chỉnh màu"
   }
 }

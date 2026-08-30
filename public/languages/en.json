@@ -225,6 +225,15 @@
     "monthly": "Monthly",
     "monthly-goal": "Monthly goal",
     "monthly-goal-desc": "Current revenue against the target for this month.",
-    "pagination": "Pagination"
+    "pagination": "Pagination",
+    "visual-style": "Visual style",
+    "visual-style-a-desc": "Navy sidebar, IBM Plex font",
+    "visual-style-b-desc": "Minimal, thin borders, one accent",
+    "visual-style-c-desc": "Warm background, rounded, friendly",
+    "sidebar-sync-accent": "Sync sidebar with accent",
+    "sidebar-sync-accent-desc": "Blend the sidebar background and active state with the selected accent color.",
+    "sidebar-bg-color": "Sidebar background",
+    "use-default": "Use default",
+    "custom-color": "Custom color"
   }
 }
