@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import { BarChart } from "@mui/x-charts/BarChart";
 import { PieChart } from "@mui/x-charts/PieChart";
 import { LineChart } from "@mui/x-charts/LineChart";
@@ -15,7 +15,7 @@ export default function ChartDemo() {
     const { t } = useTranslation();
     return (
         <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
                 <DemoSection title={t('bar-chart')} icon={BarChartOutlined} color="#2196F3">
                     <BarChart
                         height={280}
@@ -27,7 +27,7 @@ export default function ChartDemo() {
                     />
                 </DemoSection>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
                 <DemoSection title={t('line-chart')} icon={ShowChartOutlined} color="#4CAF50">
                     <LineChart
                         height={280}
@@ -36,7 +36,7 @@ export default function ChartDemo() {
                     />
                 </DemoSection>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
                 <DemoSection title={t('pie-chart')} icon={PieChartOutlined} color="#9C27B0">
                     <PieChart
                         height={280}

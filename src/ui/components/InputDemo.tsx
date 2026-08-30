@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import TextField from "@mui/material/TextField";
 import InputAdornment from "@mui/material/InputAdornment";
 import Slider from "@mui/material/Slider";
@@ -20,17 +20,17 @@ export default function InputDemo() {
     return (
         <DemoSection title={t('input')} icon={InputOutlined} color="#4CAF50">
             <Grid container spacing={2}>
-                <Grid item xs={12} sm={4}><TextField label={t('outlined')} variant="outlined" fullWidth /></Grid>
-                <Grid item xs={12} sm={4}><TextField label={t('filled')} variant="filled" fullWidth /></Grid>
-                <Grid item xs={12} sm={4}><TextField label={t('standard')} variant="standard" fullWidth /></Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 4 }}><TextField label={t('outlined')} variant="outlined" fullWidth /></Grid>
+                <Grid size={{ xs: 12, sm: 4 }}><TextField label={t('filled')} variant="filled" fullWidth /></Grid>
+                <Grid size={{ xs: 12, sm: 4 }}><TextField label={t('standard')} variant="standard" fullWidth /></Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                         label={t('search')}
                         fullWidth
                         InputProps={{ startAdornment: <InputAdornment position="start"><SearchOutlined fontSize="small" /></InputAdornment> }}
                     />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                         label={t('price')}
                         type="number"
@@ -38,13 +38,13 @@ export default function InputDemo() {
                         InputProps={{ startAdornment: <InputAdornment position="start"><AttachMoneyOutlined fontSize="small" /></InputAdornment> }}
                     />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                     <Autocomplete options={TOP_OPTIONS} renderInput={(params) => <TextField {...params} label={t('framework')} />} />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                     <FormControlLabel control={<Switch defaultChecked />} label={t('enable-notifications') as string} />
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={12}>
                     <Typography gutterBottom variant="body2">{t('volume')}</Typography>
                     <Slider defaultValue={40} valueLabelDisplay="auto" />
                 </Grid>

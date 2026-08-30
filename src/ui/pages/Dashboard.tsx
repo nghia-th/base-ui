@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Typography from "@mui/material/Typography";
@@ -65,7 +65,7 @@ export default function Dashboard() {
                     <Box>
                         <Grid container spacing={2} sx={{ mb: 2 }}>
                             {STAT_CARDS.map((c) => (
-                                <Grid item xs={12} sm={6} md={3} key={c.key}>
+                                <Grid size={{ xs: 12, sm: 6, md: 3 }} key={c.key}>
                                     <StatCard
                                         icon={c.icon}
                                         color={c.color}
@@ -81,7 +81,7 @@ export default function Dashboard() {
                         </Grid>
 
                         <Grid container spacing={2} sx={{ mb: 2 }}>
-                            <Grid item xs={12} md={7}>
+                            <Grid size={{ xs: 12, md: 7 }}>
                                 <Card>
                                     <CardContent>
                                         <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
@@ -97,7 +97,7 @@ export default function Dashboard() {
                                     </CardContent>
                                 </Card>
                             </Grid>
-                            <Grid item xs={12} md={5}>
+                            <Grid size={{ xs: 12, md: 5 }}>
                                 <Card>
                                     <CardContent>
                                         <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 1 }}>
@@ -123,7 +123,7 @@ export default function Dashboard() {
                         </Grid>
 
                         <Grid container spacing={2}>
-                            <Grid item xs={12} md={4}>
+                            <Grid size={{ xs: 12, md: 4 }}>
                                 <Card sx={{ height: '100%' }}>
                                     <CardContent>
                                         <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 0.5 }}>
@@ -149,7 +149,7 @@ export default function Dashboard() {
                                     </CardContent>
                                 </Card>
                             </Grid>
-                            <Grid item xs={12} md={8}>
+                            <Grid size={{ xs: 12, md: 8 }}>
                                 <Card sx={{ height: '100%' }}>
                                     <CardContent>
                                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1 }}>

@@ -15,7 +15,6 @@ import ForgotPassword from "./ui/pages/ForgotPassword";
 import NotFound from "./ui/pages/NotFound";
 import ErrorPage from "./ui/pages/ErrorPage";
 import AccessDenied from "./ui/pages/AccessDenied";
-import Home from "./ui/pages/Home";
 import AppShell from "./ui/AppShell";
 
 interface AppWrapperProps {
@@ -74,24 +73,23 @@ export default function AppWrapper({ app }: AppWrapperProps) {
                     }}>
                         {snapshot.data?.finish ? (
                             <Routes>
-                                <Route path="/" element={<Home />} />
                                 <Route path="/login" element={<Login />} />
                                 <Route path="/register" element={<Register />} />
                                 <Route path="/forgot-password" element={<ForgotPassword />} />
                                 <Route path="/error" element={<ErrorPage />} />
                                 <Route path="/access-denied" element={<AccessDenied />} />
                                 <Route path="/notfound" element={<NotFound />} />
-                                {/* Toàn bộ template/UI Kit demo cũ (trước đây ở "/") giờ sống dưới /demo - xem
-                                    Home.tsx và AppMenuData.ts. "/" đã tách riêng ở trên, public, không cần đăng nhập. */}
+                                {/* "/" và "/demo/*" dùng chung 1 khung AppShell (topbar + sidebar) - "/" là trang
+                                    trống để build UI thật của project mới, "/demo" là template/UI Kit cũ, giữ lại
+                                    làm tài liệu tham khảo trong lúc làm project mới (xem AppShell.tsx, Home.tsx). */}
                                 <Route
-                                    path="/demo/*"
+                                    path="/*"
                                     element={
                                         snapshot.data.loginRequire.status === 0
                                             ? <AppShell />
                                             : <Navigate replace to={`/login?url=${snapshot.data.loginRequire.url}`} />
                                     }
                                 />
-                                <Route path="*" element={<NotFound />} />
                             </Routes>
                         ) : <></>}
                     </AppContext.Provider>

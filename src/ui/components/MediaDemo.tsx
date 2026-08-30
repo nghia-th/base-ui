@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Card from "@mui/material/Card";
 import CardMedia from "@mui/material/CardMedia";
 import CardContent from "@mui/material/CardContent";
@@ -20,7 +20,7 @@ export default function MediaDemo() {
             <DemoSection title={t('media')} icon={PermMediaOutlined} color="#2196F3">
                 <Grid container spacing={2}>
                     {[1, 2, 3].map((i) => (
-                        <Grid item xs={12} sm={4} key={i}>
+                        <Grid size={{ xs: 12, sm: 4 }} key={i}>
                             <Card>
                                 <CardMedia sx={{ height: 140, bgcolor: COLORS[i % COLORS.length] }} />
                                 <CardContent>

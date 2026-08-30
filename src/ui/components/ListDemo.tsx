@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemAvatar from "@mui/material/ListItemAvatar";
@@ -21,7 +21,7 @@ export default function ListDemo() {
     const { t } = useTranslation();
     return (
         <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
                 <DemoSection title={t('contact-list')} icon={ContactsOutlined} color="#2196F3">
                     <List>
                         {CONTACTS.map((name, i) => (
@@ -36,7 +36,7 @@ export default function ListDemo() {
                     </List>
                 </DemoSection>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
                 <DemoSection title={t('checklist')} icon={FactCheckOutlined} color="#4CAF50">
                     <List>
                         {TASKS.map((task) => (

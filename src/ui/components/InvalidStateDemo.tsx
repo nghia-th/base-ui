@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import ErrorOutlineOutlined from "@mui/icons-material/ErrorOutlineOutlined";
@@ -15,7 +15,7 @@ export default function InvalidStateDemo() {
     return (
         <DemoSection title={t('invalid-state')} description={t('invalid-state-desc') as string} icon={ErrorOutlineOutlined} color="#F44336">
             <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField
                         label={t('email')}
                         fullWidth
@@ -26,10 +26,10 @@ export default function InvalidStateDemo() {
                         helperText={touched && !isValid ? t('invalid-email') : ' '}
                     />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                     <TextField label={t('required-field')} required fullWidth error helperText={t('field-required')} />
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={12}>
                     <Button variant="contained" disabled={!isValid} onClick={() => setTouched(true)}>{t('submit')}</Button>
                 </Grid>
             </Grid>

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Card from "@mui/material/Card";
 import CardContent from "@mui/material/CardContent";
 import Box from "@mui/material/Box";
@@ -51,7 +51,7 @@ export default function Profile() {
 
     return (
         <Grid container spacing={2.5}>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
                 <Card>
                     <CardContent sx={{ textAlign: 'center', py: 4 }}>
                         <Box sx={{ position: 'relative', display: 'inline-block', mb: 2 }}>
@@ -72,7 +72,7 @@ export default function Profile() {
                 </Card>
             </Grid>
 
-            <Grid item xs={12} md={8}>
+            <Grid size={{ xs: 12, md: 8 }}>
                 <Card>
                     <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ px: 2, borderBottom: 1, borderColor: 'divider' }}>
                         <Tab icon={<PersonOutlined fontSize="small" />} iconPosition="start" label={t('personal-info')} />
@@ -83,23 +83,23 @@ export default function Profile() {
                     {tab === 0 && (
                         <CardContent>
                             <Grid container spacing={2}>
-                                <Grid item xs={12} sm={6}>
+                                <Grid size={{ xs: 12, sm: 6 }}>
                                     <TextField fullWidth label={t('full-name')} value={form.fullName}
                                         onChange={(e) => setForm({ ...form, fullName: e.target.value })} />
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid size={{ xs: 12, sm: 6 }}>
                                     <TextField fullWidth label={t('email')} value={form.email}
                                         onChange={(e) => setForm({ ...form, email: e.target.value })} />
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid size={{ xs: 12, sm: 6 }}>
                                     <TextField fullWidth label={t('phone')} value={form.phone}
                                         onChange={(e) => setForm({ ...form, phone: e.target.value })} />
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid size={{ xs: 12, sm: 6 }}>
                                     <TextField fullWidth label={t('job-title')} value={form.jobTitle}
                                         onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} />
                                 </Grid>
-                                <Grid item xs={12}>
+                                <Grid size={12}>
                                     <TextField fullWidth multiline rows={3} label={t('bio')} value={form.bio}
                                         onChange={(e) => setForm({ ...form, bio: e.target.value })} />
                                 </Grid>
@@ -112,15 +112,15 @@ export default function Profile() {
                     {tab === 1 && (
                         <CardContent>
                             <Grid container spacing={2}>
-                                <Grid item xs={12}>
+                                <Grid size={12}>
                                     <TextField fullWidth type="password" label={t('current-password')} value={pwd.current}
                                         onChange={(e) => setPwd({ ...pwd, current: e.target.value })} />
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid size={{ xs: 12, sm: 6 }}>
                                     <TextField fullWidth type="password" label={t('new-password')} value={pwd.next}
                                         onChange={(e) => setPwd({ ...pwd, next: e.target.value })} />
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
+                                <Grid size={{ xs: 12, sm: 6 }}>
                                     <TextField fullWidth type="password" label={t('confirm-password')} value={pwd.confirm}
                                         onChange={(e) => setPwd({ ...pwd, confirm: e.target.value })} />
                                 </Grid>

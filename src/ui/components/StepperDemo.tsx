@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Box from "@mui/material/Box";
 import Stepper from "@mui/material/Stepper";
 import Step from "@mui/material/Step";
@@ -39,7 +39,7 @@ export default function StepperDemo() {
 
     return (
         <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid size={12}>
                 <DemoSection title={t('stepper-linear')} description={t('stepper-linear-desc')} icon={LinearScaleOutlined} color="#2196F3">
                     <Stepper activeStep={activeStep}>
                         {STEP_KEYS.map((key) => (
@@ -71,7 +71,7 @@ export default function StepperDemo() {
                     )}
                 </DemoSection>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
                 <DemoSection title={t('stepper-non-linear')} description={t('stepper-non-linear-desc')} icon={AltRouteOutlined} color="#9C27B0">
                     <Stepper nonLinear activeStep={nonLinearStep}>
                         {STEP_KEYS.map((key, index) => (

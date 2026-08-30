@@ -1,6 +1,6 @@
 import React from "react";
 import { useTranslation } from "react-i18next";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
@@ -18,7 +18,7 @@ export default function PanelDemo() {
     const { t } = useTranslation();
     return (
         <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
                 <DemoSection title={t('accordion')} icon={ViewCompactOutlined} color="#3F51B5">
                     {[1, 2, 3].map((i) => (
                         <Accordion key={i}>
@@ -32,7 +32,7 @@ export default function PanelDemo() {
                     ))}
                 </DemoSection>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
                     <Box sx={{
                         width: 38, height: 38, borderRadius: 2, bgcolor: "#9C27B01f",

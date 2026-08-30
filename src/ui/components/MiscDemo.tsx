@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Rating from "@mui/material/Rating";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
@@ -24,7 +24,7 @@ export default function MiscDemo() {
     const [page, setPage] = useState(1);
     return (
         <Grid container spacing={2}>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
                 <DemoSection title={t('rating')} icon={StarOutlined} color="#FFC107">
                     <Rating value={rating} onChange={(_, v) => setRating(v)} />
                 </DemoSection>
@@ -39,7 +39,7 @@ export default function MiscDemo() {
                     </Stack>
                 </DemoSection>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
                 <DemoSection title={t('progress')} icon={DonutLargeOutlined} color="#3F51B5">
                     <LinearProgress sx={{ mb: 2 }} />
                     <CircularProgress size={28} />
@@ -50,7 +50,7 @@ export default function MiscDemo() {
                     <Skeleton variant="circular" width={40} height={40} />
                 </DemoSection>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
                 <DemoSection title={t('pagination')} icon={GridViewOutlined} color="#FF9800">
                     <Stack spacing={2}>
                         <Pagination count={10} page={page} onChange={(_, v) => setPage(v)} color="primary" />

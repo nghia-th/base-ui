@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTranslation } from "react-i18next";
-import Grid from "@mui/material/Grid";
+import Grid from "@mui/material/Grid2";
 import Tabs from "@mui/material/Tabs";
 import Tab from "@mui/material/Tab";
 import Box from "@mui/material/Box";
@@ -29,7 +29,7 @@ export default function MenuDemo() {
 
     return (
         <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid size={12}>
                 <DemoSection title={t('breadcrumbs')} icon={NavigateNextOutlined} color="#607D8B">
                     <Breadcrumbs separator={<NavigateNextOutlined fontSize="small" />}>
                         <Link underline="hover" color="inherit" href="#">{t('dashboard')}</Link>
@@ -38,7 +38,7 @@ export default function MenuDemo() {
                     </Breadcrumbs>
                 </DemoSection>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={12}>
                 <DemoSection title={t('tabs')} icon={TabOutlined} color="#2196F3">
                     <Tabs value={tab} onChange={(_, v) => setTab(v)}>
                         <Tab label={t('overview') as string} />
@@ -48,7 +48,7 @@ export default function MenuDemo() {
                     <Box sx={{ py: 2, color: 'text.secondary' }}>{t('panel-content-placeholder')}</Box>
                 </DemoSection>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
                 <DemoSection title={t('context-menu')} icon={MoreVertOutlined} color="#9C27B0">
                     <Button variant="outlined" onClick={(e) => setAnchorEl(e.currentTarget)}>{t('open-menu')}</Button>
                     <Menu anchorEl={anchorEl} open={!!anchorEl} onClose={() => setAnchorEl(null)}>
@@ -58,7 +58,7 @@ export default function MenuDemo() {
                     </Menu>
                 </DemoSection>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
                 <DemoSection title={t('bottom-navigation')} icon={DockOutlined} color="#4CAF50">
                     <BottomNavigation value={bottomNav} onChange={(_, v) => setBottomNav(v)} showLabels sx={{ borderRadius: 2 }}>
                         <BottomNavigationAction label={t('dashboard') as string} icon={<HomeOutlined />} />
