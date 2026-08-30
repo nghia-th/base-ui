@@ -1,28 +1,23 @@
 import React, { useMemo } from "react";
 import { BrowserRouter } from "react-router-dom";
-import { ThemeProvider } from "@mui/material/styles";
-import CssBaseline from "@mui/material/CssBaseline";
 import { SnackbarProvider } from "notistack";
 import { BlocApplication } from "./ui/bloc/BlocApplication";
 import AppWrapper from "./AppWrapper";
-import { createAppTheme } from "./theme/muiTheme";
 import "./ui/i18next/i18next";
 
-// Root component: 1 instance BlocApplication sống suốt vòng đời app (giống module-ui/src/index.tsx),
-// ThemeProvider mặc định (light) bọc ngoài cho Login/Error/NotFound - AppShell sẽ tự bọc
-// ThemeProvider riêng theo theme người dùng chọn (BlocApp) sau khi đăng nhập.
+// Root component: 1 instance BlocApplication sống suốt vòng đời app (giống module-ui/src/index.tsx).
+// ThemeProvider/CssBaseline nằm bên trong AppWrapper.tsx (bọc theo "ui" của BlocApplication) chứ
+// không đặt cố định ở đây nữa - xem ghi chú trong AppWrapper.tsx/ui/bloc/BlocApplication.ts: lý do
+// là AlertDialog/ConfirmDialog cần thấy ĐÚNG theme người dùng đã chọn (kể cả trước khi đăng nhập),
+// không phải 1 theme mặc định cố định.
 export default function App() {
     const app = useMemo(() => new BlocApplication(), []);
-    const defaultTheme = useMemo(() => createAppTheme('light', 'blue'), []);
 
     return (
-        <ThemeProvider theme={defaultTheme}>
-            <CssBaseline />
-            <SnackbarProvider maxSnack={3} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
-                <BrowserRouter>
-                    <AppWrapper app={app} />
-                </BrowserRouter>
-            </SnackbarProvider>
-        </ThemeProvider>
+        <SnackbarProvider maxSnack={3} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+            <BrowserRouter>
+                <AppWrapper app={app} />
+            </BrowserRouter>
+        </SnackbarProvider>
     );
 }

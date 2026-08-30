@@ -15,7 +15,7 @@ import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import LightModeOutlined from "@mui/icons-material/LightModeOutlined";
 import DarkModeOutlined from "@mui/icons-material/DarkModeOutlined";
 import { COMPONENT_THEMES, VISUAL_STYLES, VisualStyleKey, SIDEBAR_BG_PRESETS } from "../../theme/muiTheme";
-import { UIState } from "../bloc/BlocApp";
+import { UIState } from "../bloc/BlocApplication";
 
 interface AppConfigDrawerProps {
     open: boolean;
@@ -25,7 +25,7 @@ interface AppConfigDrawerProps {
 }
 
 // Thay cho AppConfig.js: panel tuỳ biến theme (light/dark + accent color) - lưu qua
-// BlocApp.saveUI() nên giữ được lựa chọn qua LocalStorage giống module-ui.
+// BlocApplication.saveUI() nên giữ được lựa chọn qua LocalStorage giống module-ui.
 export default function AppConfigDrawer({ open, onClose, ui, onChange }: AppConfigDrawerProps) {
     const { t } = useTranslation();
     return (

@@ -1,14 +1,11 @@
 import React, { useContext, useEffect, useState } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
-import { ThemeProvider } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
-import CssBaseline from "@mui/material/CssBaseline";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
 import { AppContext, reUseBloc } from "../base/AppContext";
 import { BlocApp } from "./bloc/BlocApp";
 import UIStream from "./components/common/UIStream";
-import { createAppTheme } from "../theme/muiTheme";
 import { DRAWER_WIDTH, SLIM_WIDTH, HORIZONTAL_MENU_HEIGHT } from "./layout/layoutConstants";
 import { ROOT_MENU_DATA, ROOT_BREADCRUMB_DATA } from "./AppMenuData";
 import AppTopbar from "./layout/AppTopbar";
@@ -58,6 +55,11 @@ import SearchOffOutlined from "@mui/icons-material/SearchOffOutlined";
 export default function AppShell() {
     const appContext = useContext(AppContext);
     const blocApp = reUseBloc(appContext, BlocApp);
+    // "ui" (theme/màu/layout) nằm ở BlocApplication (appContext.app), KHÔNG phải blocApp - xem
+    // ghi chú trong ui/bloc/BlocApplication.ts. appContext.app luôn tồn tại trong Provider này
+    // (AppWrapper.tsx set app: app không điều kiện), nên dùng "!" giống các chỗ khác trong file
+    // (vd. handleLogout bên dưới cũng gọi appContext.app?...).
+    const app = appContext.app!;
     const location = useLocation();
     // "/demo" và "/demo/*" dùng menu template/UI Kit (viewMain.menu từ BlocApp); "/" và mọi path
     // khác NGOÀI /demo (project thật của anh sau này) dùng ROOT_MENU_DATA riêng, để trống/tối
@@ -113,11 +115,10 @@ export default function AppShell() {
                 const breadcrumb = isDemoRoute ? viewMain.breadcrumb : ROOT_BREADCRUMB_DATA;
                 return (
                     <UIStream
-                        initialData={blocApp.getUI()}
-                        stream={blocApp.getStream('ui')}
+                        initialData={app.getUI()}
+                        stream={app.getStream('ui')}
                         builder={(uiSnapshot) => {
-                            const ui = uiSnapshot.data ?? blocApp.getUI();
-                            const theme = createAppTheme(ui.colorScheme, ui.componentTheme, ui.visualStyle ?? 'a', ui.sidebarSyncAccent ?? true, ui.sidebarColor);
+                            const ui = uiSnapshot.data ?? app.getUI();
                             const menuMode = ui.menuMode ?? 'static';
                             const isHorizontal = menuMode === 'horizontal';
                             const isSlim = menuMode === 'slim';
@@ -125,119 +126,116 @@ export default function AppShell() {
                             const isStaticCollapsed = !isHorizontal && !isSlim && !isOverlay && !desktopSidebarOpen;
                             const leftOffset = (isHorizontal || isOverlay || isStaticCollapsed) ? 0 : (isSlim ? SLIM_WIDTH : DRAWER_WIDTH);
                             return (
-                                <ThemeProvider theme={theme}>
-                                    <CssBaseline />
-                                    <Box sx={{ display: 'flex' }}>
-                                        <AppTopbar
-                                            leftOffset={leftOffset}
-                                            breadcrumb={breadcrumb}
-                                            onMenuClick={handleMenuClick}
-                                            onConfigClick={() => setConfigOpen(true)}
-                                            onRightMenuClick={() => setRightMenuOpen(true)}
+                                <Box sx={{ display: 'flex' }}>
+                                    <AppTopbar
+                                        leftOffset={leftOffset}
+                                        breadcrumb={breadcrumb}
+                                        onMenuClick={handleMenuClick}
+                                        onConfigClick={() => setConfigOpen(true)}
+                                        onRightMenuClick={() => setRightMenuOpen(true)}
+                                        fullName={LocalStorage.getItem('fullName') ?? undefined}
+                                        onLogout={handleLogout}
+                                    />
+
+                                    {isHorizontal && <AppHorizontalMenu menu={menu} />}
+                                    {isSlim && <AppSlimMenu menu={menu} />}
+                                    {!isSlim && !isHorizontal && (
+                                        <AppSidebar
+                                            menu={menu}
+                                            mode={isOverlay ? 'overlay' : 'static'}
+                                            mobileOpen={mobileOpen}
+                                            onCloseMobile={() => setMobileOpen(false)}
                                             fullName={LocalStorage.getItem('fullName') ?? undefined}
-                                            onLogout={handleLogout}
+                                            desktopOpen={desktopSidebarOpen}
                                         />
+                                    )}
+                                    {(isSlim || isHorizontal) && (
+                                        <AppSidebar
+                                            menu={menu}
+                                            mode="overlay"
+                                            mobileOpen={mobileOpen}
+                                            onCloseMobile={() => setMobileOpen(false)}
+                                            fullName={LocalStorage.getItem('fullName') ?? undefined}
+                                        />
+                                    )}
 
-                                        {isHorizontal && <AppHorizontalMenu menu={menu} />}
-                                        {isSlim && <AppSlimMenu menu={menu} />}
-                                        {!isSlim && !isHorizontal && (
-                                            <AppSidebar
-                                                menu={menu}
-                                                mode={isOverlay ? 'overlay' : 'static'}
-                                                mobileOpen={mobileOpen}
-                                                onCloseMobile={() => setMobileOpen(false)}
-                                                fullName={LocalStorage.getItem('fullName') ?? undefined}
-                                                desktopOpen={desktopSidebarOpen}
-                                            />
-                                        )}
-                                        {(isSlim || isHorizontal) && (
-                                            <AppSidebar
-                                                menu={menu}
-                                                mode="overlay"
-                                                mobileOpen={mobileOpen}
-                                                onCloseMobile={() => setMobileOpen(false)}
-                                                fullName={LocalStorage.getItem('fullName') ?? undefined}
-                                            />
-                                        )}
-
-                                        <Box
-                                            component="main"
-                                            sx={{
-                                                flexGrow: 1,
-                                                // minWidth: 0 để main luôn co được theo khoảng trống thực tế còn lại - mặc định
-                                                // 1 flex item có min-width: auto (co theo nội dung), nên nếu bên trong lỡ có gì
-                                                // không tự co được (bảng <Table> thường, nội dung không wrap...) main (và cả
-                                                // hàng flex cha) sẽ bị đẩy tràn ngang thay vì hiện scrollbar cục bộ ở đúng chỗ.
-                                                minWidth: 0,
-                                                p: { xs: 2, sm: 3 },
-                                                width: { sm: `calc(100% - ${leftOffset}px)` },
-                                                minHeight: '100vh',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                transition: (t) => t.transitions.create('width', {
-                                                    easing: t.transitions.easing.sharp,
-                                                    duration: t.transitions.duration.enteringScreen
-                                                })
-                                            }}
-                                        >
-                                            <Toolbar />
-                                            {isHorizontal && <Box sx={{ height: { xs: 0, sm: HORIZONTAL_MENU_HEIGHT } }} />}
-                                            <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-                                                {/* AppShell được mount ở path="/*" (xem AppWrapper.tsx) - dùng chung 1 khung
-                                                    (topbar + sidebar) cho cả "/" (trang trống - build UI thật của project mới) và
-                                                    "/demo/*" (template/UI Kit cũ, giữ làm tài liệu tham khảo). Routes lồng bên
-                                                    trong khớp trực tiếp toàn bộ path còn lại (không bị cắt phần base nào) nên
-                                                    path="/" khớp đúng gốc, các path còn lại khai báo tuyệt đối với tiền tố "demo/". */}
-                                                <Routes>
-                                                    <Route path="/" element={<Home />} />
-                                                    <Route path="demo" element={<Dashboard />} />
-                                                    <Route path="demo/formlayout" element={<FormLayoutDemo />} />
-                                                    <Route path="demo/input" element={<InputDemo />} />
-                                                    <Route path="demo/floatlabel" element={<FloatLabelDemo />} />
-                                                    <Route path="demo/invalidstate" element={<InvalidStateDemo />} />
-                                                    <Route path="demo/button" element={<ButtonDemo />} />
-                                                    <Route path="demo/table" element={<TableDemo />} />
-                                                    <Route path="demo/list" element={<ListDemo />} />
-                                                    <Route path="demo/tree" element={<TreeDemo />} />
-                                                    <Route path="demo/panel" element={<PanelDemo />} />
-                                                    <Route path="demo/stepper" element={<StepperDemo />} />
-                                                    <Route path="demo/overlay" element={<OverlayDemo />} />
-                                                    <Route path="demo/media" element={<MediaDemo />} />
-                                                    <Route path="demo/menu" element={<MenuDemo />} />
-                                                    <Route path="demo/messages" element={<MessagesDemo />} />
-                                                    <Route path="demo/file" element={<FileDemo />} />
-                                                    <Route path="demo/chart" element={<ChartDemo />} />
-                                                    <Route path="demo/misc" element={<MiscDemo />} />
-                                                    <Route path="demo/icons" element={<IconsDemo />} />
-                                                    <Route path="demo/crud" element={<CrudDemo />} />
-                                                    <Route path="demo/profile" element={<Profile />} />
-                                                    <Route path="demo/calendar" element={<CalendarDemo />} />
-                                                    <Route path="demo/timeline" element={<TimelineDemo />} />
-                                                    <Route path="demo/invoice" element={<Invoice />} />
-                                                    <Route path="demo/help" element={<Help />} />
-                                                    <Route path="demo/empty" element={<EmptyPage />} />
-                                                    <Route path="demo/documentation" element={<Documentation />} />
-                                                    {/* homeTo="/demo" để nút "Về trang chủ" trên 404 trong demo đưa về dashboard demo
-                                                        thay vì trang trống "/". */}
-                                                    <Route path="*" element={
-                                                        <StatusPage code="404" titleKey="page-not-found" messageKey="page-not-found-message" icon={SearchOffOutlined} homeTo="/demo" />
-                                                    } />
-                                                </Routes>
-                                            </Box>
-                                            <AppFooter />
+                                    <Box
+                                        component="main"
+                                        sx={{
+                                            flexGrow: 1,
+                                            // minWidth: 0 để main luôn co được theo khoảng trống thực tế còn lại - mặc định
+                                            // 1 flex item có min-width: auto (co theo nội dung), nên nếu bên trong lỡ có gì
+                                            // không tự co được (bảng <Table> thường, nội dung không wrap...) main (và cả
+                                            // hàng flex cha) sẽ bị đẩy tràn ngang thay vì hiện scrollbar cục bộ ở đúng chỗ.
+                                            minWidth: 0,
+                                            p: { xs: 2, sm: 3 },
+                                            width: { sm: `calc(100% - ${leftOffset}px)` },
+                                            minHeight: '100vh',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            transition: (t) => t.transitions.create('width', {
+                                                easing: t.transitions.easing.sharp,
+                                                duration: t.transitions.duration.enteringScreen
+                                            })
+                                        }}
+                                    >
+                                        <Toolbar />
+                                        {isHorizontal && <Box sx={{ height: { xs: 0, sm: HORIZONTAL_MENU_HEIGHT } }} />}
+                                        <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                                            {/* AppShell được mount ở path="/*" (xem AppWrapper.tsx) - dùng chung 1 khung
+                                                (topbar + sidebar) cho cả "/" (trang trống - build UI thật của project mới) và
+                                                "/demo/*" (template/UI Kit cũ, giữ làm tài liệu tham khảo). Routes lồng bên
+                                                trong khớp trực tiếp toàn bộ path còn lại (không bị cắt phần base nào) nên
+                                                path="/" khớp đúng gốc, các path còn lại khai báo tuyệt đối với tiền tố "demo/". */}
+                                            <Routes>
+                                                <Route path="/" element={<Home />} />
+                                                <Route path="demo" element={<Dashboard />} />
+                                                <Route path="demo/formlayout" element={<FormLayoutDemo />} />
+                                                <Route path="demo/input" element={<InputDemo />} />
+                                                <Route path="demo/floatlabel" element={<FloatLabelDemo />} />
+                                                <Route path="demo/invalidstate" element={<InvalidStateDemo />} />
+                                                <Route path="demo/button" element={<ButtonDemo />} />
+                                                <Route path="demo/table" element={<TableDemo />} />
+                                                <Route path="demo/list" element={<ListDemo />} />
+                                                <Route path="demo/tree" element={<TreeDemo />} />
+                                                <Route path="demo/panel" element={<PanelDemo />} />
+                                                <Route path="demo/stepper" element={<StepperDemo />} />
+                                                <Route path="demo/overlay" element={<OverlayDemo />} />
+                                                <Route path="demo/media" element={<MediaDemo />} />
+                                                <Route path="demo/menu" element={<MenuDemo />} />
+                                                <Route path="demo/messages" element={<MessagesDemo />} />
+                                                <Route path="demo/file" element={<FileDemo />} />
+                                                <Route path="demo/chart" element={<ChartDemo />} />
+                                                <Route path="demo/misc" element={<MiscDemo />} />
+                                                <Route path="demo/icons" element={<IconsDemo />} />
+                                                <Route path="demo/crud" element={<CrudDemo />} />
+                                                <Route path="demo/profile" element={<Profile />} />
+                                                <Route path="demo/calendar" element={<CalendarDemo />} />
+                                                <Route path="demo/timeline" element={<TimelineDemo />} />
+                                                <Route path="demo/invoice" element={<Invoice />} />
+                                                <Route path="demo/help" element={<Help />} />
+                                                <Route path="demo/empty" element={<EmptyPage />} />
+                                                <Route path="demo/documentation" element={<Documentation />} />
+                                                {/* homeTo="/demo" để nút "Về trang chủ" trên 404 trong demo đưa về dashboard demo
+                                                    thay vì trang trống "/". */}
+                                                <Route path="*" element={
+                                                    <StatusPage code="404" titleKey="page-not-found" messageKey="page-not-found-message" icon={SearchOffOutlined} homeTo="/demo" />
+                                                } />
+                                            </Routes>
                                         </Box>
-                                        <AppConfigDrawer
-                                            open={configOpen}
-                                            onClose={() => setConfigOpen(false)}
-                                            ui={ui}
-                                            onChange={(patch) => blocApp.saveUI(patch)}
-                                        />
-                                        <AppRightMenu
-                                            open={rightMenuOpen}
-                                            onClose={() => setRightMenuOpen(false)}
-                                        />
+                                        <AppFooter />
                                     </Box>
-                                </ThemeProvider>
+                                    <AppConfigDrawer
+                                        open={configOpen}
+                                        onClose={() => setConfigOpen(false)}
+                                        ui={ui}
+                                        onChange={(patch) => app.saveUI(patch)}
+                                    />
+                                    <AppRightMenu
+                                        open={rightMenuOpen}
+                                        onClose={() => setRightMenuOpen(false)}
+                                    />
+                                </Box>
                             );
                         }}
                     />
