@@ -68,6 +68,13 @@ export class QuizStudentAttemptApi {
     static removeSpeakingAnswer(attemptId: number, questionId: number) {
         return QuizRequestBase.delete(`${QUIZ_STUDENT_PREFIX}/attempts/${attemptId}/questions/${questionId}/speaking-answer`);
     }
+
+    // Lưu câu trả lời gõ chữ (tự luận) cho câu SPEAKING dạng TEXT/BOTH (thêm 2026-09-01, theo góp ý
+    // anh sau khi test bản v1 chỉ ghi âm) - text rỗng/null xoá về chưa trả lời. Chặn ở backend nếu
+    // attempt đã nộp, giống hệt speaking-answer (audio).
+    static saveSpeakingTextAnswer(attemptId: number, questionId: number, text: string) {
+        return QuizRequestBase.put(`${QUIZ_STUDENT_PREFIX}/attempts/${attemptId}/questions/${questionId}/speaking-answer/text`, { text });
+    }
 }
 
 // Upload bản ghi âm câu trả lời (multipart/form-data, tính năng "Câu hỏi dạng tự luận/thu âm",

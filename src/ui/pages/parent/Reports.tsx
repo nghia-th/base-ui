@@ -195,7 +195,7 @@ export default function Reports() {
                                                         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
                                                             {t('quiz-speaking-not-auto-graded')}
                                                         </Typography>
-                                                        {a.hasSpeakingAnswer ? (
+                                                        {a.hasSpeakingAnswer && (
                                                             <UIStream
                                                                 initialData={null}
                                                                 stream={bloc.getStream('speakingAudioUrls')}
@@ -223,8 +223,19 @@ export default function Reports() {
                                                                     );
                                                                 }}
                                                             />
-                                                        ) : (
+                                                        )}
+                                                        {a.answerText && (
+                                                            <Typography variant="body2" sx={{ mb: 1, whiteSpace: 'pre-wrap' }}>
+                                                                {t('quiz-speaking-typed-answer-label')}: {a.answerText}
+                                                            </Typography>
+                                                        )}
+                                                        {!a.hasSpeakingAnswer && !a.answerText && (
                                                             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{t('quiz-speaking-no-answer')}</Typography>
+                                                        )}
+                                                        {a.referenceAnswer && (
+                                                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5, whiteSpace: 'pre-wrap' }}>
+                                                                {t('quiz-reference-answer')}: {a.referenceAnswer}
+                                                            </Typography>
                                                         )}
                                                         <ToggleButtonGroup
                                                             size="small"

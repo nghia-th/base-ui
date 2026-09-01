@@ -325,7 +325,36 @@ export default function Questions() {
                                                                     stream={bloc.getStream('questionType')}
                                                                     builder={(typeSnap) => (
                                                                         (typeSnap.data ?? 'MULTIPLE_CHOICE') === 'SPEAKING' ? (
-                                                                            <Typography variant="body2" color="text.secondary">{t('quiz-question-type-speaking-hint')}</Typography>
+                                                                            <Stack spacing={2}>
+                                                                                <Typography variant="body2" color="text.secondary">{t('quiz-question-type-speaking-hint')}</Typography>
+                                                                                <UIStream
+                                                                                    initialData="AUDIO"
+                                                                                    stream={bloc.getStream('answerMode')}
+                                                                                    builder={(modeSnap) => (
+                                                                                        <FormControl>
+                                                                                            <FormLabel sx={{ typography: 'subtitle2' }}>{t('quiz-answer-mode')}</FormLabel>
+                                                                                            <RadioGroup
+                                                                                                row
+                                                                                                value={modeSnap.data ?? 'AUDIO'}
+                                                                                                onChange={(e) => bloc.changeAnswerMode(e.target.value as 'AUDIO' | 'TEXT' | 'BOTH')}
+                                                                                            >
+                                                                                                <FormControlLabel value="AUDIO" control={<Radio />} label={t('quiz-answer-mode-audio')} />
+                                                                                                <FormControlLabel value="TEXT" control={<Radio />} label={t('quiz-answer-mode-text')} />
+                                                                                                <FormControlLabel value="BOTH" control={<Radio />} label={t('quiz-answer-mode-both')} />
+                                                                                            </RadioGroup>
+                                                                                        </FormControl>
+                                                                                    )}
+                                                                                />
+                                                                                <TextField
+                                                                                    label={t('quiz-reference-answer')}
+                                                                                    helperText={t('quiz-reference-answer-hint')}
+                                                                                    defaultValue={bloc.getField('referenceAnswer', 'req') ?? ''}
+                                                                                    onChange={(e) => bloc.setStream('referenceAnswer', e.target.value, 'req')}
+                                                                                    multiline
+                                                                                    minRows={2}
+                                                                                    fullWidth
+                                                                                />
+                                                                            </Stack>
                                                                         ) : (
                                                                             <>
                                                                                 <Typography variant="subtitle2">{t('quiz-question-choices')}</Typography>

@@ -11,6 +11,7 @@ import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import CircularProgress from "@mui/material/CircularProgress";
+import TextField from "@mui/material/TextField";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
@@ -70,6 +71,7 @@ export default function TakeTest() {
     const startRecording = (questionId: number) => bloc.startRecording(questionId, showError);
     const stopRecording = (questionId: number) => { if (attemptId != null) bloc.stopRecording(attemptId, questionId, showError); };
     const deleteSpeakingAnswer = (questionId: number) => { if (attemptId != null) bloc.deleteSpeakingAnswer(attemptId, questionId, showError); };
+    const saveSpeakingText = (questionId: number, text: string) => { if (attemptId != null) bloc.saveSpeakingTextAnswer(attemptId, questionId, text, showError); };
 
     return (
         <UIStream
@@ -119,26 +121,37 @@ export default function TakeTest() {
                                                     stream={bloc.getStream('speakingAudioUrls')}
                                                     builder={(speakingSnap) => {
                                                         const speakingUrls: Record<number, string> = speakingSnap.data ?? {};
-                                                        // Đếm "đã trả lời" gộp cả 2 loại - câu MULTIPLE_CHOICE tính đã chọn
-                                                        // đáp án, câu SPEAKING tính đã có bản ghi âm (url cache) - không dùng
-                                                        // Object.keys(answers).length như cũ vì 'answers' chỉ chứa câu trắc
-                                                        // nghiệm (chooseAnswer không ghi vào map này cho SPEAKING).
-                                                        const answeredCount = questions.filter((q) => q.questionType === 'SPEAKING' ? speakingUrls[q.questionId] != null : answers[q.questionId] != null).length;
                                                         return (
-                                                            <Card sx={{ p: 2 }}>
-                                                                <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
-                                                                    <Typography variant="subtitle1" fontWeight={700}>
-                                                                        {t('quiz-answered-count', { answered: answeredCount, total: questions.length })}
-                                                                    </Typography>
-                                                                    <UIStream
-                                                                        initialData={false}
-                                                                        stream={bloc.getStream('submitting')}
-                                                                        builder={(submittingSnap) => (
-                                                                            <Button variant="contained" disabled={submittingSnap.data === true} onClick={askSubmit}>{t('quiz-submit-test')}</Button>
-                                                                        )}
-                                                                    />
-                                                                </Stack>
-                                                            </Card>
+                                                            <UIStream
+                                                                initialData={bloc.getField('speakingTextAnswers') ?? {}}
+                                                                stream={bloc.getStream('speakingTextAnswers')}
+                                                                builder={(speakingTextSnap) => {
+                                                                    const speakingTexts: Record<number, string> = speakingTextSnap.data ?? {};
+                                                                    // Đếm "đã trả lời" gộp cả 2 loại - câu MULTIPLE_CHOICE tính đã
+                                                                    // chọn đáp án, câu SPEAKING tính đã có bản ghi âm HOẶC đã gõ
+                                                                    // chữ (không dùng Object.keys(answers).length như cũ vì
+                                                                    // 'answers' chỉ chứa câu trắc nghiệm).
+                                                                    const answeredCount = questions.filter((q) => q.questionType === 'SPEAKING'
+                                                                        ? (speakingUrls[q.questionId] != null || !!speakingTexts[q.questionId]?.trim())
+                                                                        : answers[q.questionId] != null).length;
+                                                                    return (
+                                                                        <Card sx={{ p: 2 }}>
+                                                                            <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
+                                                                                <Typography variant="subtitle1" fontWeight={700}>
+                                                                                    {t('quiz-answered-count', { answered: answeredCount, total: questions.length })}
+                                                                                </Typography>
+                                                                                <UIStream
+                                                                                    initialData={false}
+                                                                                    stream={bloc.getStream('submitting')}
+                                                                                    builder={(submittingSnap) => (
+                                                                                        <Button variant="contained" disabled={submittingSnap.data === true} onClick={askSubmit}>{t('quiz-submit-test')}</Button>
+                                                                                    )}
+                                                                                />
+                                                                            </Stack>
+                                                                        </Card>
+                                                                    );
+                                                                }}
+                                                            />
                                                         );
                                                     }}
                                                 />
@@ -209,6 +222,8 @@ export default function TakeTest() {
                                                             )}
                                                             {q.questionType === 'SPEAKING' ? (
                                                                 <Stack spacing={1}>
+                                                                    {q.answerMode !== 'TEXT' && (
+                                                                        <>
                                                                     <Typography variant="body2" color="text.secondary">
                                                                         {t('quiz-speaking-hint')}
                                                                     </Typography>
@@ -280,6 +295,30 @@ export default function TakeTest() {
                                                                             );
                                                                         }}
                                                                     />
+                                                                        </>
+                                                                    )}
+                                                                    {q.answerMode !== 'AUDIO' && (
+                                                                        <UIStream
+                                                                            initialData={bloc.getField('speakingTextAnswers') ?? {}}
+                                                                            stream={bloc.getStream('speakingTextAnswers')}
+                                                                            builder={(textSnap) => {
+                                                                                const speakingTexts: Record<number, string> = textSnap.data ?? {};
+                                                                                const currentText = speakingTexts[q.questionId] ?? q.answerText ?? '';
+                                                                                return (
+                                                                                    <TextField
+                                                                                        label={t('quiz-speaking-text-label')}
+                                                                                        placeholder={t('quiz-speaking-text-hint')}
+                                                                                        multiline
+                                                                                        minRows={2}
+                                                                                        fullWidth
+                                                                                        disabled={result != null}
+                                                                                        defaultValue={currentText}
+                                                                                        onBlur={(e) => saveSpeakingText(q.questionId, e.target.value)}
+                                                                                    />
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                    )}
                                                                 </Stack>
                                                             ) : (
                                                                 <RadioGroup

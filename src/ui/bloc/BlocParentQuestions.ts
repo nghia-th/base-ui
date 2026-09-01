@@ -35,6 +35,11 @@ export interface QuizQuestion {
     // "MULTIPLE_CHOICE" (câu trắc nghiệm như cũ, choices luôn có) hoặc "SPEAKING" (học sinh trả
     // lời bằng ghi âm, choices luôn rỗng).
     questionType: 'MULTIPLE_CHOICE' | 'SPEAKING';
+    // Cách Học sinh được trả lời câu SPEAKING (thêm 2026-09-01) - chỉ có ý nghĩa khi questionType
+    // là SPEAKING. Backend luôn trả về (mặc định AUDIO nếu chưa từng đặt).
+    answerMode?: 'AUDIO' | 'TEXT' | 'BOTH';
+    // Đáp án tham khảo Phụ huynh tự go (thêm 2026-09-01, không bắt buộc) - null/undefined nếu chưa nhập.
+    referenceAnswer?: string;
 }
 
 // Khớp ImportRowError.java / QuestionImportResponse.java.
@@ -172,12 +177,13 @@ export class BlocParentQuestions extends IBlocUI {
     // chỉ mutate trực tiếp phần tử mảng, KHÔNG setStream, nên không re-render trang - đọc lại đúng
     // giá trị mới nhất lúc Lưu qua getField). ---
     openNewQuestion() {
-        this.setField('req', { content: '', knowledgeTag: '' })
+        this.setField('req', { content: '', knowledgeTag: '', referenceAnswer: '' })
         const choices = [{ content: '', correct: false }, { content: '', correct: false }]
         this.setField('choicesReq', choices)
         this.setStream('choicesMeta', choices)
         this.setStream('hideContentInTest', false)
         this.setStream('questionType', 'MULTIPLE_CHOICE')
+        this.setStream('answerMode', 'AUDIO')
         this.setStream('questionHasAudio', false)
         this.setStream('questionAudioPreviewUrl', null)
         this.setStream('questionAudioLoading', false)
@@ -186,18 +192,26 @@ export class BlocParentQuestions extends IBlocUI {
     }
 
     openEditQuestion(q: QuizQuestion) {
-        this.setField('req', { content: q.content, knowledgeTag: q.knowledgeTag ?? '' })
+        this.setField('req', { content: q.content, knowledgeTag: q.knowledgeTag ?? '', referenceAnswer: q.referenceAnswer ?? '' })
         const choices = q.choices.map((c) => ({ content: c.content, correct: c.correct }))
         this.setField('choicesReq', choices)
         this.setStream('choicesMeta', choices)
         this.setStream('hideContentInTest', q.hideContentInTest)
         this.setStream('questionType', q.questionType ?? 'MULTIPLE_CHOICE')
+        this.setStream('answerMode', q.answerMode ?? 'AUDIO')
         this.setStream('questionHasAudio', q.hasAudio)
         this.setStream('questionAudioPreviewUrl', null)
         this.setStream('questionAudioLoading', false)
         this.setStream('questionAudioUploading', false)
         this.setStream('question_form_view', { isShow: true, id: q.id })
         if (q.hasAudio) this.loadQuestionAudioPreview(q.id)
+    }
+
+    // Đổi "Loại trả lời" (thu âm/tự luận/cả 2) trong Dialog câu SPEAKING (thêm 2026-09-01, theo
+    // góp ý anh sau khi test bản v1 chỉ ghi âm) - chỉ đơn giản đổi stream, không cần dọn dẹp gì
+    // thêm (khác changeQuestionType phải tự điền lại choices trống).
+    changeAnswerMode(mode: 'AUDIO' | 'TEXT' | 'BOTH') {
+        this.setStream('answerMode', mode)
     }
 
     // Đổi loại câu hỏi trong Dialog (2026-09-01) - chuyển sang MULTIPLE_CHOICE mà đang có < 2 lựa
@@ -330,13 +344,16 @@ export class BlocParentQuestions extends IBlocUI {
         this.setStream('submitting', true)
         const done = () => { this.setStream('submitting', false); onComplete() }
         const fail = (error: any) => { this.setStream('submitting', false); onError(error) }
+        const answerMode: 'AUDIO' | 'TEXT' | 'BOTH' = this.getField('answerMode') ?? 'AUDIO'
         const request: QuizQuestionRequest = {
             lessonId,
             content: req.content,
             knowledgeTag: req.knowledgeTag || undefined,
             choices: questionType === 'SPEAKING' ? [] : choices.map((c) => ({ content: c.content, correct: c.correct })),
             hideContentInTest: this.getField('hideContentInTest') ?? false,
-            questionType
+            questionType,
+            answerMode: questionType === 'SPEAKING' ? answerMode : undefined,
+            referenceAnswer: questionType === 'SPEAKING' ? (req.referenceAnswer || undefined) : undefined
         }
         if ((view.id ?? 0) > 0) {
             this.update(view.id, request, done, fail)

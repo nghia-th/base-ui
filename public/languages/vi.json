@@ -455,6 +455,15 @@
     "quiz-speaking-listen": "Nghe câu trả lời",
     "quiz-speaking-no-answer": "Con chưa ghi âm câu trả lời.",
     "quiz-speaking-mark-correct": "Đúng",
-    "quiz-speaking-mark-incorrect": "Sai"
+    "quiz-speaking-mark-incorrect": "Sai",
+    "quiz-answer-mode": "Loại trả lời",
+    "quiz-answer-mode-audio": "Ghi âm",
+    "quiz-answer-mode-text": "Tự luận (gõ chữ)",
+    "quiz-answer-mode-both": "Cả 2 (ghi âm hoặc gõ chữ)",
+    "quiz-reference-answer": "Đáp án tham khảo (không bắt buộc)",
+    "quiz-reference-answer-hint": "Chỉ để anh đối chiếu khi xem lại câu trả lời của con - không hiện cho học sinh, không dùng để tự động chấm điểm.",
+    "quiz-speaking-text-label": "Câu trả lời (gõ chữ)",
+    "quiz-speaking-text-hint": "Nhập câu trả lời của em vào đây...",
+    "quiz-speaking-typed-answer-label": "Câu trả lời gõ chữ"
   }
 }

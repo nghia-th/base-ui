@@ -27,6 +27,13 @@ export interface QuizAttemptAnswerDetail {
     questionType: 'MULTIPLE_CHOICE' | 'SPEAKING';
     hasSpeakingAnswer: boolean;
     parentMarkedCorrect: boolean | null;
+    // Thêm 2026-09-01 cùng đợt AnswerMode - answerText: câu trả lời gõ chữ của học sinh (null nếu
+    // chưa gõ/chỉ ghi âm); answerMode: chế độ Phụ huynh đã cấu hình cho câu hỏi này lúc tạo (chỉ có
+    // ý nghĩa với câu SPEAKING); referenceAnswer: đáp án tham khảo Phụ huynh tự nhập lúc tạo câu hỏi
+    // (không phải đáp án đúng do hệ thống chấm - chỉ để đối chiếu, có thể null).
+    answerText: string | null;
+    answerMode: 'AUDIO' | 'TEXT' | 'BOTH' | null;
+    referenceAnswer: string | null;
 }
 
 // Khớp KnowledgeTagBreakdown.java - tính năng cốt lõi của sản phẩm (xem hieu-bai-app-phan-tich.md):

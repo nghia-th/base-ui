@@ -23,6 +23,14 @@ export interface QuizQuestionRequest {
     // questionType. Optional - không gửi/undefined nghĩa là MULTIPLE_CHOICE (backend tự mặc định),
     // giống hệt mọi câu hỏi trước khi field này tồn tại.
     questionType?: 'MULTIPLE_CHOICE' | 'SPEAKING';
+    // Cách Học sinh được trả lời câu SPEAKING (thêm 2026-09-01, theo góp ý anh sau khi test bản v1
+    // chỉ ghi âm) - AUDIO (chỉ ghi âm, mặc định), TEXT (chỉ gõ chữ), BOTH (cả 2, Học sinh tự chọn).
+    // Chỉ có ý nghĩa khi questionType là SPEAKING - backend tự bỏ qua (lưu null) với MULTIPLE_CHOICE.
+    answerMode?: 'AUDIO' | 'TEXT' | 'BOTH';
+    // Đáp án tham khảo Phụ huynh tự go (không bắt buộc, thêm 2026-09-01) - chỉ để Phụ huynh đối
+    // chiếu khi xem lại câu trả lời của con ở Báo cáo, KHÔNG hiện cho Học sinh, KHÔNG dùng để tự
+    // chấm điểm.
+    referenceAnswer?: string;
 }
 
 export class QuizQuestionApi {

@@ -455,6 +455,15 @@
     "quiz-speaking-listen": "Listen to answer",
     "quiz-speaking-no-answer": "No recorded answer yet.",
     "quiz-speaking-mark-correct": "Correct",
-    "quiz-speaking-mark-incorrect": "Incorrect"
+    "quiz-speaking-mark-incorrect": "Incorrect",
+    "quiz-answer-mode": "Answer type",
+    "quiz-answer-mode-audio": "Voice recording",
+    "quiz-answer-mode-text": "Typed answer",
+    "quiz-answer-mode-both": "Both (recording or typed)",
+    "quiz-reference-answer": "Reference answer (optional)",
+    "quiz-reference-answer-hint": "Only for your own comparison when reviewing your child's answer - never shown to the student, never used for auto-grading.",
+    "quiz-speaking-text-label": "Answer (typed)",
+    "quiz-speaking-text-hint": "Type your answer here...",
+    "quiz-speaking-typed-answer-label": "Typed answer"
   }
 }
