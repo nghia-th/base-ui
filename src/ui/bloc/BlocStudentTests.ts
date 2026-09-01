@@ -39,4 +39,33 @@ export class BlocStudentTests extends IBlocUI {
             this.reload()
         }, { onError })
     }
+
+    // Dialog "Tạo đề ôn tập" (2026-09-01, xem BlocParentStudents.ts's comment cho lý do chung).
+    openPractice() {
+        this.setStream('pSubjectId', '')
+        this.setField('practiceReq', {})
+        this.setStream('practice_view', { isShow: true })
+    }
+
+    closePractice() {
+        this.setStream('practice_view', { isShow: false })
+        this.setStream('practiceSubmitting', false)
+    }
+
+    submitPractice(onComplete: () => void, onError: (error: any) => void) {
+        const subjectId = this.getField('pSubjectId')
+        if (subjectId === '' || subjectId == null) {
+            onError({ messageKey: 'required-field' })
+            return
+        }
+        const req = this.getField('practiceReq') ?? {}
+        this.setStream('practiceSubmitting', true)
+        const request: QuizStudentPracticeGenerateRequest = {
+            subjectId,
+            name: (req.pName ?? '').trim() === '' ? undefined : req.pName,
+            questionCount: (req.pQuestionCount ?? '').trim() === '' ? undefined : Number(req.pQuestionCount)
+        }
+        this.generatePractice(request, () => { this.setStream('practiceSubmitting', false); onComplete() },
+            (error: any) => { this.setStream('practiceSubmitting', false); onError(error) })
+    }
 }

@@ -63,4 +63,18 @@ export class BlocParentReports extends IBlocUI {
             onComplete(res.data as QuizAttemptReport)
         }, { onError })
     }
+
+    // State giao diện dời từ useState vào đây (2026-09-01, xem BlocParentStudents.ts's comment).
+    changeStudent(value: number) {
+        this.setStream('studentId', value)
+        this.loadHistory(value)
+    }
+
+    openReport(attemptId: number, onError: (error: any) => void) {
+        this.loadAttemptReport(attemptId, (r) => this.setStream('report', r), onError)
+    }
+
+    closeReport() {
+        this.setStream('report', null)
+    }
 }

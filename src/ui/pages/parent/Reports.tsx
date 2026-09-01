@@ -1,4 +1,4 @@
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
@@ -39,24 +39,12 @@ export default function Reports() {
     const { enqueueSnackbar } = useSnackbar();
     const appContext = useContext(AppContext);
     const bloc = reUseBlocContent(appContext, BlocParentReports);
-    const showError = (error: any) => enqueueSnackbar(quizErrorMessage(t, error), { variant: 'error' });
+    const showError = (error: any) => enqueueSnackbar(quizErrorMessage(t, error), { variant: error?.variant ?? 'error' });
 
-    const [studentId, setStudentId] = useState<number | ''>('');
-    const [report, setReport] = useState<QuizAttemptReport | null>(null);
-
-    React.useEffect(() => {
+    useEffect(() => {
         bloc.initData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-
-    const onStudentChange = (value: number) => {
-        setStudentId(value);
-        bloc.loadHistory(value);
-    };
-
-    const openReport = (attemptId: number) => {
-        bloc.loadAttemptReport(attemptId, (r) => setReport(r), showError);
-    };
 
     return (
         <Stack spacing={2}>
@@ -65,21 +53,32 @@ export default function Reports() {
                     initialData={null}
                     stream={bloc.getStream('students')}
                     builder={(snapshot) => (
-                        <FormControl size="small" sx={{ minWidth: 240 }}>
-                            <InputLabel>{t('quiz-select-student')}</InputLabel>
-                            <Select
-                                label={t('quiz-select-student')}
-                                value={studentId}
-                                onChange={(e) => onStudentChange(Number(e.target.value))}
-                            >
-                                {(snapshot.data ?? []).map((s: any) => <MenuItem key={s.id} value={s.id}>{s.fullName}</MenuItem>)}
-                            </Select>
-                        </FormControl>
+                        <UIStream
+                            initialData={bloc.getField('studentId') ?? ''}
+                            stream={bloc.getStream('studentId')}
+                            builder={(studentIdSnap) => (
+                                <FormControl size="small" sx={{ minWidth: 240 }}>
+                                    <InputLabel>{t('quiz-select-student')}</InputLabel>
+                                    <Select
+                                        label={t('quiz-select-student')}
+                                        value={studentIdSnap.data ?? ''}
+                                        onChange={(e) => bloc.changeStudent(Number(e.target.value))}
+                                    >
+                                        {(snapshot.data ?? []).map((s: any) => <MenuItem key={s.id} value={s.id}>{s.fullName}</MenuItem>)}
+                                    </Select>
+                                </FormControl>
+                            )}
+                        />
                     )}
                 />
             </Card>
 
-            {studentId === '' ? (
+            <UIStream
+                initialData={bloc.getField('studentId') ?? ''}
+                stream={bloc.getStream('studentId')}
+                builder={(studentIdSnap) => {
+                    const studentId = studentIdSnap.data ?? '';
+                    return studentId === '' ? (
                 <Card sx={{
                     p: 4, display: 'flex', flexDirection: 'column', alignItems: 'center',
                     justifyContent: 'center', minHeight: 200, color: 'text.secondary'
@@ -111,7 +110,7 @@ export default function Reports() {
                                             </TableHead>
                                             <TableBody>
                                                 {history.map((item) => (
-                                                    <TableRow key={item.attemptId} hover sx={{ cursor: 'pointer' }} onClick={() => openReport(item.attemptId)}>
+                                                    <TableRow key={item.attemptId} hover sx={{ cursor: 'pointer' }} onClick={() => bloc.openReport(item.attemptId, showError)}>
                                                         <TableCell>
                                                             {item.testName}
                                                             {/* Tách riêng đề "Ôn tập" (PRACTICE) khỏi đề thường trong lịch sử - theo yêu cầu
@@ -133,9 +132,17 @@ export default function Reports() {
                         );
                     }}
                 />
-            )}
+            );
+                }}
+            />
 
-            <Dialog open={report != null} onClose={() => setReport(null)} maxWidth="sm" fullWidth>
+            <UIStream
+                initialData={null}
+                stream={bloc.getStream('report')}
+                builder={(reportSnap) => {
+                    const report: QuizAttemptReport | null = reportSnap.data;
+                    return (
+            <Dialog open={report != null} onClose={() => bloc.closeReport()} maxWidth="sm" fullWidth>
                 <DialogTitle>{report?.testName}</DialogTitle>
                 <DialogContent>
                     {report && (
@@ -196,9 +203,12 @@ export default function Reports() {
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => setReport(null)}>{t('close')}</Button>
+                    <Button onClick={() => bloc.closeReport()}>{t('close')}</Button>
                 </DialogActions>
             </Dialog>
+                    );
+                }}
+            />
         </Stack>
     );
 }

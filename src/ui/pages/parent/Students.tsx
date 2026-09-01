@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useContext, useMemo, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
@@ -24,71 +24,35 @@ import { BlocParentStudents, QuizStudent, QuizClassroomLite } from "../../bloc/B
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
-// Form đang mở trong Dialog: null = đóng, {id: 0, ...} = tạo mới, {id: <thật>, ...} = sửa.
-// password để riêng field mode='create' (bắt buộc) khỏi mode='edit' (optional, để trống = giữ
-// nguyên - xem StudentUpdateRequest.java) vì cùng field "password" nhưng ý nghĩa validate khác nhau.
-interface StudentFormState {
-    id: number;
-    fullName: string;
-    classroomId: number | '';
-    username: string;
-    password: string;
-}
-
-const EMPTY_FORM: StudentFormState = { id: 0, fullName: '', classroomId: '', username: '', password: '' };
-
 // Trang "Quản lý học sinh" (khu vực Phụ huynh, /app/parent/students - Task 2 backend). Theo đúng
 // recipe 5 bước ở Documentation.tsx: QuizStudentApi (bước 1) -> BlocParentStudents (bước 2) ->
 // trang này (bước 3, dùng reUseBlocContent + UIStream giống Dashboard.tsx) -> route/menu đã thêm
 // ở AppShell.tsx/AppMenuData.ts (bước 4) -> key dịch ở public/languages/*.json (bước 5).
+//
+// STATE MANAGEMENT (đổi 2026-09-01, xem claude/ui-base-status.md "Quy ước state mới") - Dialog
+// form không còn useState nữa, mọi thứ dồn vào BlocParentStudents (form_view/req/submitting) -
+// xem comment ở đó. TextField (fullName/username/password) giờ uncontrolled (defaultValue đọc 1
+// lần lúc Dialog mount, KHÔNG có value=) nên gõ chữ không re-render trang - Select (classroomId)
+// vẫn cần controlled nên bọc UIStream riêng, hẹp.
 export default function Students() {
     const { t } = useTranslation();
     const { enqueueSnackbar } = useSnackbar();
     const appContext = useContext(AppContext);
     const bloc = reUseBlocContent(appContext, BlocParentStudents);
 
-    const [form, setForm] = useState<StudentFormState | null>(null);
-    const [submitting, setSubmitting] = useState(false);
-    const isEditing = (form?.id ?? 0) > 0;
-
     useEffect(() => {
         bloc.initData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const showError = (error: any) => enqueueSnackbar(quizErrorMessage(t, error), { variant: 'error' });
-
-    const openNew = () => setForm({ ...EMPTY_FORM });
-    const openEdit = (row: QuizStudent) => setForm({ id: row.id, fullName: row.fullName, classroomId: row.classroomId, username: row.username, password: '' });
-    const closeForm = () => { setForm(null); setSubmitting(false); };
+    const showError = (error: any) => enqueueSnackbar(quizErrorMessage(t, error), { variant: error?.variant ?? 'error' });
 
     const save = () => {
-        if (!form) return;
-        setSubmitting(true);
-        if (form.classroomId === '') return;
-        if (isEditing) {
-            bloc.update(form.id, {
-                fullName: form.fullName,
-                classroomId: form.classroomId,
-                username: form.username,
-                // Để trống = giữ nguyên mật khẩu cũ (StudentUpdateRequest.java) - chỉ gửi khi anh
-                // thật sự gõ mật khẩu mới.
-                password: form.password ? form.password : undefined
-            }, () => {
-                enqueueSnackbar(t('quiz-student-updated') as string, { variant: 'success' });
-                closeForm();
-            }, (error) => { setSubmitting(false); showError(error); });
-        } else {
-            bloc.create({
-                fullName: form.fullName,
-                classroomId: form.classroomId,
-                username: form.username,
-                password: form.password
-            }, () => {
-                enqueueSnackbar(t('quiz-student-created') as string, { variant: 'success' });
-                closeForm();
-            }, (error) => { setSubmitting(false); showError(error); });
-        }
+        bloc.save(() => {
+            const isEditing = (bloc.getField('form_view')?.id ?? 0) > 0;
+            enqueueSnackbar(t(isEditing ? 'quiz-student-updated' : 'quiz-student-created') as string, { variant: 'success' });
+            bloc.closeForm();
+        }, showError);
     };
 
     // ConfirmDialog tự gọi t(title)/t(message) bên trong nó (xem ConfirmDialog.tsx) - truyền
@@ -121,7 +85,7 @@ export default function Students() {
         {
             field: 'actions', type: 'actions', headerName: t('actions') as string, width: 100,
             getActions: (params) => [
-                <GridActionsCellItem icon={<EditOutlined fontSize="small" />} label="edit" onClick={() => openEdit(params.row)} />,
+                <GridActionsCellItem icon={<EditOutlined fontSize="small" />} label="edit" onClick={() => bloc.openEdit(params.row)} />,
                 <GridActionsCellItem icon={<DeleteOutlined fontSize="small" />} label="delete" onClick={() => askRemove(params.row)} />
             ]
         }
@@ -142,7 +106,7 @@ export default function Students() {
                         <Card sx={{ p: { xs: 2, sm: 3 } }}>
                             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
                                 <Typography variant="h6" fontWeight={700}>{t('quiz-students')}</Typography>
-                                <Button variant="contained" startIcon={<AddOutlined />} onClick={openNew}>{t('new')}</Button>
+                                <Button variant="contained" startIcon={<AddOutlined />} onClick={() => bloc.openNew()}>{t('new')}</Button>
                             </Stack>
                             <Box sx={{ height: 420 }}>
                                 <DataGrid
@@ -154,60 +118,78 @@ export default function Students() {
                             </Box>
                         </Card>
 
-                        <Dialog open={form != null} onClose={closeForm} maxWidth="xs" fullWidth>
-                            <DialogTitle>{isEditing ? t('quiz-student-edit') : t('quiz-student-new')}</DialogTitle>
-                            <DialogContent>
-                                <Stack spacing={2} sx={{ mt: 1 }}>
-                                    <TextField
-                                        label={t('full-name')}
-                                        value={form?.fullName ?? ''}
-                                        onChange={(e) => setForm((s) => s && { ...s, fullName: e.target.value })}
-                                        autoFocus
-                                        fullWidth
-                                    />
-                                    <UIStream
-                                        initialData={bloc.getField('classrooms')}
-                                        stream={bloc.getStream('classrooms')}
-                                        builder={(classroomsSnap) => (
-                                            <FormControl fullWidth size="small">
-                                                <InputLabel>{t('quiz-classrooms')}</InputLabel>
-                                                <Select
-                                                    label={t('quiz-classrooms')}
-                                                    value={form?.classroomId ?? ''}
-                                                    onChange={(e) => setForm((s) => s && { ...s, classroomId: e.target.value === '' ? '' : Number(e.target.value) })}
-                                                >
-                                                    {(classroomsSnap.data ?? []).map((c: QuizClassroomLite) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
-                                                </Select>
-                                            </FormControl>
-                                        )}
-                                    />
-                                    <TextField
-                                        label={t('username')}
-                                        value={form?.username ?? ''}
-                                        onChange={(e) => setForm((s) => s && { ...s, username: e.target.value })}
-                                        fullWidth
-                                    />
-                                    <TextField
-                                        label={t('password')}
-                                        type="password"
-                                        value={form?.password ?? ''}
-                                        onChange={(e) => setForm((s) => s && { ...s, password: e.target.value })}
-                                        helperText={isEditing ? t('quiz-password-optional-hint') : undefined}
-                                        fullWidth
-                                    />
-                                </Stack>
-                            </DialogContent>
-                            <DialogActions>
-                                <Button onClick={closeForm}>{t('cancel')}</Button>
-                                <Button
-                                    variant="contained"
-                                    disabled={submitting || !form?.fullName || form?.classroomId === '' || !form?.username || (!isEditing && !form?.password)}
-                                    onClick={save}
-                                >
-                                    {t('save')}
-                                </Button>
-                            </DialogActions>
-                        </Dialog>
+                        <UIStream
+                            initialData={{ isShow: false, id: 0 }}
+                            stream={bloc.getStream('form_view')}
+                            builder={(viewSnap) => {
+                                const view = viewSnap.data ?? { isShow: false, id: 0 };
+                                const isEditing = (view.id ?? 0) > 0;
+                                return (
+                                    <Dialog open={view.isShow === true} onClose={() => bloc.closeForm()} maxWidth="xs" fullWidth>
+                                        <DialogTitle>{isEditing ? t('quiz-student-edit') : t('quiz-student-new')}</DialogTitle>
+                                        <DialogContent>
+                                            <Stack spacing={2} sx={{ mt: 1 }}>
+                                                <TextField
+                                                    label={t('full-name')}
+                                                    defaultValue={bloc.getField('fullName', 'req') ?? ''}
+                                                    onChange={(e) => bloc.setStream('fullName', e.target.value, 'req')}
+                                                    autoFocus
+                                                    fullWidth
+                                                />
+                                                <UIStream
+                                                    initialData={bloc.getField('classrooms')}
+                                                    stream={bloc.getStream('classrooms')}
+                                                    builder={(classroomsSnap) => (
+                                                        <UIStream
+                                                            initialData={bloc.getField('classroomId', 'req') ?? ''}
+                                                            stream={bloc.getStream('classroomId')}
+                                                            builder={(classroomIdSnap) => (
+                                                                <FormControl fullWidth size="small">
+                                                                    <InputLabel>{t('quiz-classrooms')}</InputLabel>
+                                                                    <Select
+                                                                        label={t('quiz-classrooms')}
+                                                                        value={classroomIdSnap.data ?? ''}
+                                                                        onChange={(e) => bloc.setStream('classroomId', e.target.value === '' ? '' : Number(e.target.value), 'req')}
+                                                                    >
+                                                                        {(classroomsSnap.data ?? []).map((c: QuizClassroomLite) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+                                                                    </Select>
+                                                                </FormControl>
+                                                            )}
+                                                        />
+                                                    )}
+                                                />
+                                                <TextField
+                                                    label={t('username')}
+                                                    defaultValue={bloc.getField('username', 'req') ?? ''}
+                                                    onChange={(e) => bloc.setStream('username', e.target.value, 'req')}
+                                                    fullWidth
+                                                />
+                                                <TextField
+                                                    label={t('password')}
+                                                    type="password"
+                                                    defaultValue={bloc.getField('password', 'req') ?? ''}
+                                                    onChange={(e) => bloc.setStream('password', e.target.value, 'req')}
+                                                    helperText={isEditing ? t('quiz-password-optional-hint') : undefined}
+                                                    fullWidth
+                                                />
+                                            </Stack>
+                                        </DialogContent>
+                                        <DialogActions>
+                                            <Button onClick={() => bloc.closeForm()}>{t('cancel')}</Button>
+                                            <UIStream
+                                                initialData={false}
+                                                stream={bloc.getStream('submitting')}
+                                                builder={(submittingSnap) => (
+                                                    <Button variant="contained" disabled={submittingSnap.data === true} onClick={save}>
+                                                        {t('save')}
+                                                    </Button>
+                                                )}
+                                            />
+                                        </DialogActions>
+                                    </Dialog>
+                                );
+                            }}
+                        />
                     </>
                 );
             }}

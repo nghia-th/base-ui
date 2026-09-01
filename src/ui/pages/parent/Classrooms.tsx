@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
@@ -20,55 +20,32 @@ import { BlocParentClassrooms, QuizClassroom } from "../../bloc/BlocParentClassr
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
-// Form đang mở trong Dialog: null = đóng, {id: 0, ...} = tạo mới, {id: <thật>, ...} = sửa - giống
-// hệt pattern StudentFormState ở Students.tsx, chỉ 1 field "name".
-interface ClassroomFormState {
-    id: number;
-    name: string;
-}
-
-const EMPTY_FORM: ClassroomFormState = { id: 0, name: '' };
-
 // Trang "Lớp học" (khu vực Phụ huynh, /app/parent/classrooms - MỚI, đứng đầu chuỗi Lớp -> Môn học
 // -> Bài học -> Câu hỏi). Danh sách/CRUD đơn giản 1 cấp, cùng khuôn Students.tsx (DataGrid + Dialog
 // thêm/sửa/xoá). Xoá Lớp bị chặn nếu còn Học sinh hoặc Môn học thuộc lớp đó (QUIZ_014/QUIZ_015,
 // xem ClassroomService.java) - hiện lỗi rõ ràng qua quizErrorMessage như mọi trang khác.
+//
+// STATE MANAGEMENT (đổi 2026-09-01) - Dialog form dồn vào BlocParentClassrooms (form_view/req/
+// submitting), xem comment ở BlocParentStudents.ts cho lý do chi tiết. TextField "name" uncontrolled.
 export default function Classrooms() {
     const { t } = useTranslation();
     const { enqueueSnackbar } = useSnackbar();
     const appContext = useContext(AppContext);
     const bloc = reUseBlocContent(appContext, BlocParentClassrooms);
 
-    const [form, setForm] = useState<ClassroomFormState | null>(null);
-    const [submitting, setSubmitting] = useState(false);
-    const isEditing = (form?.id ?? 0) > 0;
-
     useEffect(() => {
         bloc.initData();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const showError = (error: any) => enqueueSnackbar(quizErrorMessage(t, error), { variant: 'error' });
-
-    const openNew = () => setForm({ ...EMPTY_FORM });
-    const openEdit = (row: QuizClassroom) => setForm({ id: row.id, name: row.name });
-    const closeForm = () => { setForm(null); setSubmitting(false); };
+    const showError = (error: any) => enqueueSnackbar(quizErrorMessage(t, error), { variant: error?.variant ?? 'error' });
 
     const save = () => {
-        if (!form) return;
-        setSubmitting(true);
-        const request = { name: form.name };
-        if (isEditing) {
-            bloc.update(form.id, request, () => {
-                enqueueSnackbar(t('quiz-classroom-updated') as string, { variant: 'success' });
-                closeForm();
-            }, (error) => { setSubmitting(false); showError(error); });
-        } else {
-            bloc.create(request, () => {
-                enqueueSnackbar(t('quiz-classroom-created') as string, { variant: 'success' });
-                closeForm();
-            }, (error) => { setSubmitting(false); showError(error); });
-        }
+        bloc.save(() => {
+            const isEditing = (bloc.getField('form_view')?.id ?? 0) > 0;
+            enqueueSnackbar(t(isEditing ? 'quiz-classroom-updated' : 'quiz-classroom-created') as string, { variant: 'success' });
+            bloc.closeForm();
+        }, showError);
     };
 
     const askRemove = (row: QuizClassroom) => {
@@ -88,7 +65,7 @@ export default function Classrooms() {
         {
             field: 'actions', type: 'actions', headerName: t('actions') as string, width: 100,
             getActions: (params) => [
-                <GridActionsCellItem icon={<EditOutlined fontSize="small" />} label="edit" onClick={() => openEdit(params.row)} />,
+                <GridActionsCellItem icon={<EditOutlined fontSize="small" />} label="edit" onClick={() => bloc.openEdit(params.row)} />,
                 <GridActionsCellItem icon={<DeleteOutlined fontSize="small" />} label="delete" onClick={() => askRemove(params.row)} />
             ]
         }
@@ -106,7 +83,7 @@ export default function Classrooms() {
                         <Card sx={{ p: { xs: 2, sm: 3 } }}>
                             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
                                 <Typography variant="h6" fontWeight={700}>{t('quiz-classrooms')}</Typography>
-                                <Button variant="contained" startIcon={<AddOutlined />} onClick={openNew}>{t('new')}</Button>
+                                <Button variant="contained" startIcon={<AddOutlined />} onClick={() => bloc.openNew()}>{t('new')}</Button>
                             </Stack>
                             <Box sx={{ height: 420 }}>
                                 <DataGrid
@@ -118,26 +95,42 @@ export default function Classrooms() {
                             </Box>
                         </Card>
 
-                        <Dialog open={form != null} onClose={closeForm} maxWidth="xs" fullWidth>
-                            <DialogTitle>{isEditing ? t('quiz-classroom-edit') : t('quiz-classroom-new')}</DialogTitle>
-                            <DialogContent>
-                                <Stack spacing={2} sx={{ mt: 1 }}>
-                                    <TextField
-                                        label={t('quiz-classroom-name')}
-                                        value={form?.name ?? ''}
-                                        onChange={(e) => setForm((s) => s && { ...s, name: e.target.value })}
-                                        autoFocus
-                                        fullWidth
-                                    />
-                                </Stack>
-                            </DialogContent>
-                            <DialogActions>
-                                <Button onClick={closeForm}>{t('cancel')}</Button>
-                                <Button variant="contained" disabled={submitting || !form?.name} onClick={save}>
-                                    {t('save')}
-                                </Button>
-                            </DialogActions>
-                        </Dialog>
+                        <UIStream
+                            initialData={{ isShow: false, id: 0 }}
+                            stream={bloc.getStream('form_view')}
+                            builder={(viewSnap) => {
+                                const view = viewSnap.data ?? { isShow: false, id: 0 };
+                                const isEditing = (view.id ?? 0) > 0;
+                                return (
+                                    <Dialog open={view.isShow === true} onClose={() => bloc.closeForm()} maxWidth="xs" fullWidth>
+                                        <DialogTitle>{isEditing ? t('quiz-classroom-edit') : t('quiz-classroom-new')}</DialogTitle>
+                                        <DialogContent>
+                                            <Stack spacing={2} sx={{ mt: 1 }}>
+                                                <TextField
+                                                    label={t('quiz-classroom-name')}
+                                                    defaultValue={bloc.getField('name', 'req') ?? ''}
+                                                    onChange={(e) => bloc.setStream('name', e.target.value, 'req')}
+                                                    autoFocus
+                                                    fullWidth
+                                                />
+                                            </Stack>
+                                        </DialogContent>
+                                        <DialogActions>
+                                            <Button onClick={() => bloc.closeForm()}>{t('cancel')}</Button>
+                                            <UIStream
+                                                initialData={false}
+                                                stream={bloc.getStream('submitting')}
+                                                builder={(submittingSnap) => (
+                                                    <Button variant="contained" disabled={submittingSnap.data === true} onClick={save}>
+                                                        {t('save')}
+                                                    </Button>
+                                                )}
+                                            />
+                                        </DialogActions>
+                                    </Dialog>
+                                );
+                            }}
+                        />
                     </>
                 );
             }}

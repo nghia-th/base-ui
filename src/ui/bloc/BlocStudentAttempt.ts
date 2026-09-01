@@ -37,14 +37,86 @@ export interface QuizSubmitResult {
 }
 
 // Bloc trang "Làm bài" (khu vực Học sinh, /app/student/tests/:testId/take - Task 6 backend, luồng
-// bắt đầu/lưu đáp án/nộp bài). Không dùng stream/UIStream cho câu hỏi - TakeTest.tsx giữ state
-// (attemptId, questions, answers) bằng React state cục bộ vì luồng làm bài tuyến tính theo 1
-// component duy nhất, không cần re-render từ nhiều nơi khác nhau như các trang danh sách/CRUD.
+// bắt đầu/lưu đáp án/nộp bài).
+//
+// ĐÃ ĐỔI 2026-09-01 (xem claude/ui-base-status.md "Quy ước state mới"): trước đây cố ý dùng
+// useState cục bộ ở TakeTest.tsx (attemptId/questions/answers) với lý do "luồng tuyến tính theo 1
+// component, không cần re-render từ nhiều nơi khác nhau" - nhưng để THỐNG NHẤT 1 cách quản lý
+// state duy nhất trong toàn app (không còn ngoại lệ), toàn bộ dời vào đây qua setStream, cùng
+// pattern mọi Bloc khác.
 export class BlocStudentAttempt extends IBlocUI {
+    startAttempt(testId: number, onError: (error: any) => void) {
+        this.setStream('questions', null)
+        this.setStream('result', null)
+        this.setStream('answers', {})
+        this.start(testId, (attemptId, questions) => {
+            this.setStream('attemptId', attemptId)
+            this.setStream('questions', questions)
+        }, onError)
+    }
+
     start(testId: number, onComplete: (attemptId: number, questions: QuizStudentQuestion[]) => void, onError: (error: any) => void) {
         this.apiRequest(QuizStudentAttemptApi.start(testId), (res) => {
             onComplete(res.data.attemptId, res.data.questions as QuizStudentQuestion[])
         }, { onError })
+    }
+
+    chooseAnswer(questionId: number, choiceId: number, onError: (error: any) => void) {
+        const attemptId = this.getField('attemptId')
+        const answers = { ...(this.getField('answers') ?? {}), [questionId]: choiceId }
+        this.setStream('answers', answers)
+        if (attemptId != null) this.saveAnswer(attemptId, questionId, choiceId, onError)
+    }
+
+    doSubmit(onError: (error: any) => void) {
+        const attemptId = this.getField('attemptId')
+        if (attemptId == null) return
+        const questions: QuizStudentQuestion[] = this.getField('questions') ?? []
+        const answers = this.getField('answers') ?? {}
+        const answeredCount = Object.keys(answers).length
+        this.confirm({
+            title: 'quiz-submit-test',
+            message: answeredCount < questions.length ? 'quiz-submit-test-confirm-incomplete' : 'quiz-submit-test-confirm',
+            onYes: () => {
+                this.setStream('submitting', true)
+                this.submit(attemptId, (res) => {
+                    this.setStream('submitting', false)
+                    this.setStream('result', res)
+                }, (error: any) => { this.setStream('submitting', false); onError(error) })
+            }
+        })
+    }
+
+    // "Xem lại bài học" Dialog - dùng chung 1 bộ stream cho cả lúc làm bài lẫn sau khi nộp (xem
+    // comment ở TakeTest.tsx). lessonImageUrl là 1 object URL tải riêng, phải revoke khi đóng/đổi -
+    // giống hệt pattern BlocParentSubjects.ts's lessonImagePreviewUrl phía Phụ huynh.
+    openLessonDialog(lessonId: number, onError: (error: any) => void) {
+        this.setStream('lesson_dialog_view', { isShow: true })
+        this.setStream('lessonLoading', true)
+        this.setStream('lessonData', null)
+        this.loadLesson(lessonId, (lesson) => {
+            this.setStream('lessonLoading', false)
+            this.setStream('lessonData', lesson)
+            if (lesson.hasImage) {
+                this.loadLessonImage(lessonId, (blob) => {
+                    const old = this.getField('lessonImageUrl')
+                    if (old) URL.revokeObjectURL(old)
+                    this.setStream('lessonImageUrl', URL.createObjectURL(blob))
+                }, () => {})
+            }
+        }, (error) => {
+            this.setStream('lessonLoading', false)
+            this.setStream('lesson_dialog_view', { isShow: false })
+            onError(error)
+        })
+    }
+
+    closeLessonDialog() {
+        this.setStream('lesson_dialog_view', { isShow: false })
+        this.setStream('lessonData', null)
+        const old = this.getField('lessonImageUrl')
+        if (old) URL.revokeObjectURL(old)
+        this.setStream('lessonImageUrl', null)
     }
 
     // Lưu ngay khi học sinh chọn 1 đáp án (progressive save, đúng như API cho phép gọi lặp lại

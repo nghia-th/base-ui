@@ -16,24 +16,69 @@ export type QuizLoginRole = 'parent' | 'student';
 // response HEADER khi login xong, nhưng quiz-service trả token trong BODY (data.token - xem
 // ParentAuthResponse.java/StudentAuthResponse.java), và QuizApiService.ts không tự làm việc đó
 // (nó chỉ dịch envelope, không biết cấu trúc riêng của từng API) - nên phải set ở đây.
+//
+// VALIDATE + SUBMIT DỜI VÀO ĐÂY (2026-09-01, xem claude/ui-base-status.md "Quy ước state mới") -
+// đúng pattern BlocCamera#onAdd của project mẫu module-ui: Login.tsx không còn tự tính điều kiện
+// hợp lệ hay tự set trạng thái "đang gửi" bằng useState nữa, gọi thẳng doLogin() và chỉ lo hiển
+// thị UI theo state đọc được từ bloc qua UIStream.
 export class BlocQuizLogin extends IBlocUI {
-    public login(role: QuizLoginRole, onComplete: { (res: any): void }, onError: { (error: any): void }) {
-        const info = this.getField('loginInfo') ?? {}
+    public doLogin(onComplete: { (res: any): void }, onError: { (error: any): void }) {
+        const role: QuizLoginRole = this.getField('role') ?? 'parent'
+        const req = this.getField('req') ?? {}
+        if (!req.identifier || !req.password) {
+            onError({ messageKey: 'please-enter-login-info' })
+            return
+        }
+        this.setStream('submitting', true)
         const request = role === 'parent'
-            ? QuizAuthApi.loginParent(info.identifier, info.password)
-            : QuizAuthApi.loginStudent(info.identifier, info.password)
+            ? QuizAuthApi.loginParent(req.identifier, req.password)
+            : QuizAuthApi.loginStudent(req.identifier, req.password)
 
-        this.apiRequest(request, (res: any) => this.handleAuthSuccess(role, res, onComplete), { onError })
+        this.apiRequest(request, (res: any) => {
+            this.setStream('submitting', false)
+            this.handleAuthSuccess(role, res, onComplete)
+        }, {
+            onError: (error: any) => {
+                this.setStream('submitting', false)
+                onError(error)
+            }
+        })
     }
 
     // AuthApi.java's registerParent tự đăng nhập luôn (trả về ParentAuthResponse giống hệt
     // loginParent - {token, parent}), nên dùng chung handleAuthSuccess bên dưới thay vì phải
     // đăng nhập lại lần 2 sau khi đăng ký xong (đúng ý định của backend - xem AuthApi.java's
     // Javadoc "so no separate login call is needed after registering").
-    public register(fullName: string, email: string, password: string, phone: string | undefined,
-                     onComplete: { (res: any): void }, onError: { (error: any): void }) {
-        this.apiRequest(QuizAuthApi.registerParent(fullName, email, password, phone), (res: any) =>
-            this.handleAuthSuccess('parent', res, onComplete), { onError })
+    //
+    // Validate dời vào đây (2026-09-01, xem Register.tsx's comment) - đọc field từ objectKey 'req'
+    // + stream 'agree' riêng, giữ đúng 3 thông báo/variant cũ (warning cho thiếu field/chưa đồng ý
+    // điều khoản, error cho mật khẩu không khớp) bằng cách gắn `variant` vào error object trả về
+    // qua onError, Register.tsx đọc lại `error.variant` khi hiện snackbar.
+    public register(onComplete: { (res: any): void }, onError: { (error: any): void }) {
+        const req = this.getField('req') ?? {}
+        const agree = this.getField('agree') ?? false
+        if (!req.fullName || !req.email || !req.password) {
+            onError({ messageKey: 'required-field', variant: 'warning' })
+            return
+        }
+        if (req.password !== req.confirm) {
+            onError({ messageKey: 'passwords-not-match', variant: 'error' })
+            return
+        }
+        if (!agree) {
+            onError({ messageKey: 'agree-terms', variant: 'warning' })
+            return
+        }
+        this.setStream('submitting', true)
+        this.apiRequest(QuizAuthApi.registerParent(req.fullName, req.email, req.password, req.phone || undefined), (res: any) => {
+            this.setStream('submitting', false)
+            this.handleAuthSuccess('parent', res, onComplete)
+        }, {
+            onError: (error: any) => {
+                this.setStream('submitting', false)
+                onError(error)
+            }
+        })
     }
 
     // Lưu token thủ công (xem ghi chú ở đầu file) - dùng chung cho cả login và register vì cả 2

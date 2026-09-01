@@ -132,4 +132,123 @@ export class BlocParentQuestions extends IBlocUI {
             onError(e)
         }
     }
+
+    // ================= State giao diện dời từ useState vào đây (2026-09-01) =================
+    // Xem claude/ui-base-status.md "Quy ước state mới" + BlocParentStudents.ts's comment cho lý do
+    // chung. 3 dropdown lọc tầng Lớp->Môn->Bài dùng tên KHÔNG trùng với field nào khác trong Bloc
+    // này (setStream chia sẻ 1 Map theo tên, xem BlocParentSubjects.ts's comment).
+
+    // --- Lọc Lớp -> Môn -> Bài (cascade, đổi tầng cha thì xoá tầng con) ---
+    changeFilterClassroom(value: number | '') {
+        this.setStream('filterClassroomId', value)
+        this.setStream('filterSubjectId', '')
+        this.setStream('filterLessonId', '')
+        this.loadSubjects(value === '' ? undefined : value)
+    }
+
+    changeFilterSubject(value: number) {
+        this.setStream('filterSubjectId', value)
+        this.setStream('filterLessonId', '')
+        this.loadLessons(value)
+    }
+
+    changeFilterLesson(value: number) {
+        this.setStream('filterLessonId', value)
+        this.loadQuestions(value)
+    }
+
+    // --- Question form (nội dung câu hỏi + knowledgeTag uncontrolled qua objectKey 'req';
+    // choices là mảng ĐỘNG - giữ nguyên reference trong field 'choicesReq', chỉ setStream lúc CẤU
+    // TRÚC đổi (thêm/bớt dòng, đổi đáp án đúng) để re-render đúng lúc cần; gõ nội dung 1 lựa chọn
+    // chỉ mutate trực tiếp phần tử mảng, KHÔNG setStream, nên không re-render trang - đọc lại đúng
+    // giá trị mới nhất lúc Lưu qua getField). ---
+    openNewQuestion() {
+        this.setField('req', { content: '', knowledgeTag: '' })
+        const choices = [{ content: '', correct: false }, { content: '', correct: false }]
+        this.setField('choicesReq', choices)
+        this.setStream('choicesMeta', choices)
+        this.setStream('question_form_view', { isShow: true, id: 0 })
+    }
+
+    openEditQuestion(q: QuizQuestion) {
+        this.setField('req', { content: q.content, knowledgeTag: q.knowledgeTag ?? '' })
+        const choices = q.choices.map((c) => ({ content: c.content, correct: c.correct }))
+        this.setField('choicesReq', choices)
+        this.setStream('choicesMeta', choices)
+        this.setStream('question_form_view', { isShow: true, id: q.id })
+    }
+
+    closeQuestionForm() {
+        this.setStream('question_form_view', { isShow: false, id: 0 })
+        this.setStream('submitting', false)
+    }
+
+    setChoiceContent(index: number, value: string) {
+        const choices: any[] = this.getField('choicesReq') ?? []
+        if (choices[index]) choices[index].content = value
+    }
+
+    setChoiceCorrect(index: number) {
+        const choices: any[] = (this.getField('choicesReq') ?? []).map((c: any, i: number) => ({ ...c, correct: i === index }))
+        this.setField('choicesReq', choices)
+        this.setStream('choicesMeta', choices)
+    }
+
+    addChoice() {
+        const choices: any[] = [...(this.getField('choicesReq') ?? []), { content: '', correct: false }]
+        this.setField('choicesReq', choices)
+        this.setStream('choicesMeta', choices)
+    }
+
+    removeChoice(index: number) {
+        const choices: any[] = (this.getField('choicesReq') ?? []).filter((_: any, i: number) => i !== index)
+        this.setField('choicesReq', choices)
+        this.setStream('choicesMeta', choices)
+    }
+
+    saveQuestion(lessonId: number, onComplete: () => void, onError: (error: any) => void) {
+        const view = this.getField('question_form_view') ?? {}
+        const req = this.getField('req') ?? {}
+        const choices: { content: string; correct: boolean }[] = this.getField('choicesReq') ?? []
+        const isValid = !!req.content?.trim() && choices.length >= 2 &&
+            choices.every((c) => c.content?.trim() !== '') && choices.some((c) => c.correct)
+        if (!isValid) {
+            onError({ messageKey: 'required-field' })
+            return
+        }
+        this.setStream('submitting', true)
+        const done = () => { this.setStream('submitting', false); onComplete() }
+        const fail = (error: any) => { this.setStream('submitting', false); onError(error) }
+        const request: QuizQuestionRequest = {
+            lessonId,
+            content: req.content,
+            knowledgeTag: req.knowledgeTag || undefined,
+            choices: choices.map((c) => ({ content: c.content, correct: c.correct }))
+        }
+        if ((view.id ?? 0) > 0) {
+            this.update(view.id, request, done, fail)
+        } else {
+            this.create(request, done, fail)
+        }
+    }
+
+    // --- Dialog "Nhập từ file" ---
+    openImport() {
+        this.setStream('importResult', null)
+        this.setStream('import_view', { isShow: true })
+    }
+
+    closeImport() {
+        this.setStream('import_view', { isShow: false })
+        this.setStream('importing', false)
+        this.setStream('importResult', null)
+    }
+
+    runImport(lessonId: number, file: File, onError: (error: any) => void) {
+        this.setStream('importing', true)
+        this.importFile(lessonId, file, (result) => {
+            this.setStream('importing', false)
+            this.setStream('importResult', result)
+        }, (error) => { this.setStream('importing', false); onError(error) })
+    }
 }

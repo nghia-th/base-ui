@@ -43,4 +43,39 @@ export class BlocParentClassrooms extends IBlocUI {
             this.reload()
         }, { onError })
     }
+
+    // Dialog form (2026-09-01, xem BlocParentStudents.ts's comment cho lý do chi tiết) - cùng
+    // pattern form_view/req/submitting.
+    openNew() {
+        this.setField('req', { name: '' })
+        this.setStream('form_view', { isShow: true, id: 0 })
+    }
+
+    openEdit(row: QuizClassroom) {
+        this.setField('req', { name: row.name })
+        this.setStream('form_view', { isShow: true, id: row.id })
+    }
+
+    closeForm() {
+        this.setStream('form_view', { isShow: false, id: 0 })
+        this.setStream('submitting', false)
+    }
+
+    save(onComplete: () => void, onError: (error: any) => void) {
+        const view = this.getField('form_view') ?? {}
+        const req = this.getField('req') ?? {}
+        if (!req.name) {
+            onError({ messageKey: 'required-field' })
+            return
+        }
+        this.setStream('submitting', true)
+        const done = () => { this.setStream('submitting', false); onComplete() }
+        const fail = (error: any) => { this.setStream('submitting', false); onError(error) }
+        const isEditing = (view.id ?? 0) > 0
+        if (isEditing) {
+            this.update(view.id, { name: req.name }, done, fail)
+        } else {
+            this.create({ name: req.name }, done, fail)
+        }
+    }
 }

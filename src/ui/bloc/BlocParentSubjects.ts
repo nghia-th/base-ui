@@ -131,4 +131,157 @@ export class BlocParentSubjects extends IBlocUI {
             onData(res.data as Blob)
         }, { onError })
     }
+
+    // ================= State giao diện dời từ useState vào đây (2026-09-01) =================
+    // Xem claude/ui-base-status.md "Quy ước state mới" + comment ở BlocParentStudents.ts cho lý do
+    // chung. Trang này master-detail phức tạp hơn nên tách rõ 3 nhóm: chọn Subject/lọc Lớp, form
+    // Subject, form Lesson (kể cả preview/upload ảnh) - mỗi nhóm 1 vài stream RIÊNG TÊN (setStream
+    // dùng chung 1 Map cho mọi field của Bloc - 2 field trùng tên ở 2 chỗ khác nhau sẽ vô tình
+    // dùng chung 1 Subject RxJS, đè state lên nhau - nên đặt tên field/stream KHÔNG trùng nhau
+    // trong cùng 1 Bloc, kể cả khác objectKey).
+
+    // --- Chọn Subject / lọc Lớp ---
+    selectSubject(subject: QuizSubject | null) {
+        this.setStream('selectedSubject', subject)
+        if (subject) this.loadLessons(subject.id)
+    }
+
+    changeFilterClassroom(value: number | '') {
+        this.setStream('filterClassroomId', value)
+        this.reloadSubjects(value === '' ? undefined : value)
+        this.selectSubject(null)
+    }
+
+    // --- Subject form ---
+    openNewSubject() {
+        const filterClassroomId = this.getField('filterClassroomId') ?? ''
+        this.setField('subjectReq', {})
+        this.setStream('subjectFormClassroomId', filterClassroomId, 'subjectReq')
+        this.setStream('subjectFormName', '', 'subjectReq')
+        this.setStream('subject_form_view', { isShow: true, id: 0 })
+    }
+
+    openEditSubject(subject: QuizSubject) {
+        this.setField('subjectReq', {})
+        this.setStream('subjectFormClassroomId', subject.classroomId, 'subjectReq')
+        this.setStream('subjectFormName', subject.name, 'subjectReq')
+        this.setStream('subject_form_view', { isShow: true, id: subject.id })
+    }
+
+    closeSubjectForm() {
+        this.setStream('subject_form_view', { isShow: false, id: 0 })
+        this.setStream('submitting', false)
+    }
+
+    saveSubject(onComplete: () => void, onError: (error: any) => void) {
+        const view = this.getField('subject_form_view') ?? {}
+        const req = this.getField('subjectReq') ?? {}
+        const classroomId = req.subjectFormClassroomId
+        if (!req.subjectFormName || classroomId === '' || classroomId == null) {
+            onError({ messageKey: 'required-field' })
+            return
+        }
+        this.setStream('submitting', true)
+        const done = () => { this.setStream('submitting', false); onComplete() }
+        const fail = (error: any) => { this.setStream('submitting', false); onError(error) }
+        const request = { name: req.subjectFormName, classroomId }
+        if ((view.id ?? 0) > 0) {
+            this.updateSubject(view.id, request, done, fail)
+        } else {
+            this.createSubject(request, done, fail)
+        }
+    }
+
+    askRemoveSubjectCleanup(removedId: number) {
+        if (this.getField('selectedSubject')?.id === removedId) this.selectSubject(null)
+    }
+
+    // --- Lesson form (kể cả ảnh minh hoạ) ---
+    openNewLesson() {
+        this.setField('lessonReq', {})
+        this.setStream('lessonHasImage', false)
+        this.setStream('lessonImagePreviewUrl', null)
+        this.setStream('lessonImageLoading', false)
+        this.setStream('lessonImageUploading', false)
+        this.setStream('lesson_form_view', { isShow: true, id: 0 })
+    }
+
+    openEditLesson(lesson: QuizLesson) {
+        this.setField('lessonReq', {})
+        this.setStream('lessonName', lesson.name, 'lessonReq')
+        this.setStream('lessonSummary', lesson.summary ?? '', 'lessonReq')
+        this.setStream('lessonContent', lesson.content ?? '', 'lessonReq')
+        this.setStream('lessonTextbookPage', lesson.textbookPage ?? '', 'lessonReq')
+        this.setStream('lessonHasImage', lesson.hasImage)
+        this.setStream('lessonImagePreviewUrl', null)
+        this.setStream('lessonImageLoading', false)
+        this.setStream('lessonImageUploading', false)
+        this.setStream('lesson_form_view', { isShow: true, id: lesson.id })
+        if (lesson.hasImage) this.loadLessonImagePreview(lesson.id)
+    }
+
+    closeLessonForm() {
+        this.setStream('lesson_form_view', { isShow: false, id: 0 })
+        this.setStream('submitting', false)
+        this.revokeLessonImagePreview()
+    }
+
+    private revokeLessonImagePreview() {
+        const old = this.getField('lessonImagePreviewUrl')
+        if (old) URL.revokeObjectURL(old)
+        this.setStream('lessonImagePreviewUrl', null)
+    }
+
+    loadLessonImagePreview(id: number) {
+        this.setStream('lessonImageLoading', true)
+        this.loadLessonImage(id, (blob) => {
+            this.setStream('lessonImageLoading', false)
+            const old = this.getField('lessonImagePreviewUrl')
+            if (old) URL.revokeObjectURL(old)
+            this.setStream('lessonImagePreviewUrl', URL.createObjectURL(blob))
+        }, () => { this.setStream('lessonImageLoading', false) })
+    }
+
+    saveLesson(subjectId: number, onComplete: () => void, onError: (error: any) => void) {
+        const view = this.getField('lesson_form_view') ?? {}
+        const req = this.getField('lessonReq') ?? {}
+        if (!req.lessonName) {
+            onError({ messageKey: 'required-field' })
+            return
+        }
+        this.setStream('submitting', true)
+        const done = () => { this.setStream('submitting', false); onComplete() }
+        const fail = (error: any) => { this.setStream('submitting', false); onError(error) }
+        const request = {
+            name: req.lessonName,
+            summary: req.lessonSummary || undefined,
+            content: req.lessonContent || undefined,
+            textbookPage: (req.lessonTextbookPage === '' || req.lessonTextbookPage == null) ? undefined : req.lessonTextbookPage
+        }
+        if ((view.id ?? 0) > 0) {
+            this.updateLesson(view.id, subjectId, request, done, fail)
+        } else {
+            this.createLesson({ subjectId, ...request }, done, fail)
+        }
+    }
+
+    uploadImageForCurrentLesson(subjectId: number, file: File, onError: (error: any) => void) {
+        const view = this.getField('lesson_form_view') ?? {}
+        if ((view.id ?? 0) <= 0) return
+        this.setStream('lessonImageUploading', true)
+        this.uploadLessonImage(view.id, subjectId, file, () => {
+            this.setStream('lessonImageUploading', false)
+            this.setStream('lessonHasImage', true)
+            this.loadLessonImagePreview(view.id)
+        }, (error) => { this.setStream('lessonImageUploading', false); onError(error) })
+    }
+
+    removeImageForCurrentLesson(subjectId: number, onError: (error: any) => void) {
+        const view = this.getField('lesson_form_view') ?? {}
+        if ((view.id ?? 0) <= 0) return
+        this.removeLessonImage(view.id, subjectId, () => {
+            this.setStream('lessonHasImage', false)
+            this.revokeLessonImagePreview()
+        }, onError)
+    }
 }
