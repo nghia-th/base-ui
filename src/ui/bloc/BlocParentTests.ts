@@ -1,10 +1,9 @@
 import { IBlocUI } from "../../base/IBlocUI";
-import { QuizTestApi, QuizTestCreateRequest } from "../../api/QuizTestApi";
+import { QuizTestApi, QuizTestCreateRequest, QuizPracticeGenerateRequest } from "../../api/QuizTestApi";
 import { QuizStudentApi } from "../../api/QuizStudentApi";
 import { QuizSubjectApi } from "../../api/QuizSubjectApi";
 import { QuizLessonApi } from "../../api/QuizLessonApi";
 import { QuizQuestionApi } from "../../api/QuizQuestionApi";
-import { QuizClassroomApi } from "../../api/QuizClassroomApi";
 
 // Khớp TestResponse.java (view danh sách - KHÔNG có questions, xem QuizTestDetail cho chi tiết).
 export interface QuizTest {
@@ -13,37 +12,31 @@ export interface QuizTest {
     studentId: number;
     name: string;
     status: string;
+    testType: string;
 }
 
 // Chỉ lấy 3 field cần cho dropdown/hiển thị tên - tránh phụ thuộc kiểu QuizStudent của bloc khác
 // (mỗi Bloc "content" tự khai báo shape dữ liệu nó cần, xem BlocParentStudents.ts/BlocParentQuestions.ts).
-// classroomId dùng để lọc dropdown Học sinh theo Lớp đang chọn khi tạo đề (client-side - danh
-// sách Học sinh đằng nào cũng đã tải hết cho Phụ huynh, không cần thêm query param backend).
+// classroomId GIỮ LẠI (không phải để lọc dropdown Học sinh nữa - đã bỏ bước "Chọn Lớp" theo góp ý
+// anh 2026-09-01: "chỉ cần chọn học sinh, không cần chọn lớp vì học sinh đã gán với lớp") mà để tự
+// suy ra đúng Lớp của Học sinh VỪA CHỌN, dùng gọi thẳng loadSubjects(classroomId) - xem
+// Tests.tsx's onFormStudentChange.
 export interface QuizStudentLite {
     id: number;
     fullName: string;
     classroomId: number;
 }
 
-// Chỉ lấy 2 field cần cho dropdown/hiển thị tên - tránh phụ thuộc kiểu QuizClassroom của bloc
-// khác (cùng convention QuizStudentLite ở trên).
-export interface QuizClassroomLite {
-    id: number;
-    name: string;
-}
-
 // Bloc trang "Đề kiểm tra" (khu vực Phụ huynh, /app/parent/tests - Task 5 backend). Tự tải Học
-// sinh + Lớp học (cho dropdown khi tạo đề) và danh sách Test hiện có. KHÔNG tải sẵn Môn học nữa -
-// từ khi có Lớp học, tạo đề phải chọn Lớp trước (lọc cả Học sinh lẫn Môn học theo đúng lớp đó,
-// xem Tests.tsx's create dialog), nên Môn học được tải theo yêu cầu qua loadSubjects(classroomId)
-// khi anh chọn Lớp, giống hệt pattern loadLessons(subjectId)/loadQuestions(lessonId) bên dưới.
+// sinh + danh sách Test hiện có. KHÔNG tải sẵn Môn học nữa - chọn Học sinh xong là biết ngay
+// classroomId của học sinh đó (đã có sẵn trong QuizStudentLite, không cần Phụ huynh tự chọn Lớp
+// riêng - bỏ bước "Chọn Lớp" ở đợt 2026-09-01, xem Tests.tsx), Môn học được tải theo yêu cầu qua
+// loadSubjects(classroomId) ngay khi chọn Học sinh, giống hệt pattern
+// loadLessons(subjectId)/loadQuestions(lessonId) bên dưới.
 export class BlocParentTests extends IBlocUI {
     async initData() {
         this.apiRequest(QuizStudentApi.list(), (res) => {
             this.setStream('students', res.data as QuizStudentLite[])
-        })
-        this.apiRequest(QuizClassroomApi.list(), (res) => {
-            this.setStream('classrooms', res.data as QuizClassroomLite[])
         })
         this.reloadTests()
     }
@@ -74,6 +67,15 @@ export class BlocParentTests extends IBlocUI {
 
     create(request: QuizTestCreateRequest, onComplete: () => void, onError: (error: any) => void) {
         this.apiRequest(QuizTestApi.create(request), () => {
+            onComplete()
+            this.reloadTests()
+        }, { onError })
+    }
+
+    // "Ôn tập kiến thức" (2026-09-01) - gọi lại nhiều lần vẫn OK, mỗi lần tạo 1 Test PRACTICE mới
+    // với bộ câu hỏi random khác (xem QuizTestApi.generatePractice's comment).
+    generatePractice(request: QuizPracticeGenerateRequest, onComplete: () => void, onError: (error: any) => void) {
+        this.apiRequest(QuizTestApi.generatePractice(request), () => {
             onComplete()
             this.reloadTests()
         }, { onError })

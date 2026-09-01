@@ -25,6 +25,7 @@ export interface QuizDashboardTest {
     studentId: number;
     name: string;
     status: string;
+    testType: string;
 }
 
 // Bloc trang "Tổng quan" (khu vực Phụ huynh, /app/parent). quiz-service KHÔNG có API tổng hợp

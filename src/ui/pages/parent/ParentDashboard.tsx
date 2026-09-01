@@ -98,8 +98,12 @@ export default function ParentDashboard() {
                                             const students: any[] = studentsSnap.data ?? [];
                                             const subjects: any[] = subjectsSnap.data ?? [];
                                             const tests: any[] = testsSnap.data ?? [];
-                                            const assignedCount = testsSnap.data == null ? null : tests.filter((x) => x.status === 'ASSIGNED').length;
-                                            const completedCount = testsSnap.data == null ? null : tests.filter((x) => x.status === 'COMPLETED').length;
+                                            // Loại PRACTICE (đề "Ôn tập" tự sinh, xem TestType.java) khỏi 2 số liệu này - không
+                                            // được làm loãng "Đề đã giao"/"Đề đã hoàn thành" vốn chỉ tính đề THẬT phụ huynh
+                                            // giao (REGULAR), theo đúng yêu cầu anh 2026-09-01: "tách riêng loại Ôn tập".
+                                            const regularTests = tests.filter((x) => x.testType !== 'PRACTICE');
+                                            const assignedCount = testsSnap.data == null ? null : regularTests.filter((x) => x.status === 'ASSIGNED').length;
+                                            const completedCount = testsSnap.data == null ? null : regularTests.filter((x) => x.status === 'COMPLETED').length;
                                             const noClassrooms = classroomsSnap.data != null && classrooms.length === 0;
 
                                             return (

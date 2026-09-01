@@ -9,6 +9,7 @@ export interface QuizAttemptHistoryItem {
     submittedAt: string;
     correctCount: number;
     totalQuestions: number;
+    testType: string;
 }
 
 // Khớp AttemptAnswerDetail.java - Phụ huynh-facing nên CÓ correctChoiceContent (khác view học

@@ -1,6 +1,6 @@
 import { IBlocUI } from "../../base/IBlocUI";
 import { QuizSubjectApi, QuizSubjectRequest } from "../../api/QuizSubjectApi";
-import { QuizLessonApi, QuizLessonCreateRequest, QuizLessonUpdateRequest } from "../../api/QuizLessonApi";
+import { QuizLessonApi, QuizLessonCreateRequest, QuizLessonUpdateRequest, quizUploadLessonImage } from "../../api/QuizLessonApi";
 import { QuizClassroomApi } from "../../api/QuizClassroomApi";
 
 // Khớp SubjectResponse.java / LessonResponse.java. classroomId thay cho parentId cũ - Subject giờ
@@ -11,10 +11,16 @@ export interface QuizSubject {
     name: string;
 }
 
+// Khớp LessonResponse.java (2026-09-01) - hasImage suy ra từ imagePath có/không ở backend, KHÔNG
+// tự trả về đường dẫn file thật (ảnh lấy riêng qua QuizLessonApi.getImage, xem Subjects.tsx).
 export interface QuizLesson {
     id: number;
     subjectId: number;
     name: string;
+    summary?: string;
+    content?: string;
+    textbookPage?: number;
+    hasImage: boolean;
 }
 
 // Chỉ lấy 2 field cần cho dropdown/hiển thị tên - tránh phụ thuộc kiểu QuizClassroom của bloc
@@ -91,6 +97,38 @@ export class BlocParentSubjects extends IBlocUI {
         this.apiRequest(QuizLessonApi.remove(id), () => {
             onComplete()
             this.loadLessons(subjectId)
+        }, { onError })
+    }
+
+    // Không qua apiRequest (không phải QuizRequestBase call) vì quizUploadLessonImage gọi thẳng
+    // QUIZ_API (xem comment trong QuizLessonApi.ts) - tự check res.code===100 giống hệt cách
+    // BlocParentQuestions.importFile xử lý quizImportQuestions.
+    async uploadLessonImage(id: number, subjectId: number, file: File, onComplete: () => void, onError: (error: any) => void) {
+        try {
+            const res = await quizUploadLessonImage(id, file)
+            if (res.code === 100) {
+                onComplete()
+                this.loadLessons(subjectId)
+            } else {
+                onError(res)
+            }
+        } catch (e) {
+            onError(e)
+        }
+    }
+
+    removeLessonImage(id: number, subjectId: number, onComplete: () => void, onError: (error: any) => void) {
+        this.apiRequest(QuizLessonApi.removeImage(id), () => {
+            onComplete()
+            this.loadLessons(subjectId)
+        }, { onError })
+    }
+
+    // responseType:'blob' -> CallApi.ts's nhánh blob trả {data,disposition} thay vì {code,message,data}
+    // thường - xem BlocParentQuestions.downloadTemplate cho pattern gốc.
+    loadLessonImage(id: number, onData: (blob: Blob) => void, onError: (error: any) => void) {
+        this.apiRequest(QuizLessonApi.getImage(id), (res: any) => {
+            onData(res.data as Blob)
         }, { onError })
     }
 }

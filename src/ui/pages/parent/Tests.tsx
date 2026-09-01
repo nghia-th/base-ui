@@ -23,9 +23,10 @@ import AddOutlined from "@mui/icons-material/AddOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
+import AutorenewOutlined from "@mui/icons-material/AutorenewOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
-import { BlocParentTests, QuizTest, QuizStudentLite, QuizClassroomLite } from "../../bloc/BlocParentTests";
-import { QuizTestCreateRequest } from "../../../api/QuizTestApi";
+import { BlocParentTests, QuizTest, QuizStudentLite } from "../../bloc/BlocParentTests";
+import { QuizTestCreateRequest, QuizPracticeGenerateRequest } from "../../../api/QuizTestApi";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
@@ -34,10 +35,19 @@ const STATUS_COLOR: Record<string, 'warning' | 'success'> = {
     COMPLETED: 'success'
 };
 
+const TEST_TYPE_COLOR: Record<string, 'default' | 'info'> = {
+    REGULAR: 'default',
+    PRACTICE: 'info'
+};
+
 // Trang "Đề kiểm tra" (khu vực Phụ huynh, /app/parent/tests - Task 5 backend). Tạo đề = giao đề
 // luôn (không có bước giao riêng, xem TestApi.java) - chọn Học sinh + đặt tên + chọn câu hỏi từ
 // 1 Bài học (Môn học -> Bài học -> tick chọn câu hỏi, đơn giản hoá so với backend thực ra cho phép
 // trộn câu hỏi từ nhiều bài học khác nhau trong 1 đề - đủ dùng cho v1, xem ui-base-status.md).
+//
+// KHÔNG còn bước "Chọn Lớp" riêng (bỏ theo góp ý anh 2026-09-01: "chỉ cần chọn học sinh không cần
+// chọn lớp bởi vì học sinh đã gán với lớp") - chọn Học sinh xong tự suy ra Lớp của học sinh đó
+// (đã có sẵn classroomId trong QuizStudentLite) để tải Môn học đúng lớp, xem onFormStudentChange.
 export default function Tests() {
     const { t } = useTranslation();
     const { enqueueSnackbar } = useSnackbar();
@@ -50,12 +60,21 @@ export default function Tests() {
     const [detail, setDetail] = useState<any | null>(null);
     const [submitting, setSubmitting] = useState(false);
 
-    const [formClassroomId, setFormClassroomId] = useState<number | ''>('');
     const [formStudentId, setFormStudentId] = useState<number | ''>('');
     const [formName, setFormName] = useState('');
     const [formSubjectId, setFormSubjectId] = useState<number | ''>('');
     const [formLessonId, setFormLessonId] = useState<number | ''>('');
     const [formQuestionIds, setFormQuestionIds] = useState<number[]>([]);
+
+    // Dialog "Tạo đề ôn tập" riêng (2026-09-01) - tách khỏi dialog "Tạo đề kiểm tra" ở trên vì
+    // luồng đơn giản hơn nhiều (không có Bài học/tick từng câu hỏi - server tự random cả Môn),
+    // vẫn dùng lại đúng stream 'subjects' + bloc.loadSubjects(classroomId) đã có sẵn.
+    const [practiceOpen, setPracticeOpen] = useState(false);
+    const [practiceSubmitting, setPracticeSubmitting] = useState(false);
+    const [pStudentId, setPStudentId] = useState<number | ''>('');
+    const [pSubjectId, setPSubjectId] = useState<number | ''>('');
+    const [pName, setPName] = useState('');
+    const [pQuestionCount, setPQuestionCount] = useState('');
 
     useEffect(() => {
         bloc.initData();
@@ -68,19 +87,21 @@ export default function Tests() {
     };
 
     const resetCreateForm = () => {
-        setFormClassroomId(''); setFormStudentId(''); setFormName(''); setFormSubjectId(''); setFormLessonId(''); setFormQuestionIds([]);
+        setFormStudentId(''); setFormName(''); setFormSubjectId(''); setFormLessonId(''); setFormQuestionIds([]);
     };
     const openCreate = () => { resetCreateForm(); setCreateOpen(true); };
     const closeCreate = () => { setCreateOpen(false); setSubmitting(false); };
 
-    // Chọn Lớp là bước đầu tiên khi tạo đề (MỚI) - lọc cả Học sinh lẫn Môn học theo đúng lớp đó
-    // (Test vẫn gán cho 1 Học sinh cụ thể như trước, Lớp chỉ để lọc dropdown - xem BlocParentTests.ts).
-    // Đổi Lớp thì các lựa chọn Học sinh/Môn học/Bài học/Câu hỏi cũ (nếu có, thuộc lớp trước) không
-    // còn hợp lệ nữa nên reset hết, giống hệt cách onFormSubjectChange reset formLessonId bên dưới.
-    const onFormClassroomChange = (value: number | '') => {
-        setFormClassroomId(value);
-        setFormStudentId(''); setFormSubjectId(''); setFormLessonId(''); setFormQuestionIds([]);
-        if (value !== '') bloc.loadSubjects(value);
+    // Chọn Học sinh là bước đầu tiên khi tạo đề - tự suy ra classroomId của học sinh đó (đã có sẵn
+    // trong QuizStudentLite, không cần chọn Lớp riêng nữa - bỏ theo góp ý anh 2026-09-01) để tải
+    // đúng Môn học của lớp đó ngay. Đổi Học sinh thì Môn học/Bài học/Câu hỏi cũ (nếu có, thuộc lớp
+    // của học sinh trước) không còn hợp lệ nữa nên reset hết, giống hệt cách onFormSubjectChange
+    // reset formLessonId bên dưới.
+    const onFormStudentChange = (value: number | '', students: QuizStudentLite[]) => {
+        setFormStudentId(value);
+        setFormSubjectId(''); setFormLessonId(''); setFormQuestionIds([]);
+        const classroomId = value === '' ? undefined : students.find((s) => s.id === value)?.classroomId;
+        if (classroomId != null) bloc.loadSubjects(classroomId);
     };
 
     const onFormSubjectChange = (value: number) => {
@@ -98,7 +119,7 @@ export default function Tests() {
         setFormQuestionIds((ids) => ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]);
     };
 
-    const isCreateValid = formClassroomId !== '' && formStudentId !== '' && formName.trim() !== '' && formQuestionIds.length > 0;
+    const isCreateValid = formStudentId !== '' && formName.trim() !== '' && formQuestionIds.length > 0;
 
     const submitCreate = () => {
         if (!isCreateValid || typeof formStudentId !== 'number') return;
@@ -108,6 +129,39 @@ export default function Tests() {
             enqueueSnackbar(t('quiz-test-created') as string, { variant: 'success' });
             closeCreate();
         }, (error) => { setSubmitting(false); showError(error); });
+    };
+
+    // Chọn Học sinh trong dialog "Tạo đề ôn tập" - giống hệt onFormStudentChange nhưng cho state
+    // riêng (pStudentId/pSubjectId), dùng CHUNG stream 'subjects' của bloc (chỉ 1 trong 2 dialog
+    // mở tại 1 thời điểm nên không xung đột).
+    const onPracticeStudentChange = (value: number | '', students: QuizStudentLite[]) => {
+        setPStudentId(value);
+        setPSubjectId('');
+        const classroomId = value === '' ? undefined : students.find((s) => s.id === value)?.classroomId;
+        if (classroomId != null) bloc.loadSubjects(classroomId);
+    };
+
+    const resetPracticeForm = () => {
+        setPStudentId(''); setPSubjectId(''); setPName(''); setPQuestionCount('');
+    };
+    const openPractice = () => { resetPracticeForm(); setPracticeOpen(true); };
+    const closePractice = () => { setPracticeOpen(false); setPracticeSubmitting(false); };
+
+    const isPracticeValid = pStudentId !== '' && pSubjectId !== '';
+
+    const submitPractice = () => {
+        if (!isPracticeValid || typeof pStudentId !== 'number' || typeof pSubjectId !== 'number') return;
+        setPracticeSubmitting(true);
+        const request: QuizPracticeGenerateRequest = {
+            studentId: pStudentId,
+            subjectId: pSubjectId,
+            name: pName.trim() === '' ? undefined : pName,
+            questionCount: pQuestionCount.trim() === '' ? undefined : Number(pQuestionCount)
+        };
+        bloc.generatePractice(request, () => {
+            enqueueSnackbar(t('quiz-practice-test-created') as string, { variant: 'success' });
+            closePractice();
+        }, (error) => { setPracticeSubmitting(false); showError(error); });
     };
 
     const askRemove = (row: QuizTest) => {
@@ -144,6 +198,12 @@ export default function Tests() {
             )
         },
         {
+            field: 'testType', headerName: t('quiz-test-type') as string, width: 140,
+            renderCell: (params) => (
+                <Chip size="small" label={t(`quiz-test-type-${params.value}`)} color={TEST_TYPE_COLOR[params.value] ?? 'default'} />
+            )
+        },
+        {
             field: 'actions', type: 'actions', headerName: t('actions') as string, width: 100,
             getActions: (params) => [
                 <GridActionsCellItem icon={<VisibilityOutlined fontSize="small" />} label="view" onClick={() => viewDetail(params.row)} />,
@@ -175,7 +235,10 @@ export default function Tests() {
                                             {students.map((s) => <MenuItem key={s.id} value={s.id}>{s.fullName}</MenuItem>)}
                                         </Select>
                                     </FormControl>
-                                    <Button variant="contained" startIcon={<AddOutlined />} onClick={openCreate}>{t('quiz-test-new')}</Button>
+                                    <Stack direction="row" spacing={1}>
+                                        <Button variant="outlined" startIcon={<AutorenewOutlined />} onClick={openPractice}>{t('quiz-practice-test-new')}</Button>
+                                        <Button variant="contained" startIcon={<AddOutlined />} onClick={openCreate}>{t('quiz-test-new')}</Button>
+                                    </Stack>
                                 </Stack>
                             </Card>
 
@@ -200,30 +263,14 @@ export default function Tests() {
                                 <DialogTitle>{t('quiz-test-new')}</DialogTitle>
                                 <DialogContent>
                                     <Stack spacing={2} sx={{ mt: 1 }}>
-                                        <UIStream
-                                            initialData={bloc.getField('classrooms')}
-                                            stream={bloc.getStream('classrooms')}
-                                            builder={(classroomsSnap) => (
-                                                <FormControl fullWidth size="small">
-                                                    <InputLabel>{t('quiz-select-classroom')}</InputLabel>
-                                                    <Select
-                                                        label={t('quiz-select-classroom')}
-                                                        value={formClassroomId}
-                                                        onChange={(e) => onFormClassroomChange(e.target.value === '' ? '' : Number(e.target.value))}
-                                                    >
-                                                        {(classroomsSnap.data ?? []).map((c: QuizClassroomLite) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
-                                                    </Select>
-                                                </FormControl>
-                                            )}
-                                        />
-                                        <FormControl fullWidth size="small" disabled={formClassroomId === ''}>
+                                        <FormControl fullWidth size="small">
                                             <InputLabel>{t('quiz-select-student')}</InputLabel>
                                             <Select
                                                 label={t('quiz-select-student')}
                                                 value={formStudentId}
-                                                onChange={(e) => setFormStudentId(e.target.value === '' ? '' : Number(e.target.value))}
+                                                onChange={(e) => onFormStudentChange(e.target.value === '' ? '' : Number(e.target.value), students)}
                                             >
-                                                {students.filter((s) => s.classroomId === formClassroomId).map((s) => <MenuItem key={s.id} value={s.id}>{s.fullName}</MenuItem>)}
+                                                {students.map((s) => <MenuItem key={s.id} value={s.id}>{s.fullName}</MenuItem>)}
                                             </Select>
                                         </FormControl>
                                         <TextField
@@ -236,7 +283,7 @@ export default function Tests() {
                                             initialData={bloc.getField('subjects')}
                                             stream={bloc.getStream('subjects')}
                                             builder={(subjectsSnap) => (
-                                                <FormControl fullWidth size="small" disabled={formClassroomId === ''}>
+                                                <FormControl fullWidth size="small" disabled={formStudentId === ''}>
                                                     <InputLabel>{t('quiz-select-subject')}</InputLabel>
                                                     <Select
                                                         label={t('quiz-select-subject')}
@@ -297,6 +344,61 @@ export default function Tests() {
                                 <DialogActions>
                                     <Button onClick={closeCreate}>{t('cancel')}</Button>
                                     <Button variant="contained" disabled={submitting || !isCreateValid} onClick={submitCreate}>{t('quiz-assign-test')}</Button>
+                                </DialogActions>
+                            </Dialog>
+
+                            {/* Dialog "Tạo đề ôn tập" (2026-09-01) - chọn Học sinh + Môn học là đủ, không có
+                                bước Bài học/tick câu hỏi (server tự random toàn bộ câu hỏi của Môn, xem
+                                TestService#generatePractice). Số câu để trống = server tự lấy mặc định 10. */}
+                            <Dialog open={practiceOpen} onClose={closePractice} maxWidth="sm" fullWidth>
+                                <DialogTitle>{t('quiz-practice-test-new')}</DialogTitle>
+                                <DialogContent>
+                                    <Stack spacing={2} sx={{ mt: 1 }}>
+                                        <Typography variant="body2" color="text.secondary">{t('quiz-practice-test-hint')}</Typography>
+                                        <FormControl fullWidth size="small">
+                                            <InputLabel>{t('quiz-select-student')}</InputLabel>
+                                            <Select
+                                                label={t('quiz-select-student')}
+                                                value={pStudentId}
+                                                onChange={(e) => onPracticeStudentChange(e.target.value === '' ? '' : Number(e.target.value), students)}
+                                            >
+                                                {students.map((s) => <MenuItem key={s.id} value={s.id}>{s.fullName}</MenuItem>)}
+                                            </Select>
+                                        </FormControl>
+                                        <UIStream
+                                            initialData={bloc.getField('subjects')}
+                                            stream={bloc.getStream('subjects')}
+                                            builder={(subjectsSnap) => (
+                                                <FormControl fullWidth size="small" disabled={pStudentId === ''}>
+                                                    <InputLabel>{t('quiz-select-subject')}</InputLabel>
+                                                    <Select
+                                                        label={t('quiz-select-subject')}
+                                                        value={pSubjectId}
+                                                        onChange={(e) => setPSubjectId(Number(e.target.value))}
+                                                    >
+                                                        {(subjectsSnap.data ?? []).map((s: any) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
+                                                    </Select>
+                                                </FormControl>
+                                            )}
+                                        />
+                                        <TextField
+                                            label={t('quiz-test-name-optional')}
+                                            value={pName}
+                                            onChange={(e) => setPName(e.target.value)}
+                                            fullWidth
+                                        />
+                                        <TextField
+                                            label={t('quiz-practice-question-count')}
+                                            value={pQuestionCount}
+                                            onChange={(e) => setPQuestionCount(e.target.value.replace(/[^0-9]/g, ''))}
+                                            helperText={t('quiz-practice-question-count-hint')}
+                                            fullWidth
+                                        />
+                                    </Stack>
+                                </DialogContent>
+                                <DialogActions>
+                                    <Button onClick={closePractice}>{t('cancel')}</Button>
+                                    <Button variant="contained" disabled={practiceSubmitting || !isPracticeValid} onClick={submitPractice}>{t('quiz-practice-generate')}</Button>
                                 </DialogActions>
                             </Dialog>
 

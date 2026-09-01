@@ -112,7 +112,15 @@ export default function Reports() {
                                             <TableBody>
                                                 {history.map((item) => (
                                                     <TableRow key={item.attemptId} hover sx={{ cursor: 'pointer' }} onClick={() => openReport(item.attemptId)}>
-                                                        <TableCell>{item.testName}</TableCell>
+                                                        <TableCell>
+                                                            {item.testName}
+                                                            {/* Tách riêng đề "Ôn tập" (PRACTICE) khỏi đề thường trong lịch sử - theo yêu cầu
+                                                                anh 2026-09-01: hiện vẫn TRONG lịch sử (không ẩn) nhưng có nhãn riêng để phân
+                                                                biệt, không lẫn với đề phụ huynh giao (REGULAR) - xem TestType.java. */}
+                                                            {item.testType === 'PRACTICE' && (
+                                                                <Chip size="small" label={t('quiz-test-type-PRACTICE')} color="info" sx={{ ml: 1 }} />
+                                                            )}
+                                                        </TableCell>
                                                         <TableCell>{new Date(item.submittedAt).toLocaleString()}</TableCell>
                                                         <TableCell align="right">{item.correctCount}/{item.totalQuestions}</TableCell>
                                                     </TableRow>

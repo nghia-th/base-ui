@@ -2,6 +2,15 @@ import { IBlocUI } from "../../base/IBlocUI";
 import { QuizQuestionApi, QuizQuestionRequest, quizImportQuestions } from "../../api/QuizQuestionApi";
 import { QuizSubjectApi } from "../../api/QuizSubjectApi";
 import { QuizLessonApi } from "../../api/QuizLessonApi";
+import { QuizClassroomApi } from "../../api/QuizClassroomApi";
+
+// Chỉ lấy 2 field cần cho dropdown - cùng convention "mỗi Bloc content tự khai báo shape riêng"
+// với BlocParentSubjects.QuizClassroomLite/BlocParentTests.QuizClassroomLite (không dùng chung 1
+// type import từ Bloc khác).
+export interface QuizClassroomLite {
+    id: number;
+    name: string;
+}
 
 // Khớp ChoiceResponse.java / QuestionResponse.java (view Phụ huynh - CÓ field "correct", khác
 // view Học sinh ở task 6 - xem BlocStudentAttempt.ts).
@@ -31,13 +40,27 @@ export interface QuizImportResult {
     errors: QuizImportRowError[];
 }
 
-// Bloc trang "Ngân hàng câu hỏi" (khu vực Phụ huynh, /app/parent/questions - Task 4 backend). Tự
-// tải luôn danh sách Subject/Lesson (không dùng lại BlocParentSubjects của trang khác - mỗi Bloc
-// "content" sống theo trang riêng, xem AppContext.ts's reUseBlocContent) để phục vụ 2 dropdown lọc
-// theo Subject -> Lesson trước khi hiện Question.
+// Bloc trang "Ngân hàng câu hỏi" (khu vực Phụ huynh, /app/parent/questions - Task 4 backend, mở
+// rộng 2026-09-01 thêm bước lọc Lớp học đứng trước Môn học). Tự tải luôn danh sách Classroom/
+// Subject/Lesson (không dùng lại BlocParentSubjects/BlocParentTests của trang khác - mỗi Bloc
+// "content" sống theo trang riêng, xem AppContext.ts's reUseBlocContent) để phục vụ 3 dropdown lọc
+// theo Lớp -> Môn học -> Bài học trước khi hiện Question - cùng shape 3 tầng BlocParentTests.ts đã
+// dùng cho form tạo Đề kiểm tra (Classroom -> Subject -> Lesson), chỉ khác là ở đây dùng để LỌC
+// hiển thị chứ không phải để tạo mới.
 export class BlocParentQuestions extends IBlocUI {
     async initData() {
+        this.apiRequest(QuizClassroomApi.list(), (res) => {
+            this.setStream('classrooms', res.data as QuizClassroomLite[])
+        })
         this.apiRequest(QuizSubjectApi.list(), (res) => {
+            this.setStream('subjects', res.data)
+        })
+    }
+
+    // classroomId undefined = mọi lớp (giữ đúng hành vi cũ trước khi có bước lọc Lớp học) - xem
+    // QuizSubjectApi.list's javadoc.
+    loadSubjects(classroomId?: number) {
+        this.apiRequest(QuizSubjectApi.list(classroomId), (res) => {
             this.setStream('subjects', res.data)
         })
     }

@@ -54,11 +54,12 @@ interface QuestionFormState {
 const EMPTY_CHOICE: ChoiceFormState = { content: '', correct: false };
 const emptyForm = (): QuestionFormState => ({ id: 0, content: '', knowledgeTag: '', choices: [{ ...EMPTY_CHOICE }, { ...EMPTY_CHOICE }] });
 
-// Trang "Ngân hàng câu hỏi" (khu vực Phụ huynh, /app/parent/questions - Task 4 backend). Chọn
-// Môn học -> Bài học (2 Select phụ thuộc) trước khi hiện/thao tác Question của bài học đó, vì
-// QuestionApi.java's list() bắt buộc lessonId. Thêm/sửa câu hỏi qua Dialog với danh sách lựa chọn
-// động (thêm/bớt dòng, radio chọn đáp án đúng - chỉ 1 lựa chọn được đúng tại 1 thời điểm). Ngoài
-// nhập tay còn có nhập từ file Excel/CSV (tải mẫu -> điền -> upload, best-effort theo từng dòng).
+// Trang "Ngân hàng câu hỏi" (khu vực Phụ huynh, /app/parent/questions - Task 4 backend, mở rộng
+// 2026-09-01). Chọn Lớp học -> Môn học -> Bài học (3 Select phụ thuộc, cùng cascade-clear-tầng-con
+// pattern với Tests.tsx) trước khi hiện/thao tác Question của bài học đó, vì QuestionApi.java's
+// list() bắt buộc lessonId. Thêm/sửa câu hỏi qua Dialog với danh sách lựa chọn động (thêm/bớt
+// dòng, radio chọn đáp án đúng - chỉ 1 lựa chọn được đúng tại 1 thời điểm). Ngoài nhập tay còn có
+// nhập từ file Excel/CSV (tải mẫu -> điền -> upload, best-effort theo từng dòng).
 export default function Questions() {
     const { t } = useTranslation();
     const { enqueueSnackbar } = useSnackbar();
@@ -66,6 +67,7 @@ export default function Questions() {
     const bloc = reUseBlocContent(appContext, BlocParentQuestions);
     const showError = (error: any) => enqueueSnackbar(quizErrorMessage(t, error), { variant: 'error' });
 
+    const [classroomId, setClassroomId] = useState<number | ''>('');
     const [subjectId, setSubjectId] = useState<number | ''>('');
     const [lessonId, setLessonId] = useState<number | ''>('');
     const [form, setForm] = useState<QuestionFormState | null>(null);
@@ -80,6 +82,15 @@ export default function Questions() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Đổi Lớp -> chỉ tải lại Môn học theo đúng lớp đó, tự bỏ chọn Môn/Bài (không còn hợp lệ nữa) -
+    // cùng quy tắc "đổi tầng cha thì xoá mọi tầng con, chỉ tải lại đúng 1 tầng kế tiếp" đã dùng ở
+    // Tests.tsx's onFormClassroomChange/onFormSubjectChange (xem BlocParentTests.ts).
+    const onClassroomChange = (value: number | '') => {
+        setClassroomId(value);
+        setSubjectId('');
+        setLessonId('');
+        bloc.loadSubjects(value === '' ? undefined : value);
+    };
     const onSubjectChange = (value: number) => {
         setSubjectId(value);
         setLessonId('');
@@ -157,7 +168,28 @@ export default function Questions() {
         <Stack spacing={2}>
             <Card sx={{ p: 2 }}>
                 <Grid container spacing={2}>
-                    <Grid size={{ xs: 12, sm: 6 }}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
+                        <UIStream
+                            initialData={null}
+                            stream={bloc.getStream('classrooms')}
+                            builder={(snapshot) => (
+                                <FormControl fullWidth size="small">
+                                    <InputLabel>{t('quiz-select-classroom')}</InputLabel>
+                                    <Select
+                                        label={t('quiz-select-classroom')}
+                                        value={classroomId}
+                                        onChange={(e) => onClassroomChange(e.target.value === '' ? '' : Number(e.target.value))}
+                                    >
+                                        <MenuItem value="">{t('quiz-all-classrooms')}</MenuItem>
+                                        {(snapshot.data ?? []).map((c: any) => (
+                                            <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
+                            )}
+                        />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 4 }}>
                         <UIStream
                             initialData={null}
                             stream={bloc.getStream('subjects')}
@@ -177,7 +209,7 @@ export default function Questions() {
                             )}
                         />
                     </Grid>
-                    <Grid size={{ xs: 12, sm: 6 }}>
+                    <Grid size={{ xs: 12, sm: 4 }}>
                         <UIStream
                             initialData={null}
                             stream={bloc.getStream('lessons')}

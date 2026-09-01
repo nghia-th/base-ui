@@ -24,27 +24,37 @@ import AddOutlined from "@mui/icons-material/AddOutlined";
 import EditOutlined from "@mui/icons-material/EditOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
+import ImageOutlined from "@mui/icons-material/ImageOutlined";
+import CircularProgress from "@mui/material/CircularProgress";
+import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import { BlocParentSubjects, QuizSubject, QuizLesson, QuizClassroomLite } from "../../bloc/BlocParentSubjects";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
-interface NameFormState {
-    id: number;
-    name: string;
-}
-
-// Subject giờ bắt buộc thuộc 1 Classroom (xem QuizSubject.classroomId) nên cần form riêng khỏi
-// NameFormState (Lesson vẫn chỉ có "name", không đổi).
+// Subject giờ bắt buộc thuộc 1 Classroom (xem QuizSubject.classroomId) nên cần form riêng.
 interface SubjectFormState {
     id: number;
     name: string;
     classroomId: number | '';
 }
 
-const EMPTY_FORM: NameFormState = { id: 0, name: '' };
+// Lesson giờ có thêm 3 field nội dung tuỳ chọn (2026-09-01, xem QuizLesson) - textbookPage giữ
+// dạng number|'' giống pattern classroomId ở SubjectFormState (input rỗng khác 0 thật). Ảnh minh
+// hoạ KHÔNG nằm trong form state này - upload/xoá ảnh là 2 action riêng, gọi ngay khi bấm (chỉ khi
+// lesson đã có id thật, xem onImageFileSelected), không gộp chung vào nút "Lưu".
+interface LessonFormState {
+    id: number;
+    name: string;
+    summary: string;
+    content: string;
+    textbookPage: number | '';
+    hasImage: boolean;
+}
+
 const EMPTY_SUBJECT_FORM: SubjectFormState = { id: 0, name: '', classroomId: '' };
+const EMPTY_LESSON_FORM: LessonFormState = { id: 0, name: '', summary: '', content: '', textbookPage: '', hasImage: false };
 
 // Trang "Môn học / Bài học" (khu vực Phụ huynh, /app/parent/subjects - Task 3 backend). Master-
 // detail 1 màn hình: cột trái danh sách Subject (List), chọn 1 Subject thì cột phải hiện Lesson
@@ -61,8 +71,13 @@ export default function Subjects() {
     const [filterClassroomId, setFilterClassroomId] = useState<number | ''>('');
     const [selectedSubject, setSelectedSubject] = useState<QuizSubject | null>(null);
     const [subjectForm, setSubjectForm] = useState<SubjectFormState | null>(null);
-    const [lessonForm, setLessonForm] = useState<NameFormState | null>(null);
+    const [lessonForm, setLessonForm] = useState<LessonFormState | null>(null);
     const [submitting, setSubmitting] = useState(false);
+    // Ảnh minh hoạ: preview là 1 object URL tải riêng qua bloc.loadLessonImage (không phải field
+    // trong lessonForm) - xem loadLessonImagePreview/closeLessonForm cho vòng đời tạo/revoke URL.
+    const [lessonImagePreviewUrl, setLessonImagePreviewUrl] = useState<string | null>(null);
+    const [imageLoading, setImageLoading] = useState(false);
+    const [imageUploading, setImageUploading] = useState(false);
 
     useEffect(() => {
         bloc.initData();
@@ -117,20 +132,74 @@ export default function Subjects() {
     };
 
     // --- Lesson form ---
-    const openNewLesson = () => setLessonForm({ ...EMPTY_FORM });
-    const openEditLesson = (lesson: QuizLesson) => setLessonForm({ id: lesson.id, name: lesson.name });
-    const closeLessonForm = () => { setLessonForm(null); setSubmitting(false); };
+    // Ảnh cũ (nếu có) chỉ tải preview khi MỞ form sửa 1 lesson đã có hasImage=true - không tải
+    // trước cho cả danh sách (tốn băng thông không cần thiết, DataGrid chỉ cần biết có/không qua
+    // hasImage để hiện icon, xem lessonColumns).
+    const loadLessonImagePreview = (id: number) => {
+        setImageLoading(true);
+        bloc.loadLessonImage(id, (blob) => {
+            setImageLoading(false);
+            setLessonImagePreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return URL.createObjectURL(blob); });
+        }, () => { setImageLoading(false); });
+    };
+
+    const openNewLesson = () => setLessonForm({ ...EMPTY_LESSON_FORM });
+    const openEditLesson = (lesson: QuizLesson) => {
+        setLessonForm({
+            id: lesson.id,
+            name: lesson.name,
+            summary: lesson.summary ?? '',
+            content: lesson.content ?? '',
+            textbookPage: lesson.textbookPage ?? '',
+            hasImage: lesson.hasImage
+        });
+        if (lesson.hasImage) loadLessonImagePreview(lesson.id);
+    };
+    const closeLessonForm = () => {
+        setLessonForm(null);
+        setSubmitting(false);
+        setLessonImagePreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return null; });
+    };
 
     const saveLesson = () => {
         if (!lessonForm || !selectedSubject) return;
         setSubmitting(true);
         const onComplete = () => { closeLessonForm(); };
         const onError = (error: any) => { setSubmitting(false); showError(error); };
+        const request = {
+            name: lessonForm.name,
+            summary: lessonForm.summary || undefined,
+            content: lessonForm.content || undefined,
+            textbookPage: lessonForm.textbookPage === '' ? undefined : lessonForm.textbookPage
+        };
         if (lessonForm.id > 0) {
-            bloc.updateLesson(lessonForm.id, selectedSubject.id, { name: lessonForm.name }, onComplete, onError);
+            bloc.updateLesson(lessonForm.id, selectedSubject.id, request, onComplete, onError);
         } else {
-            bloc.createLesson({ subjectId: selectedSubject.id, name: lessonForm.name }, onComplete, onError);
+            bloc.createLesson({ subjectId: selectedSubject.id, ...request }, onComplete, onError);
         }
+    };
+
+    // Upload/xoá ảnh gọi NGAY khi bấm (không đợi nút "Lưu" chung) - chỉ khả dụng khi lesson đã có
+    // id thật (id>0), vì endpoint upload cần lessonId đã tồn tại; lesson vừa tạo mới phải lưu trước,
+    // mở lại để sửa mới thêm ảnh được (input file bị disable khi lessonForm.id===0, xem JSX).
+    const onImageFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file || !lessonForm || lessonForm.id <= 0 || !selectedSubject) return;
+        setImageUploading(true);
+        bloc.uploadLessonImage(lessonForm.id, selectedSubject.id, file, () => {
+            setImageUploading(false);
+            setLessonForm((s) => s && { ...s, hasImage: true });
+            loadLessonImagePreview(lessonForm.id);
+        }, (error) => { setImageUploading(false); showError(error); });
+    };
+
+    const removeLessonImage = () => {
+        if (!lessonForm || lessonForm.id <= 0 || !selectedSubject) return;
+        bloc.removeLessonImage(lessonForm.id, selectedSubject.id, () => {
+            setLessonForm((s) => s && { ...s, hasImage: false });
+            setLessonImagePreviewUrl((old) => { if (old) URL.revokeObjectURL(old); return null; });
+        }, showError);
     };
 
     const askRemoveLesson = (lesson: QuizLesson) => {
@@ -148,6 +217,16 @@ export default function Subjects() {
 
     const lessonColumns: GridColDef[] = useMemo(() => [
         { field: 'name', headerName: t('quiz-lesson-name') as string, flex: 1, minWidth: 200 },
+        {
+            field: 'textbookPage', headerName: t('quiz-lesson-textbook-page') as string, width: 110,
+            valueGetter: (_value, row) => (row as QuizLesson).textbookPage ?? ''
+        },
+        {
+            field: 'hasImage', headerName: t('quiz-lesson-image') as string, width: 80, sortable: false,
+            renderCell: (params) => (params.row as QuizLesson).hasImage
+                ? <CheckCircleOutlined fontSize="small" color="success" />
+                : null
+        },
         {
             field: 'actions', type: 'actions', headerName: t('actions') as string, width: 100,
             getActions: (params) => [
@@ -289,17 +368,89 @@ export default function Subjects() {
                                         </Box>
                                     </Card>
 
-                                    <Dialog open={lessonForm != null} onClose={closeLessonForm} maxWidth="xs" fullWidth>
+                                    <Dialog open={lessonForm != null} onClose={closeLessonForm} maxWidth="sm" fullWidth>
                                         <DialogTitle>{(lessonForm?.id ?? 0) > 0 ? t('quiz-lesson-edit') : t('quiz-lesson-new')}</DialogTitle>
                                         <DialogContent>
-                                            <TextField
-                                                label={t('quiz-lesson-name')}
-                                                value={lessonForm?.name ?? ''}
-                                                onChange={(e) => setLessonForm((s) => s && { ...s, name: e.target.value })}
-                                                autoFocus
-                                                fullWidth
-                                                sx={{ mt: 1 }}
-                                            />
+                                            <Stack spacing={2} sx={{ mt: 1 }}>
+                                                <TextField
+                                                    label={t('quiz-lesson-name')}
+                                                    value={lessonForm?.name ?? ''}
+                                                    onChange={(e) => setLessonForm((s) => s && { ...s, name: e.target.value })}
+                                                    autoFocus
+                                                    fullWidth
+                                                />
+                                                <TextField
+                                                    label={t('quiz-lesson-summary')}
+                                                    value={lessonForm?.summary ?? ''}
+                                                    onChange={(e) => setLessonForm((s) => s && { ...s, summary: e.target.value })}
+                                                    fullWidth
+                                                    multiline
+                                                    minRows={2}
+                                                    helperText={t('quiz-lesson-summary-hint')}
+                                                />
+                                                <TextField
+                                                    label={t('quiz-lesson-content')}
+                                                    value={lessonForm?.content ?? ''}
+                                                    onChange={(e) => setLessonForm((s) => s && { ...s, content: e.target.value })}
+                                                    fullWidth
+                                                    multiline
+                                                    minRows={4}
+                                                    helperText={t('quiz-lesson-content-hint')}
+                                                />
+                                                <TextField
+                                                    label={t('quiz-lesson-textbook-page')}
+                                                    type="number"
+                                                    value={lessonForm?.textbookPage ?? ''}
+                                                    onChange={(e) => setLessonForm((s) => s && { ...s, textbookPage: e.target.value === '' ? '' : Number(e.target.value) })}
+                                                    fullWidth
+                                                    sx={{ maxWidth: 200 }}
+                                                    inputProps={{ min: 1 }}
+                                                />
+
+                                                <Box>
+                                                    <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('quiz-lesson-image')}</Typography>
+                                                    {(lessonForm?.id ?? 0) <= 0 ? (
+                                                        <Typography variant="body2" color="text.secondary">{t('quiz-lesson-image-save-first')}</Typography>
+                                                    ) : (
+                                                        <Stack direction="row" spacing={2} alignItems="center">
+                                                            {imageLoading ? (
+                                                                <CircularProgress size={64} />
+                                                            ) : lessonImagePreviewUrl ? (
+                                                                <Box
+                                                                    component="img"
+                                                                    src={lessonImagePreviewUrl}
+                                                                    alt={lessonForm?.name}
+                                                                    sx={{ width: 96, height: 96, objectFit: 'cover', borderRadius: 1, border: '1px solid', borderColor: 'divider' }}
+                                                                />
+                                                            ) : (
+                                                                <Box sx={{
+                                                                    width: 96, height: 96, borderRadius: 1, border: '1px dashed',
+                                                                    borderColor: 'divider', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                                                }}>
+                                                                    <ImageOutlined color="disabled" />
+                                                                </Box>
+                                                            )}
+                                                            <Stack spacing={1}>
+                                                                <Button
+                                                                    component="label"
+                                                                    variant="outlined"
+                                                                    size="small"
+                                                                    startIcon={<ImageOutlined />}
+                                                                    disabled={imageUploading}
+                                                                >
+                                                                    {imageUploading ? t('quiz-lesson-image-uploading') : t('quiz-lesson-image-upload')}
+                                                                    <input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onImageFileSelected} />
+                                                                </Button>
+                                                                {lessonForm?.hasImage && (
+                                                                    <Button color="error" size="small" onClick={removeLessonImage}>
+                                                                        {t('quiz-lesson-image-remove')}
+                                                                    </Button>
+                                                                )}
+                                                            </Stack>
+                                                        </Stack>
+                                                    )}
+                                                </Box>
+                                            </Stack>
                                         </DialogContent>
                                         <DialogActions>
                                             <Button onClick={closeLessonForm}>{t('cancel')}</Button>

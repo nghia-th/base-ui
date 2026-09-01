@@ -1,5 +1,6 @@
 import { IBlocUI } from "../../base/IBlocUI";
 import { QuizStudentAttemptApi } from "../../api/QuizStudentAttemptApi";
+import { QuizStudentLessonApi } from "../../api/QuizStudentLessonApi";
 
 // Khớp StudentChoiceResponse.java - CỐ Ý không có field "correct" (khác ChoiceResponse.java bên
 // Phụ huynh, task 4) - học sinh không được biết đáp án đúng trước khi nộp bài.
@@ -8,11 +9,23 @@ export interface QuizStudentChoice {
     content: string;
 }
 
-// Khớp StudentQuestionResponse.java.
+// Khớp StudentQuestionResponse.java. lessonId thêm 2026-09-01 để "xem lại bài học" (nút mở
+// QuizStudentLesson của đúng bài chứa câu hỏi này, xem TakeTest.tsx).
 export interface QuizStudentQuestion {
     questionId: number;
+    lessonId: number;
     content: string;
     choices: QuizStudentChoice[];
+}
+
+// Khớp StudentLessonResponse.java (task "Backend: Student xem lai noi dung bai hoc", 2026-09-01).
+export interface QuizStudentLesson {
+    id: number;
+    name: string;
+    summary?: string;
+    content?: string;
+    textbookPage?: number;
+    hasImage: boolean;
 }
 
 // Khớp SubmitAttemptResponse.java.
@@ -44,6 +57,23 @@ export class BlocStudentAttempt extends IBlocUI {
     submit(attemptId: number, onComplete: (result: QuizSubmitResult) => void, onError: (error: any) => void) {
         this.apiRequest(QuizStudentAttemptApi.submit(attemptId), (res) => {
             onComplete(res.data as QuizSubmitResult)
+        }, { onError })
+    }
+
+    // "Xem lại bài học" (task 2026-09-01) - gọi khi học sinh bấm mở panel nội dung 1 câu hỏi, cả
+    // lúc đang làm bài lẫn sau khi đã nộp (cùng 1 màn hình TakeTest.tsx, xem file đó). Không cache
+    // gì ở Bloc - TakeTest.tsx tự giữ state theo questionId đang mở, load lại mỗi lần mở khác câu.
+    loadLesson(lessonId: number, onComplete: (lesson: QuizStudentLesson) => void, onError: (error: any) => void) {
+        this.apiRequest(QuizStudentLessonApi.get(lessonId), (res) => {
+            onComplete(res.data as QuizStudentLesson)
+        }, { onError })
+    }
+
+    // responseType:'blob' -> CallApi.ts's nhánh blob trả {data,disposition} - xem
+    // BlocParentSubjects.loadLessonImage cho pattern gốc (phía Phụ huynh).
+    loadLessonImage(lessonId: number, onData: (blob: Blob) => void, onError: (error: any) => void) {
+        this.apiRequest(QuizStudentLessonApi.getImage(lessonId), (res: any) => {
+            onData(res.data as Blob)
         }, { onError })
     }
 }
