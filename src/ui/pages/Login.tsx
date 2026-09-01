@@ -10,23 +10,28 @@ import Typography from "@mui/material/Typography";
 import Avatar from "@mui/material/Avatar";
 import Link from "@mui/material/Link";
 import Stack from "@mui/material/Stack";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import LockOutlined from "@mui/icons-material/LockOutlined";
 import { AppContext, reUseBloc } from "../../base/AppContext";
-import { BlocLogin } from "../bloc/BlocLogin";
-import LocalStorage from "../../base/LocalStorage";
+import { BlocQuizLogin, QuizLoginRole } from "../bloc/BlocQuizLogin";
 import { BASE_URL } from "../../base/PrefixService";
 
-// Thay cho Login.js (module-ui, PrimeReact) - vẫn theo đúng pattern:
-// reUseBloc(appContext, BlocLogin) -> loginBloc.login(onComplete, onError).
+// Đăng nhập THẬT cho Hiểu Bài (quiz-service), thay cho pattern demo (BlocLogin.ts, login giả bằng
+// setTimeout, giữ nguyên không xoá để tham khảo pattern cũ). Chỉ 1 route /login dùng chung cho cả
+// "/" (Hiểu Bài thật) và "/demo" (trang tham khảo UI-kit) - xem AppWrapper.tsx - nên trang này giờ
+// là cổng vào duy nhất, cần chọn Phụ huynh/Học sinh vì quiz-service có 2 endpoint login riêng biệt
+// theo role (AuthApi.java: /api/auth/parent/login và /api/auth/student/login).
 export default function Login() {
     const { t } = useTranslation();
     const { enqueueSnackbar } = useSnackbar();
     const location = useLocation();
     const appContext = useContext(AppContext);
-    const loginBloc = reUseBloc(appContext, BlocLogin);
+    const loginBloc = reUseBloc(appContext, BlocQuizLogin);
     const locSearch = new URLSearchParams(location.search);
 
-    const [username, setUsername] = useState('');
+    const [role, setRole] = useState<QuizLoginRole>('parent');
+    const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
@@ -34,21 +39,28 @@ export default function Login() {
         document.title = t('log-in') as string;
     }, [t]);
 
+    const onRoleChange = (_e: React.MouseEvent<HTMLElement>, value: QuizLoginRole | null) => {
+        if (value) {
+            setRole(value);
+        }
+    };
+
     const doLogin = () => {
+        if (!identifier || !password) {
+            enqueueSnackbar(t('please-enter-login-info') as string, { variant: 'error' });
+            return;
+        }
         setSubmitting(true);
-        loginBloc.setField('loginInfo', { username, password });
-        loginBloc.login((res: any) => {
+        loginBloc.setField('loginInfo', { identifier, password });
+        loginBloc.login(role, (res: any) => {
             setSubmitting(false);
             enqueueSnackbar(t(res.messageKey ?? 'login-success') as string, { variant: 'success' });
-            LocalStorage.setItem('fullName', res?.data?.fullName ?? '');
-            LocalStorage.setItem('userId', res?.data?.userId ?? '');
-            LocalStorage.setItem('i18nextLng', res?.data?.lang ?? 'vi');
-            LocalStorage.setItem('avatar', res?.data?.avatar ?? '');
             const url = locSearch.get('url');
-            // "/" và "/demo" đều nằm trong cùng khung AppShell và đều cần đăng nhập (xem
-            // AppWrapper.tsx) - khi không có "url" redirect cụ thể (vào /login trực tiếp), đưa
-            // vào /demo (có nội dung sẵn để xem) thay vì "/" (còn trống, chưa build gì).
-            window.location.href = BASE_URL + (url ?? '/demo');
+            // Vào thẳng khu vực đúng role vừa đăng nhập (/app/parent hoặc /app/student/tests - xem
+            // AppShell.tsx/RequireQuizRole; học sinh không có trang tổng quan riêng, /app/student/tests
+            // LÀ trang chủ - xem AppMenuData.ts) trừ khi có "url" chỉ định cụ thể (vd bị AppWrapper.tsx
+            // redirect về /login?url=... vì hết hạn đăng nhập ở 1 trang cụ thể nào đó).
+            window.location.href = BASE_URL + (url ?? (role === 'student' ? '/app/student/tests' : '/app/parent'));
         }, (error: any) => {
             setSubmitting(false);
             enqueueSnackbar(t(error.messageKey ?? 'error') as string, { variant: 'error' });
@@ -69,17 +81,28 @@ export default function Login() {
                     <Avatar sx={{ bgcolor: 'primary.main', mb: 1 }}>
                         <LockOutlined />
                     </Avatar>
-                    <Typography variant="h6" fontWeight={700}>base-ui</Typography>
+                    <Typography variant="h6" fontWeight={700}>{t('app-name')}</Typography>
                     <Typography variant="body2" color="text.secondary">{t('log-in')}</Typography>
                 </Box>
 
+                <ToggleButtonGroup
+                    value={role}
+                    exclusive
+                    fullWidth
+                    onChange={onRoleChange}
+                    sx={{ mt: 1, mb: 1 }}
+                >
+                    <ToggleButton value="parent">{t('quiz-role-parent')}</ToggleButton>
+                    <ToggleButton value="student">{t('quiz-role-student')}</ToggleButton>
+                </ToggleButtonGroup>
+
                 <TextField
-                    label={t('username')}
+                    label={role === 'parent' ? t('email') : t('username')}
                     fullWidth
                     margin="normal"
-                    value={username}
+                    value={identifier}
                     autoFocus
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => setIdentifier(e.target.value)}
                     onKeyDown={onKeyDown}
                 />
                 <TextField
@@ -91,11 +114,13 @@ export default function Login() {
                     onChange={(e) => setPassword(e.target.value)}
                     onKeyDown={onKeyDown}
                 />
-                <Box sx={{ textAlign: 'right', mt: 0.5 }}>
-                    <Link component={RouterLink} to="/forgot-password" variant="body2">
-                        {t('forgot-password')}
-                    </Link>
-                </Box>
+                {role === 'parent' && (
+                    <Box sx={{ textAlign: 'right', mt: 0.5 }}>
+                        <Link component={RouterLink} to="/forgot-password" variant="body2">
+                            {t('forgot-password')}
+                        </Link>
+                    </Box>
+                )}
 
                 <Button
                     fullWidth
@@ -108,15 +133,13 @@ export default function Login() {
                     {t('log-in')}
                 </Button>
 
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 2, textAlign: 'center' }}>
-                    {t('demo-login-hint')}
-                </Typography>
-
-                <Stack sx={{ mt: 2 }}>
-                    <Typography variant="body2" sx={{ textAlign: 'center' }}>
-                        {t('dont-have-account')} <Link component={RouterLink} to="/register">{t('register')}</Link>
-                    </Typography>
-                </Stack>
+                {role === 'parent' && (
+                    <Stack sx={{ mt: 2 }}>
+                        <Typography variant="body2" sx={{ textAlign: 'center' }}>
+                            {t('dont-have-account')} <Link component={RouterLink} to="/register">{t('register')}</Link>
+                        </Typography>
+                    </Stack>
+                )}
             </Paper>
         </Box>
     );

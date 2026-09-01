@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { Link as RouterLink, useNavigate } from "react-router-dom";
+import React, { useContext, useEffect, useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
@@ -12,14 +12,22 @@ import Link from "@mui/material/Link";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Checkbox from "@mui/material/Checkbox";
 import PersonAddOutlined from "@mui/icons-material/PersonAddOutlined";
+import { AppContext, reUseBloc } from "../../base/AppContext";
+import { BlocQuizLogin } from "../bloc/BlocQuizLogin";
+import { BASE_URL } from "../../base/PrefixService";
+import { quizErrorMessage } from "../../quiz-net/quizErrors";
 
-// Trang "Đăng ký" - chỉ demo UI (base-ui chưa nối backend thật, giống Login.tsx/BlocLogin.ts):
-// validate tối thiểu ở client rồi giả lập tạo tài khoản thành công, quay lại /login.
+// Đăng ký THẬT cho Hiểu Bài (Phụ huynh - quiz-service KHÔNG có tự đăng ký cho Học sinh, tài khoản
+// Học sinh chỉ được Phụ huynh tạo qua "Học sinh" sau khi đăng nhập, xem AuthService.java's
+// Javadoc). AuthApi.java's registerParent tự đăng nhập luôn (trả token) nên đăng ký xong vào
+// thẳng /app/parent, không cần quay lại /login - dùng chung BlocQuizLogin (login/register cùng
+// lưu token như nhau, xem BlocQuizLogin.ts's handleAuthSuccess).
 export default function Register() {
     const { t } = useTranslation();
     const { enqueueSnackbar } = useSnackbar();
-    const navigate = useNavigate();
-    const [form, setForm] = useState({ fullName: '', email: '', password: '', confirm: '' });
+    const appContext = useContext(AppContext);
+    const bloc = reUseBloc(appContext, BlocQuizLogin);
+    const [form, setForm] = useState({ fullName: '', email: '', phone: '', password: '', confirm: '' });
     const [agree, setAgree] = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
@@ -41,11 +49,13 @@ export default function Register() {
             return;
         }
         setSubmitting(true);
-        setTimeout(() => {
-            setSubmitting(false);
+        bloc.register(form.fullName, form.email, form.password, form.phone || undefined, () => {
             enqueueSnackbar(t('register-success') as string, { variant: 'success' });
-            navigate('/login');
-        }, 400);
+            window.location.href = BASE_URL + '/app/parent';
+        }, (error) => {
+            setSubmitting(false);
+            enqueueSnackbar(quizErrorMessage(t, error), { variant: 'error' });
+        });
     };
 
     return (
@@ -58,7 +68,7 @@ export default function Register() {
                     <Avatar sx={{ bgcolor: 'primary.main', mb: 1 }}>
                         <PersonAddOutlined />
                     </Avatar>
-                    <Typography variant="h6" fontWeight={700}>base-ui</Typography>
+                    <Typography variant="h6" fontWeight={700}>{t('app-name')}</Typography>
                     <Typography variant="body2" color="text.secondary">{t('register')}</Typography>
                 </Box>
 
@@ -76,6 +86,13 @@ export default function Register() {
                     margin="normal"
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
+                />
+                <TextField
+                    label={t('phone')}
+                    fullWidth
+                    margin="normal"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
                 />
                 <TextField
                     label={t('password')}

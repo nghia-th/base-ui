@@ -92,3 +92,38 @@ export const ROOT_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
     flatten(ROOT_MENU_DATA, out)
     return out
 })()
+
+// Menu khu vực Phụ huynh (/app/parent/*) - phụ huynh quản lý Học sinh (con), Môn học/Bài học,
+// Ngân hàng câu hỏi, giao bài kiểm tra, xem báo cáo kết quả (Task 2-7 backend quiz-service).
+// "to" trỏ tuyệt đối vào /app/parent/... - xem RequireQuizRole/AppShell.tsx cho cơ chế chặn
+// học sinh vào nhầm khu vực này.
+export const PARENT_MENU_DATA: MenuItem[] = [
+    { label: 'quiz-dashboard', icon: 'DashboardOutlined', to: '/app/parent', items: null, section: 'menu-section-main' },
+    { label: 'quiz-classrooms', icon: 'MeetingRoomOutlined', to: '/app/parent/classrooms', items: null },
+    { label: 'quiz-students', icon: 'PeopleOutlined', to: '/app/parent/students', items: null },
+    { label: 'quiz-subjects', icon: 'MenuBookOutlined', to: '/app/parent/subjects', items: null },
+    { label: 'quiz-questions', icon: 'HelpOutlineOutlined', to: '/app/parent/questions', items: null },
+    { label: 'quiz-tests', icon: 'AssignmentOutlined', to: '/app/parent/tests', items: null },
+    { label: 'quiz-reports', icon: 'BarChartOutlined', to: '/app/parent/reports', items: null }
+]
+
+export const PARENT_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
+    const out: BreadcrumbItem[] = []
+    flatten(PARENT_MENU_DATA, out)
+    return out
+})()
+
+// Menu khu vực Học sinh (/app/student/*) - học sinh chỉ làm bài kiểm tra được giao và xem
+// điểm/kết quả của chính mình (Task 6-7 backend), không thấy các mục quản lý của phụ huynh.
+// Không có mục "Tổng quan" riêng cho Học sinh - cả app khu vực này chỉ xoay quanh 1 việc duy
+// nhất (làm bài được giao), nên /app/student/tests LÀ trang chủ, không cần trang tổng quan trung
+// gian trỏ sang nó (khác Phụ huynh, có nhiều mục nên giữ dashboard riêng - xem PARENT_MENU_DATA).
+export const STUDENT_MENU_DATA: MenuItem[] = [
+    { label: 'quiz-tests', icon: 'AssignmentOutlined', to: '/app/student/tests', items: null, section: 'menu-section-main' }
+]
+
+export const STUDENT_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
+    const out: BreadcrumbItem[] = []
+    flatten(STUDENT_MENU_DATA, out)
+    return out
+})()

@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Route, Routes, useLocation } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import Box from "@mui/material/Box";
 import Toolbar from "@mui/material/Toolbar";
@@ -7,7 +7,10 @@ import { AppContext, reUseBloc } from "../base/AppContext";
 import { BlocApp } from "./bloc/BlocApp";
 import UIStream from "./components/common/UIStream";
 import { DRAWER_WIDTH, SLIM_WIDTH, HORIZONTAL_MENU_HEIGHT } from "./layout/layoutConstants";
-import { ROOT_MENU_DATA, ROOT_BREADCRUMB_DATA } from "./AppMenuData";
+import {
+    PARENT_MENU_DATA, PARENT_BREADCRUMB_DATA,
+    STUDENT_MENU_DATA, STUDENT_BREADCRUMB_DATA
+} from "./AppMenuData";
 import AppTopbar from "./layout/AppTopbar";
 import AppSidebar from "./layout/AppSidebar";
 import AppSlimMenu from "./layout/AppSlimMenu";
@@ -18,7 +21,16 @@ import AppConfigDrawer from "./layout/AppConfigDrawer";
 import LocalStorage from "../base/LocalStorage";
 import { BASE_URL } from "../base/PrefixService";
 
-import Home from "./pages/Home";
+import ParentDashboard from "./pages/parent/ParentDashboard";
+import StudentTests from "./pages/student/Tests";
+import TakeTest from "./pages/student/TakeTest";
+import ParentClassrooms from "./pages/parent/Classrooms";
+import ParentStudents from "./pages/parent/Students";
+import ParentSubjects from "./pages/parent/Subjects";
+import ParentQuestions from "./pages/parent/Questions";
+import ParentTests from "./pages/parent/Tests";
+import ParentReports from "./pages/parent/Reports";
+import { QuizLoginRole } from "./bloc/BlocQuizLogin";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import StepperDemo from "./components/StepperDemo";
@@ -49,6 +61,19 @@ import Documentation from "./pages/Documentation";
 import StatusPage from "./pages/StatusPage";
 import SearchOffOutlined from "@mui/icons-material/SearchOffOutlined";
 
+// Chỉ hiện children khi quizRole (lưu ở LocalStorage lúc login - xem BlocQuizLogin.ts) khớp
+// đúng role yêu cầu của khu vực, ngược lại điều hướng sang khu vực đúng của role đang đăng
+// nhập. Đây CHỈ là hàng rào UX (học sinh gõ tay /app/parent/... không thấy trang của phụ
+// huynh) - chốt chặn dữ liệu thật vẫn nằm ở JWT role claim bên backend (JwtAuthFilter.java +
+// @PreAuthorize/ownership check ở từng API), không phải ở component này.
+function RequireQuizRole({ role, children }: { role: QuizLoginRole; children: React.ReactElement }) {
+    const currentRole = LocalStorage.getItem('quizRole');
+    if (currentRole !== role) {
+        return <Navigate replace to={currentRole === 'student' ? '/app/student/tests' : '/app/parent'} />;
+    }
+    return children;
+}
+
 // AppShell = khung đã đăng nhập (topbar + sidebar + footer + content), tương đương ISmartApp.js
 // bên module-ui - dùng reUseBloc(appContext, BlocApp) để lấy menu/theme, UIStream để re-render
 // khi BlocApp phát dữ liệu mới qua 'loadInitStream' (menu) và 'ui' (theme).
@@ -66,6 +91,13 @@ export default function AppShell() {
     // giản - xem AppMenuData.ts. 2 khu vực này dùng chung 1 khung (topbar/sidebar) nhưng KHÔNG
     // dùng chung menu, tránh lẫn menu demo (Thành phần/Bộ giao diện...) vào project thật.
     const isDemoRoute = location.pathname === '/demo' || location.pathname.startsWith('/demo/');
+    // Khu vực đã đăng nhập được tách theo pathname /app/parent/* và /app/student/* (anh chọn tiền
+    // tố /app để tách rõ khỏi /demo và các route công khai như /login, /register - xem
+    // ui-base-status.md, quyết định #4). "/" luôn redirect ngay sang đúng khu vực theo quizRole
+    // (xem <Route path="/"> bên dưới), nên trường hợp "không demo, không parent, không student"
+    // trong thực tế chỉ còn path lạ (404) - mặc định về menu Phụ huynh cho an toàn.
+    const isParentArea = location.pathname === '/app/parent' || location.pathname.startsWith('/app/parent/');
+    const isStudentArea = location.pathname === '/app/student' || location.pathname.startsWith('/app/student/');
     // Sidebar tự thu gọn theo mặc định trên tablet/mobile (< 960px, giống breakpoint "md" của MUI)
     // để không chiếm hết màn hình hẹp - vẫn mở lại được qua nút menu (3 gạch). Chỉ đọc 1 lần lúc
     // mount (lazy initializer) để không tự ý đóng lại sidebar mà người dùng đã chủ động mở/đóng
@@ -111,8 +143,8 @@ export default function AppShell() {
             stream={blocApp.getStream('loadInitStream')}
             builder={(snapshot) => {
                 const viewMain = snapshot.data ?? blocApp.getField('viewMain');
-                const menu = isDemoRoute ? viewMain.menu : ROOT_MENU_DATA;
-                const breadcrumb = isDemoRoute ? viewMain.breadcrumb : ROOT_BREADCRUMB_DATA;
+                const menu = isDemoRoute ? viewMain.menu : (isParentArea ? PARENT_MENU_DATA : (isStudentArea ? STUDENT_MENU_DATA : PARENT_MENU_DATA));
+                const breadcrumb = isDemoRoute ? viewMain.breadcrumb : (isParentArea ? PARENT_BREADCRUMB_DATA : (isStudentArea ? STUDENT_BREADCRUMB_DATA : PARENT_BREADCRUMB_DATA));
                 return (
                     <UIStream
                         initialData={app.getUI()}
@@ -188,7 +220,38 @@ export default function AppShell() {
                                                 trong khớp trực tiếp toàn bộ path còn lại (không bị cắt phần base nào) nên
                                                 path="/" khớp đúng gốc, các path còn lại khai báo tuyệt đối với tiền tố "demo/". */}
                                             <Routes>
-                                                <Route path="/" element={<Home />} />
+                                                {/* "/" luôn redirect ngay sang đúng khu vực đã đăng nhập theo quizRole
+                                                    (lưu lúc login - xem BlocQuizLogin.ts) - không có nội dung riêng cho "/". */}
+                                                <Route path="/" element={
+                                                    <Navigate replace to={LocalStorage.getItem('quizRole') === 'student' ? '/app/student/tests' : '/app/parent'} />
+                                                } />
+                                                <Route path="app/parent" element={
+                                                    <RequireQuizRole role="parent"><ParentDashboard /></RequireQuizRole>
+                                                } />
+                                                <Route path="app/parent/classrooms" element={
+                                                    <RequireQuizRole role="parent"><ParentClassrooms /></RequireQuizRole>
+                                                } />
+                                                <Route path="app/parent/students" element={
+                                                    <RequireQuizRole role="parent"><ParentStudents /></RequireQuizRole>
+                                                } />
+                                                <Route path="app/parent/subjects" element={
+                                                    <RequireQuizRole role="parent"><ParentSubjects /></RequireQuizRole>
+                                                } />
+                                                <Route path="app/parent/questions" element={
+                                                    <RequireQuizRole role="parent"><ParentQuestions /></RequireQuizRole>
+                                                } />
+                                                <Route path="app/parent/tests" element={
+                                                    <RequireQuizRole role="parent"><ParentTests /></RequireQuizRole>
+                                                } />
+                                                <Route path="app/parent/reports" element={
+                                                    <RequireQuizRole role="parent"><ParentReports /></RequireQuizRole>
+                                                } />
+                                                <Route path="app/student/tests" element={
+                                                    <RequireQuizRole role="student"><StudentTests /></RequireQuizRole>
+                                                } />
+                                                <Route path="app/student/tests/:testId/take" element={
+                                                    <RequireQuizRole role="student"><TakeTest /></RequireQuizRole>
+                                                } />
                                                 <Route path="demo" element={<Dashboard />} />
                                                 <Route path="demo/formlayout" element={<FormLayoutDemo />} />
                                                 <Route path="demo/input" element={<InputDemo />} />
