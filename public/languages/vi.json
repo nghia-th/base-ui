@@ -435,6 +435,26 @@
     "quiz-question-has-audio": "Câu hỏi có audio",
     "quiz-question-audio-only-hint": "Nghe audio và chọn đáp án",
     "quiz-question-audio-play": "Nghe audio",
-    "quiz-question-audio-loading": "Đang tải..."
+    "quiz-question-audio-loading": "Đang tải...",
+    "quiz-import-lessons": "Nhập từ file",
+    "quiz-import-lessons-dialog-title": "Nhập bài học từ file",
+    "quiz-import-lessons-hint": "Tải file mẫu, điền bài học theo đúng 4 cột (Tên bài học/Tóm tắt/Nội dung/Trang SGK) rồi chọn file để nhập. Từng dòng lỗi sẽ được báo riêng, không làm hỏng cả file. Ảnh minh hoạ vẫn phải tải riêng cho từng bài sau khi nhập.",
+    "quiz-question-type": "Loại câu hỏi",
+    "quiz-question-type-multiple-choice": "Trắc nghiệm",
+    "quiz-question-type-speaking": "Tự luận / Ghi âm trả lời",
+    "quiz-question-type-speaking-hint": "Học sinh trả lời bằng cách ghi âm giọng nói khi làm bài (không có lựa chọn sẵn). Câu hỏi dạng này không tính điểm tự động - Phụ huynh nghe lại và tự đánh giá trong phần Báo cáo.",
+    "quiz-speaking-hint": "Ghi âm câu trả lời của con - không chấm điểm tự động, phụ huynh có thể nghe lại và đánh dấu đúng/sai sau.",
+    "quiz-speaking-record": "Ghi âm",
+    "quiz-speaking-record-again": "Ghi âm lại",
+    "quiz-speaking-stop": "Dừng ghi âm",
+    "quiz-speaking-uploading": "Đang tải lên...",
+    "quiz-speaking-delete": "Xoá",
+    "quiz-speaking-mic-permission-denied": "Không thể truy cập micro - vui lòng cho phép quyền micro trong trình duyệt rồi thử lại.",
+    "quiz-speaking-mic-not-supported": "Trình duyệt này không hỗ trợ ghi âm.",
+    "quiz-speaking-not-auto-graded": "Câu hỏi dạng thu âm - không tự động chấm điểm.",
+    "quiz-speaking-listen": "Nghe câu trả lời",
+    "quiz-speaking-no-answer": "Con chưa ghi âm câu trả lời.",
+    "quiz-speaking-mark-correct": "Đúng",
+    "quiz-speaking-mark-incorrect": "Sai"
   }
 }

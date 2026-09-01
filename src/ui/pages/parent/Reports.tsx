@@ -25,6 +25,9 @@ import LinearProgress from "@mui/material/LinearProgress";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import CancelOutlined from "@mui/icons-material/CancelOutlined";
 import BarChartOutlined from "@mui/icons-material/BarChartOutlined";
+import RecordVoiceOverOutlined from "@mui/icons-material/RecordVoiceOverOutlined";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import { BlocParentReports, QuizAttemptHistoryItem, QuizAttemptReport } from "../../bloc/BlocParentReports";
 import UIStream from "../../components/common/UIStream";
@@ -40,6 +43,8 @@ export default function Reports() {
     const appContext = useContext(AppContext);
     const bloc = reUseBlocContent(appContext, BlocParentReports);
     const showError = (error: any) => enqueueSnackbar(quizErrorMessage(t, error), { variant: error?.variant ?? 'error' });
+    const playSpeakingAnswer = (attemptId: number, questionId: number) => bloc.loadSpeakingAnswer(attemptId, questionId, showError);
+    const gradeSpeakingAnswer = (attemptId: number, questionId: number, correct: boolean | null) => bloc.gradeSpeakingAnswer(attemptId, questionId, correct, showError);
 
     useEffect(() => {
         bloc.initData();
@@ -180,21 +185,76 @@ export default function Reports() {
                                 <Stack spacing={1.5}>
                                     {report.answers.map((a, i) => (
                                         <Box key={a.questionId}>
-                                            <Stack direction="row" alignItems="flex-start" spacing={1}>
-                                                {a.correct ? <CheckCircleOutlined color="success" fontSize="small" sx={{ mt: 0.3 }} /> : <CancelOutlined color="error" fontSize="small" sx={{ mt: 0.3 }} />}
-                                                <Box sx={{ flexGrow: 1 }}>
-                                                    <Typography variant="body2" fontWeight={600}>{i + 1}. {a.questionContent}</Typography>
-                                                    <Typography variant="body2" color={a.correct ? 'success.main' : 'error.main'}>
-                                                        {t('quiz-chosen-answer', { answer: a.chosenChoiceContent ?? t('quiz-no-answer') })}
-                                                    </Typography>
-                                                    {!a.correct && (
-                                                        <Typography variant="body2" color="success.main">
-                                                            {t('quiz-correct-answer-was', { answer: a.correctChoiceContent })}
+                                            {a.questionType === 'SPEAKING' ? (
+                                                <Stack direction="row" alignItems="flex-start" spacing={1}>
+                                                    {a.parentMarkedCorrect === true && <CheckCircleOutlined color="success" fontSize="small" sx={{ mt: 0.3 }} />}
+                                                    {a.parentMarkedCorrect === false && <CancelOutlined color="error" fontSize="small" sx={{ mt: 0.3 }} />}
+                                                    {a.parentMarkedCorrect == null && <RecordVoiceOverOutlined color="disabled" fontSize="small" sx={{ mt: 0.3 }} />}
+                                                    <Box sx={{ flexGrow: 1 }}>
+                                                        <Typography variant="body2" fontWeight={600}>{i + 1}. {a.questionContent}</Typography>
+                                                        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                                                            {t('quiz-speaking-not-auto-graded')}
                                                         </Typography>
-                                                    )}
-                                                    {a.knowledgeTag && <Chip size="small" label={a.knowledgeTag} sx={{ mt: 0.5 }} />}
-                                                </Box>
-                                            </Stack>
+                                                        {a.hasSpeakingAnswer ? (
+                                                            <UIStream
+                                                                initialData={null}
+                                                                stream={bloc.getStream('speakingAudioUrls')}
+                                                                builder={(urlsSnap) => {
+                                                                    const url = (urlsSnap.data ?? {})[a.questionId];
+                                                                    if (url) {
+                                                                        return <Box component="audio" controls src={url} sx={{ height: 36, mb: 1, maxWidth: 300, display: 'block' }} />;
+                                                                    }
+                                                                    return (
+                                                                        <UIStream
+                                                                            initialData={null}
+                                                                            stream={bloc.getStream('speakingLoadingIds')}
+                                                                            builder={(loadingSnap) => (
+                                                                                <Button
+                                                                                    size="small"
+                                                                                    variant="outlined"
+                                                                                    disabled={(loadingSnap.data ?? {})[a.questionId] === true}
+                                                                                    onClick={() => playSpeakingAnswer(report.attemptId, a.questionId)}
+                                                                                    sx={{ mb: 1 }}
+                                                                                >
+                                                                                    {(loadingSnap.data ?? {})[a.questionId] === true ? t('quiz-question-audio-loading') : t('quiz-speaking-listen')}
+                                                                                </Button>
+                                                                            )}
+                                                                        />
+                                                                    );
+                                                                }}
+                                                            />
+                                                        ) : (
+                                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{t('quiz-speaking-no-answer')}</Typography>
+                                                        )}
+                                                        <ToggleButtonGroup
+                                                            size="small"
+                                                            exclusive
+                                                            value={a.parentMarkedCorrect}
+                                                            onChange={(_e, value) => gradeSpeakingAnswer(report.attemptId, a.questionId, value)}
+                                                        >
+                                                            <ToggleButton value={true} color="success">{t('quiz-speaking-mark-correct')}</ToggleButton>
+                                                            <ToggleButton value={false} color="error">{t('quiz-speaking-mark-incorrect')}</ToggleButton>
+                                                        </ToggleButtonGroup>
+                                                        {a.knowledgeTag && <Chip size="small" label={a.knowledgeTag} sx={{ mt: 0.5, display: 'block', width: 'fit-content' }} />}
+                                                    </Box>
+                                                </Stack>
+                                            ) : (
+                                                <Stack direction="row" alignItems="flex-start" spacing={1}>
+                                                    {a.correct ? <CheckCircleOutlined color="success" fontSize="small" sx={{ mt: 0.3 }} /> : <CancelOutlined color="error" fontSize="small" sx={{ mt: 0.3 }} />}
+                                                    <Box sx={{ flexGrow: 1 }}>
+                                                        <Typography variant="body2" fontWeight={600}>{i + 1}. {a.questionContent}</Typography>
+                                                        <Typography variant="body2" color={a.correct ? 'success.main' : 'error.main'}>
+                                                            {t('quiz-chosen-answer', { answer: a.chosenChoiceContent ?? t('quiz-no-answer') })}
+                                                        </Typography>
+                                                        {!a.correct && (
+                                                            <Typography variant="body2" color="success.main">
+                                                                {t('quiz-correct-answer-was', { answer: a.correctChoiceContent })}
+                                                            </Typography>
+                                                        )}
+                                                        {a.knowledgeTag && <Chip size="small" label={a.knowledgeTag} sx={{ mt: 0.5 }} />}
+                                                    </Box>
+                                                </Stack>
+                                            )}
                                         </Box>
                                     ))}
                                 </Stack>

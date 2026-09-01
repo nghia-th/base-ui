@@ -19,6 +19,10 @@ export interface QuizQuestionRequest {
     knowledgeTag?: string;
     choices: QuizChoiceRequest[];
     hideContentInTest?: boolean;
+    // Loại câu hỏi (2026-09-01, tính năng "Câu hỏi dạng tự luận/thu âm") - khớp QuestionRequest.java's
+    // questionType. Optional - không gửi/undefined nghĩa là MULTIPLE_CHOICE (backend tự mặc định),
+    // giống hệt mọi câu hỏi trước khi field này tồn tại.
+    questionType?: 'MULTIPLE_CHOICE' | 'SPEAKING';
 }
 
 export class QuizQuestionApi {

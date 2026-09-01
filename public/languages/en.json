@@ -435,6 +435,26 @@
     "quiz-question-has-audio": "Question has audio",
     "quiz-question-audio-only-hint": "Listen to the audio and choose an answer",
     "quiz-question-audio-play": "Play audio",
-    "quiz-question-audio-loading": "Loading..."
+    "quiz-question-audio-loading": "Loading...",
+    "quiz-import-lessons": "Import from file",
+    "quiz-import-lessons-dialog-title": "Import lessons from file",
+    "quiz-import-lessons-hint": "Download the template, fill in lessons using the 4 columns (Name/Summary/Content/Textbook page), then choose the file to import. Each bad row is reported separately without breaking the rest of the file. The illustrative image still has to be uploaded per lesson afterwards.",
+    "quiz-question-type": "Question type",
+    "quiz-question-type-multiple-choice": "Multiple choice",
+    "quiz-question-type-speaking": "Speaking / recorded answer",
+    "quiz-question-type-speaking-hint": "The student answers by recording their voice while taking the test (no preset choices). This question type is never auto-graded - the parent listens back and evaluates it themselves in the Report.",
+    "quiz-speaking-hint": "Record your answer out loud - it isn't auto-graded, but a parent can listen back and mark it right or wrong later.",
+    "quiz-speaking-record": "Record",
+    "quiz-speaking-record-again": "Record again",
+    "quiz-speaking-stop": "Stop recording",
+    "quiz-speaking-uploading": "Uploading...",
+    "quiz-speaking-delete": "Delete",
+    "quiz-speaking-mic-permission-denied": "Could not access the microphone - please allow microphone permission in your browser and try again.",
+    "quiz-speaking-mic-not-supported": "This browser does not support recording.",
+    "quiz-speaking-not-auto-graded": "Voice-recorded answer - not auto-graded.",
+    "quiz-speaking-listen": "Listen to answer",
+    "quiz-speaking-no-answer": "No recorded answer yet.",
+    "quiz-speaking-mark-correct": "Correct",
+    "quiz-speaking-mark-incorrect": "Incorrect"
   }
 }

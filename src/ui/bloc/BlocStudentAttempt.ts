@@ -1,5 +1,5 @@
 import { IBlocUI } from "../../base/IBlocUI";
-import { QuizStudentAttemptApi } from "../../api/QuizStudentAttemptApi";
+import { QuizStudentAttemptApi, quizUploadSpeakingAnswer } from "../../api/QuizStudentAttemptApi";
 import { QuizStudentLessonApi } from "../../api/QuizStudentLessonApi";
 
 // Khớp StudentChoiceResponse.java - CỐ Ý không có field "correct" (khác ChoiceResponse.java bên
@@ -21,6 +21,9 @@ export interface QuizStudentQuestion {
     content: string | null;
     hasAudio: boolean;
     choices: QuizStudentChoice[];
+    // Thêm 2026-09-01, tính năng "Câu hỏi dạng tự luận/thu âm" - SPEAKING thì choices luôn rỗng
+    // (không có đáp án đúng/sai để chọn), xem TakeTest.tsx nhánh hiện nút ghi âm thay vì RadioGroup.
+    questionType: 'MULTIPLE_CHOICE' | 'SPEAKING';
 }
 
 // Khớp StudentLessonResponse.java (task "Backend: Student xem lai noi dung bai hoc", 2026-09-01).
@@ -50,13 +53,29 @@ export interface QuizSubmitResult {
 // state duy nhất trong toàn app (không còn ngoại lệ), toàn bộ dời vào đây qua setStream, cùng
 // pattern mọi Bloc khác.
 export class BlocStudentAttempt extends IBlocUI {
+    // Session ghi âm đang chạy (nếu có) - field nội bộ thuần (không phải stream, TakeTest.tsx không
+    // cần đọc trực tiếp mấy field này) - chỉ 'recordingQuestionId' bên dưới mới là stream cho UI.
+    private mediaRecorder?: MediaRecorder
+    private mediaStream?: MediaStream
+    private recordedChunks: Blob[] = []
+
     startAttempt(testId: number, onError: (error: any) => void) {
         this.setStream('questions', null)
         this.setStream('result', null)
         this.setStream('answers', {})
+        this.setStream('speakingAudioUrls', {})
+        this.setStream('speakingLoadingIds', {})
+        this.setStream('recordingQuestionId', null)
         this.start(testId, (attemptId, questions) => {
             this.setStream('attemptId', attemptId)
             this.setStream('questions', questions)
+            // Prefetch âm thầm (không loading spinner, không báo lỗi) câu trả lời ĐÃ ghi âm từ trước
+            // của mọi câu SPEAKING - phục vụ "làm dở quay lại" (resume): học sinh thấy ngay đáp án cũ
+            // thay vì phải bấm mới biết đã trả lời hay chưa. 404 "chưa ghi âm" là trạng thái bình
+            // thường ở đây, không phải lỗi - im lặng bỏ qua (xem loadSpeakingAnswer's tham số silent).
+            questions.filter((q) => q.questionType === 'SPEAKING').forEach((q) => {
+                this.loadSpeakingAnswer(attemptId, q.questionId, () => {}, true)
+            })
         }, onError)
     }
 
@@ -78,7 +97,11 @@ export class BlocStudentAttempt extends IBlocUI {
         if (attemptId == null) return
         const questions: QuizStudentQuestion[] = this.getField('questions') ?? []
         const answers = this.getField('answers') ?? {}
-        const answeredCount = Object.keys(answers).length
+        const speakingUrls = this.getField('speakingAudioUrls') ?? {}
+        // Gộp cả 2 loại câu hỏi khi tính "đã trả lời" cho lời nhắc xác nhận nộp bài - cùng lý do như
+        // TakeTest.tsx's answeredCount ở Card đầu trang (xem comment ở đó): 'answers' chỉ chứa câu
+        // MULTIPLE_CHOICE, câu SPEAKING coi là đã trả lời khi đã có bản ghi âm (speakingAudioUrls).
+        const answeredCount = questions.filter((q) => q.questionType === 'SPEAKING' ? speakingUrls[q.questionId] != null : answers[q.questionId] != null).length
         this.confirm({
             title: 'quiz-submit-test',
             message: answeredCount < questions.length ? 'quiz-submit-test-confirm-incomplete' : 'quiz-submit-test-confirm',
@@ -173,6 +196,116 @@ export class BlocStudentAttempt extends IBlocUI {
     loadLessonImage(lessonId: number, onData: (blob: Blob) => void, onError: (error: any) => void) {
         this.apiRequest(QuizStudentLessonApi.getImage(lessonId), (res: any) => {
             onData(res.data as Blob)
+        }, { onError })
+    }
+
+    // ==================== Câu hỏi dạng tự luận/thu âm (2026-09-01) ====================
+    // Quyết định đã chốt qua AskUserQuestion (xem claude/ đoạn ghi lại): chỉ ghi âm giọng nói (không
+    // gõ chữ), KHÔNG tính điểm (backend đã tự loại SPEAKING khỏi correctCount/totalQuestions), chỉ
+    // được xoá-ghi-lại TRONG LÚC đang làm bài (khoá lại sau khi nộp - backend tự chặn bằng
+    // ATTEMPT_ALREADY_SUBMITTED), không vào đề "Ôn tập kiến thức" (backend tự loại khi random).
+
+    // Tải lại (hoặc lần đầu tải) câu trả lời đã ghi âm của 1 câu SPEAKING, cache theo questionId
+    // trong 1 object URL - CÙNG PATTERN loadQuestionAudio ở trên, khác 1 điểm: silent=true (dùng khi
+    // prefetch hàng loạt lúc mới start()) thì 404 "chưa ghi âm" bị nuốt êm, không gọi onError - đây
+    // là trạng thái bình thường (học sinh chưa trả lời câu này), không phải lỗi cần báo.
+    loadSpeakingAnswer(attemptId: number, questionId: number, onError: (error: any) => void, silent: boolean = false) {
+        if ((this.getField('speakingAudioUrls') ?? {})[questionId]) return
+        this.setStream('speakingLoadingIds', { ...(this.getField('speakingLoadingIds') ?? {}), [questionId]: true })
+        this.apiRequest(QuizStudentAttemptApi.getSpeakingAnswer(attemptId, questionId), (res: any) => {
+            this.setStream('speakingAudioUrls', { ...(this.getField('speakingAudioUrls') ?? {}), [questionId]: URL.createObjectURL(res.data as Blob) })
+            this.setStream('speakingLoadingIds', { ...(this.getField('speakingLoadingIds') ?? {}), [questionId]: false })
+        }, {
+            onError: (error: any) => {
+                this.setStream('speakingLoadingIds', { ...(this.getField('speakingLoadingIds') ?? {}), [questionId]: false })
+                if (!silent) onError(error)
+            },
+            isShowLoading: false
+        })
+    }
+
+    // Bắt đầu ghi âm - xin quyền micro (getUserMedia) rồi mở MediaRecorder. Chỉ 1 câu ghi âm cùng
+    // lúc trên toàn trang (recordingQuestionId là stream duy nhất, TakeTest.tsx tự vô hiệu hoá nút
+    // "Ghi âm" của các câu khác khi đang có 1 câu ghi dở). Ưu tiên mimeType webm/opus (Chrome/Edge/
+    // Firefox tạo mặc định) - StudentAttemptService.ALLOWED_SPEAKING_ANSWER_TYPES đã được thêm
+    // "audio/webm" riêng cho việc này (2026-09-01, xem service đó's comment).
+    async startRecording(questionId: number, onError: (error: any) => void) {
+        if (this.getField('recordingQuestionId') != null) return
+        if (!navigator.mediaDevices?.getUserMedia) {
+            onError({ messageKey: 'quiz-speaking-mic-not-supported', message: 'Recording is not supported on this browser' })
+            return
+        }
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+            const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4']
+            const mimeType = typeof MediaRecorder !== 'undefined'
+                ? candidates.find((type) => MediaRecorder.isTypeSupported?.(type))
+                : undefined
+            const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+            this.recordedChunks = []
+            this.mediaStream = stream
+            this.mediaRecorder = recorder
+            recorder.ondataavailable = (e) => { if (e.data.size > 0) this.recordedChunks.push(e.data) }
+            recorder.start()
+            this.setStream('recordingQuestionId', questionId)
+        } catch (err) {
+            onError({ messageKey: 'quiz-speaking-mic-permission-denied', message: 'Could not access the microphone' })
+        }
+    }
+
+    // Dừng ghi âm - đợi MediaRecorder gộp xong chunks cuối (sự kiện 'onstop') rồi mới đóng track
+    // micro + upload. Bỏ qua (không upload) nếu bấm dừng quá nhanh chưa kịp có dữ liệu (blob rỗng).
+    stopRecording(attemptId: number, questionId: number, onError: (error: any) => void) {
+        const recorder = this.mediaRecorder
+        if (!recorder || this.getField('recordingQuestionId') !== questionId) return
+        recorder.onstop = () => {
+            this.mediaStream?.getTracks().forEach((t) => t.stop())
+            this.mediaStream = undefined
+            this.mediaRecorder = undefined
+            this.setStream('recordingQuestionId', null)
+            const mimeType = recorder.mimeType || 'audio/webm'
+            const blob = new Blob(this.recordedChunks, { type: mimeType })
+            this.recordedChunks = []
+            if (blob.size === 0) return
+            this.uploadSpeakingAnswer(attemptId, questionId, blob, mimeType, onError)
+        }
+        recorder.stop()
+    }
+
+    // Không qua apiRequest (không phải QuizRequestBase call) vì quizUploadSpeakingAnswer gọi thẳng
+    // QUIZ_API - CÙNG PATTERN uploadQuestionAudio bên BlocParentQuestions.ts. Thành công thì cache
+    // luôn blob vừa ghi thành object URL mới (không cần gọi lại loadSpeakingAnswer/GET lần nữa).
+    async uploadSpeakingAnswer(attemptId: number, questionId: number, blob: Blob, mimeType: string, onError: (error: any) => void) {
+        this.setStream('speakingLoadingIds', { ...(this.getField('speakingLoadingIds') ?? {}), [questionId]: true })
+        const baseType = mimeType.split(';')[0]
+        const extension = baseType.includes('mp4') ? 'm4a' : baseType.includes('ogg') ? 'ogg' : baseType.includes('wav') ? 'wav' : 'webm'
+        const file = new File([blob], `answer-${questionId}.${extension}`, { type: baseType })
+        try {
+            const res = await quizUploadSpeakingAnswer(attemptId, questionId, file)
+            this.setStream('speakingLoadingIds', { ...(this.getField('speakingLoadingIds') ?? {}), [questionId]: false })
+            if (res.code === 100) {
+                const old = (this.getField('speakingAudioUrls') ?? {})[questionId]
+                if (old) URL.revokeObjectURL(old)
+                this.setStream('speakingAudioUrls', { ...(this.getField('speakingAudioUrls') ?? {}), [questionId]: URL.createObjectURL(blob) })
+            } else {
+                onError(res)
+            }
+        } catch (e) {
+            this.setStream('speakingLoadingIds', { ...(this.getField('speakingLoadingIds') ?? {}), [questionId]: false })
+            onError(e)
+        }
+    }
+
+    // Xoá bản ghi âm hiện tại để ghi lại từ đầu - revoke object URL cache rồi xoá khỏi map, nút
+    // "Ghi âm" tự hiện lại (TakeTest.tsx đọc speakingAudioUrls[questionId] để quyết định hiện
+    // <audio>+nút Xoá hay hiện nút Ghi âm). Backend tự chặn nếu attempt đã nộp.
+    deleteSpeakingAnswer(attemptId: number, questionId: number, onError: (error: any) => void) {
+        this.apiRequest(QuizStudentAttemptApi.removeSpeakingAnswer(attemptId, questionId), () => {
+            const old = (this.getField('speakingAudioUrls') ?? {})[questionId]
+            if (old) URL.revokeObjectURL(old)
+            const next = { ...(this.getField('speakingAudioUrls') ?? {}) }
+            delete next[questionId]
+            this.setStream('speakingAudioUrls', next)
         }, { onError })
     }
 }

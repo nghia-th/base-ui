@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
@@ -20,6 +20,7 @@ import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
+import Alert from "@mui/material/Alert";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import EditOutlined from "@mui/icons-material/EditOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
@@ -27,9 +28,11 @@ import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 import ImageOutlined from "@mui/icons-material/ImageOutlined";
 import CircularProgress from "@mui/material/CircularProgress";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
+import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
+import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
 import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
-import { BlocParentSubjects, QuizSubject, QuizLesson, QuizClassroomLite } from "../../bloc/BlocParentSubjects";
+import { BlocParentSubjects, QuizSubject, QuizLesson, QuizClassroomLite, QuizLessonImportResult } from "../../bloc/BlocParentSubjects";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
@@ -86,6 +89,17 @@ export default function Subjects() {
 
     const removeLessonImage = (subjectId: number) => {
         bloc.removeImageForCurrentLesson(subjectId, showError);
+    };
+
+    const lessonFileInputRef = useRef<HTMLInputElement>(null);
+
+    const downloadLessonTemplate = (format: 'xlsx' | 'csv') => bloc.downloadLessonImportTemplate(format, showError);
+
+    const onLessonImportFileChosen = (subjectId: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        bloc.runLessonImport(subjectId, file, showError);
     };
 
     const askRemoveLesson = (lesson: QuizLesson, subjectId: number) => {
@@ -291,7 +305,12 @@ export default function Subjects() {
                                                         <Typography variant="h6" fontWeight={700}>
                                                             {t('quiz-lessons-of', { subject: selectedSubject.name })}
                                                         </Typography>
-                                                        <Button variant="contained" startIcon={<AddOutlined />} onClick={() => bloc.openNewLesson()}>{t('new')}</Button>
+                                                        <Stack direction="row" spacing={1} flexWrap="wrap">
+                                                            <Button size="small" startIcon={<DownloadOutlined />} onClick={() => downloadLessonTemplate('xlsx')}>{t('quiz-download-template-xlsx')}</Button>
+                                                            <Button size="small" startIcon={<DownloadOutlined />} onClick={() => downloadLessonTemplate('csv')}>{t('quiz-download-template-csv')}</Button>
+                                                            <Button size="small" variant="outlined" startIcon={<UploadFileOutlined />} onClick={() => bloc.openLessonImport()}>{t('quiz-import-lessons')}</Button>
+                                                            <Button variant="contained" startIcon={<AddOutlined />} onClick={() => bloc.openNewLesson()}>{t('new')}</Button>
+                                                        </Stack>
                                                     </Stack>
                                                     <Box sx={{ height: 380 }}>
                                                         <DataGrid
@@ -429,6 +448,66 @@ export default function Subjects() {
                                                                             <Button variant="contained" disabled={submittingSnap.data === true} onClick={() => saveLesson(selectedSubject.id)}>{t('save')}</Button>
                                                                         )}
                                                                     />
+                                                                </DialogActions>
+                                                            </Dialog>
+                                                        );
+                                                    }}
+                                                />
+
+                                                <UIStream
+                                                    initialData={{ isShow: false }}
+                                                    stream={bloc.getStream('lesson_import_view')}
+                                                    builder={(viewSnap) => {
+                                                        const view = viewSnap.data ?? { isShow: false };
+                                                        return (
+                                                            <Dialog open={view.isShow === true} onClose={() => bloc.closeLessonImport()} maxWidth="xs" fullWidth>
+                                                                <DialogTitle>{t('quiz-import-lessons-dialog-title')}</DialogTitle>
+                                                                <DialogContent>
+                                                                    <input ref={lessonFileInputRef} type="file" accept=".xlsx,.csv" hidden onChange={onLessonImportFileChosen(selectedSubject.id)} />
+                                                                    <Stack spacing={2} sx={{ mt: 1 }} alignItems="flex-start">
+                                                                        <Typography variant="body2" color="text.secondary">{t('quiz-import-lessons-hint')}</Typography>
+                                                                        <UIStream
+                                                                            initialData={false}
+                                                                            stream={bloc.getStream('lessonImporting')}
+                                                                            builder={(importingSnap) => (
+                                                                                <Button
+                                                                                    variant="outlined"
+                                                                                    startIcon={importingSnap.data === true ? <CircularProgress size={16} /> : <UploadFileOutlined />}
+                                                                                    disabled={importingSnap.data === true}
+                                                                                    onClick={() => lessonFileInputRef.current?.click()}
+                                                                                >
+                                                                                    {t('quiz-import-pick-file')}
+                                                                                </Button>
+                                                                            )}
+                                                                        />
+                                                                        <UIStream
+                                                                            initialData={null}
+                                                                            stream={bloc.getStream('lessonImportResult')}
+                                                                            builder={(resultSnap) => {
+                                                                                const importResult: QuizLessonImportResult | null = resultSnap.data;
+                                                                                if (!importResult) return null;
+                                                                                return (
+                                                                                    <Alert severity={importResult.errors.length === 0 ? 'success' : 'warning'} sx={{ width: '100%' }}>
+                                                                                        {t('quiz-import-result-summary', { success: importResult.successCount, total: importResult.totalRows })}
+                                                                                        {importResult.errors.length > 0 && (
+                                                                                            <Box component="ul" sx={{ m: 0, mt: 1, pl: 2 }}>
+                                                                                                {importResult.errors.map((err, i) => (
+                                                                                                    <li key={i}>
+                                                                                                        <Typography variant="body2">
+                                                                                                            {t('quiz-import-row-error', { row: err.rowNumber, reason: err.reason })}
+                                                                                                        </Typography>
+                                                                                                    </li>
+                                                                                                ))}
+                                                                                            </Box>
+                                                                                        )}
+                                                                                    </Alert>
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                    </Stack>
+                                                                </DialogContent>
+                                                                <DialogActions>
+                                                                    <Button onClick={() => bloc.closeLessonImport()}>{t('close')}</Button>
                                                                 </DialogActions>
                                                             </Dialog>
                                                         );

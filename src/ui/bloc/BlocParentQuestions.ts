@@ -31,6 +31,10 @@ export interface QuizQuestion {
     choices: QuizChoice[];
     hasAudio: boolean;
     hideContentInTest: boolean;
+    // Khớp QuestionResponse.java's questionType (2026-09-01, "Câu hỏi dạng tự luận/thu âm") -
+    // "MULTIPLE_CHOICE" (câu trắc nghiệm như cũ, choices luôn có) hoặc "SPEAKING" (học sinh trả
+    // lời bằng ghi âm, choices luôn rỗng).
+    questionType: 'MULTIPLE_CHOICE' | 'SPEAKING';
 }
 
 // Khớp ImportRowError.java / QuestionImportResponse.java.
@@ -173,6 +177,7 @@ export class BlocParentQuestions extends IBlocUI {
         this.setField('choicesReq', choices)
         this.setStream('choicesMeta', choices)
         this.setStream('hideContentInTest', false)
+        this.setStream('questionType', 'MULTIPLE_CHOICE')
         this.setStream('questionHasAudio', false)
         this.setStream('questionAudioPreviewUrl', null)
         this.setStream('questionAudioLoading', false)
@@ -186,12 +191,29 @@ export class BlocParentQuestions extends IBlocUI {
         this.setField('choicesReq', choices)
         this.setStream('choicesMeta', choices)
         this.setStream('hideContentInTest', q.hideContentInTest)
+        this.setStream('questionType', q.questionType ?? 'MULTIPLE_CHOICE')
         this.setStream('questionHasAudio', q.hasAudio)
         this.setStream('questionAudioPreviewUrl', null)
         this.setStream('questionAudioLoading', false)
         this.setStream('questionAudioUploading', false)
         this.setStream('question_form_view', { isShow: true, id: q.id })
         if (q.hasAudio) this.loadQuestionAudioPreview(q.id)
+    }
+
+    // Đổi loại câu hỏi trong Dialog (2026-09-01) - chuyển sang MULTIPLE_CHOICE mà đang có < 2 lựa
+    // chọn (ví dụ vừa mới ở SPEAKING ra, hoặc câu cũ trước đây chưa từng có choices) thì tự điền
+    // lại 2 dòng trống, để Lưu không báo lỗi thiếu lựa chọn ngay lập tức.
+    changeQuestionType(type: 'MULTIPLE_CHOICE' | 'SPEAKING') {
+        this.setStream('questionType', type)
+        if (type === 'MULTIPLE_CHOICE') {
+            const choices: any[] = this.getField('choicesReq') ?? []
+            if (choices.length < 2) {
+                const filled = [...choices]
+                while (filled.length < 2) filled.push({ content: '', correct: false })
+                this.setField('choicesReq', filled)
+                this.setStream('choicesMeta', filled)
+            }
+        }
     }
 
     closeQuestionForm() {
@@ -293,9 +315,14 @@ export class BlocParentQuestions extends IBlocUI {
     saveQuestion(lessonId: number, onComplete: () => void, onError: (error: any) => void) {
         const view = this.getField('question_form_view') ?? {}
         const req = this.getField('req') ?? {}
+        const questionType: 'MULTIPLE_CHOICE' | 'SPEAKING' = this.getField('questionType') ?? 'MULTIPLE_CHOICE'
         const choices: { content: string; correct: boolean }[] = this.getField('choicesReq') ?? []
-        const isValid = !!req.content?.trim() && choices.length >= 2 &&
-            choices.every((c) => c.content?.trim() !== '') && choices.some((c) => c.correct)
+        // SPEAKING không cần choices - chỉ bắt buộc content. MULTIPLE_CHOICE giữ nguyên validate cũ
+        // (>=2 lựa chọn, không lựa chọn nào rỗng, có đúng 1 đáp án đúng).
+        const isValid = questionType === 'SPEAKING'
+            ? !!req.content?.trim()
+            : !!req.content?.trim() && choices.length >= 2 &&
+                choices.every((c) => c.content?.trim() !== '') && choices.some((c) => c.correct)
         if (!isValid) {
             onError({ messageKey: 'required-field' })
             return
@@ -307,8 +334,9 @@ export class BlocParentQuestions extends IBlocUI {
             lessonId,
             content: req.content,
             knowledgeTag: req.knowledgeTag || undefined,
-            choices: choices.map((c) => ({ content: c.content, correct: c.correct })),
-            hideContentInTest: this.getField('hideContentInTest') ?? false
+            choices: questionType === 'SPEAKING' ? [] : choices.map((c) => ({ content: c.content, correct: c.correct })),
+            hideContentInTest: this.getField('hideContentInTest') ?? false,
+            questionType
         }
         if ((view.id ?? 0) > 0) {
             this.update(view.id, request, done, fail)

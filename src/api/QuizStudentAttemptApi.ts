@@ -1,4 +1,5 @@
 import { QuizRequestBase } from "../quiz-net/QuizRequestBase";
+import QUIZ_API from "../quiz-net/QuizApiService";
 import { QUIZ_STUDENT_PREFIX } from "../base/PrefixService";
 
 // Khớp AnswerItem.java.
@@ -54,4 +55,32 @@ export class QuizStudentAttemptApi {
     static getQuestionAudio(questionId: number) {
         return QuizRequestBase.get(`${QUIZ_STUDENT_PREFIX}/questions/${questionId}/audio`, { responseType: 'blob' });
     }
+
+    // Câu hỏi dạng tự luận/thu âm (2026-09-01) - phát lại câu trả lời ĐÃ ghi âm của chính học sinh,
+    // cùng lý do responseType:'blob' như getQuestionAudio ở trên. Hoạt động cả lúc đang làm bài lẫn
+    // sau khi đã nộp (xem StudentAttemptApi.java's javadoc).
+    static getSpeakingAnswer(attemptId: number, questionId: number) {
+        return QuizRequestBase.get(`${QUIZ_STUDENT_PREFIX}/attempts/${attemptId}/questions/${questionId}/speaking-answer`, { responseType: 'blob' });
+    }
+
+    // Xoá bản ghi âm hiện tại để ghi lại từ đầu - chặn ở backend nếu attempt đã nộp
+    // (QUIZ_010 ATTEMPT_ALREADY_SUBMITTED).
+    static removeSpeakingAnswer(attemptId: number, questionId: number) {
+        return QuizRequestBase.delete(`${QUIZ_STUDENT_PREFIX}/attempts/${attemptId}/questions/${questionId}/speaking-answer`);
+    }
+}
+
+// Upload bản ghi âm câu trả lời (multipart/form-data, tính năng "Câu hỏi dạng tự luận/thu âm",
+// 2026-09-01) - gọi thẳng QUIZ_API, cùng lý do + cách sửa hệt quizUploadQuestionAudio bên
+// QuizQuestionApi.ts (bug axios FormData->JSON, xem comment đầy đủ ở đó): PHẢI ghi đè
+// headers:{'Content-Type': undefined} để axios không tự convert FormData thành JSON.
+export async function quizUploadSpeakingAnswer(attemptId: number, questionId: number, file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await QUIZ_API.post(
+        `${QUIZ_STUDENT_PREFIX}/attempts/${attemptId}/questions/${questionId}/speaking-answer`,
+        formData,
+        { headers: { 'Content-Type': undefined } }
+    );
+    return res.data;
 }

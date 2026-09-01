@@ -18,6 +18,9 @@ import DialogActions from "@mui/material/DialogActions";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 import VolumeUpOutlined from "@mui/icons-material/VolumeUpOutlined";
+import MicOutlined from "@mui/icons-material/MicOutlined";
+import StopCircleOutlined from "@mui/icons-material/StopCircleOutlined";
+import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import { BlocStudentAttempt, QuizStudentQuestion } from "../../bloc/BlocStudentAttempt";
 import UIStream from "../../components/common/UIStream";
@@ -63,6 +66,10 @@ export default function TakeTest() {
     const askSubmit = () => bloc.doSubmit(showError);
     const openLessonDialog = (lessonId: number) => bloc.openLessonDialog(lessonId, showError);
     const playQuestionAudio = (questionId: number) => bloc.loadQuestionAudio(questionId, showError);
+    const attemptId: number | null = bloc.getField('attemptId') ?? null;
+    const startRecording = (questionId: number) => bloc.startRecording(questionId, showError);
+    const stopRecording = (questionId: number) => { if (attemptId != null) bloc.stopRecording(attemptId, questionId, showError); };
+    const deleteSpeakingAnswer = (questionId: number) => { if (attemptId != null) bloc.deleteSpeakingAnswer(attemptId, questionId, showError); };
 
     return (
         <UIStream
@@ -106,22 +113,35 @@ export default function TakeTest() {
                                         stream={bloc.getStream('answers')}
                                         builder={(answersSnap) => {
                                             const answers: Record<number, number> = answersSnap.data ?? {};
-                                            const answeredCount = Object.keys(answers).length;
                                             return (
-                                                <Card sx={{ p: 2 }}>
-                                                    <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
-                                                        <Typography variant="subtitle1" fontWeight={700}>
-                                                            {t('quiz-answered-count', { answered: answeredCount, total: questions.length })}
-                                                        </Typography>
-                                                        <UIStream
-                                                            initialData={false}
-                                                            stream={bloc.getStream('submitting')}
-                                                            builder={(submittingSnap) => (
-                                                                <Button variant="contained" disabled={submittingSnap.data === true} onClick={askSubmit}>{t('quiz-submit-test')}</Button>
-                                                            )}
-                                                        />
-                                                    </Stack>
-                                                </Card>
+                                                <UIStream
+                                                    initialData={bloc.getField('speakingAudioUrls') ?? {}}
+                                                    stream={bloc.getStream('speakingAudioUrls')}
+                                                    builder={(speakingSnap) => {
+                                                        const speakingUrls: Record<number, string> = speakingSnap.data ?? {};
+                                                        // Đếm "đã trả lời" gộp cả 2 loại - câu MULTIPLE_CHOICE tính đã chọn
+                                                        // đáp án, câu SPEAKING tính đã có bản ghi âm (url cache) - không dùng
+                                                        // Object.keys(answers).length như cũ vì 'answers' chỉ chứa câu trắc
+                                                        // nghiệm (chooseAnswer không ghi vào map này cho SPEAKING).
+                                                        const answeredCount = questions.filter((q) => q.questionType === 'SPEAKING' ? speakingUrls[q.questionId] != null : answers[q.questionId] != null).length;
+                                                        return (
+                                                            <Card sx={{ p: 2 }}>
+                                                                <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
+                                                                    <Typography variant="subtitle1" fontWeight={700}>
+                                                                        {t('quiz-answered-count', { answered: answeredCount, total: questions.length })}
+                                                                    </Typography>
+                                                                    <UIStream
+                                                                        initialData={false}
+                                                                        stream={bloc.getStream('submitting')}
+                                                                        builder={(submittingSnap) => (
+                                                                            <Button variant="contained" disabled={submittingSnap.data === true} onClick={askSubmit}>{t('quiz-submit-test')}</Button>
+                                                                        )}
+                                                                    />
+                                                                </Stack>
+                                                            </Card>
+                                                        );
+                                                    }}
+                                                />
                                             );
                                         }}
                                     />
@@ -187,19 +207,95 @@ export default function TakeTest() {
                                                                     }}
                                                                 />
                                                             )}
-                                                            <RadioGroup
-                                                                value={answers[q.questionId] ?? ''}
-                                                                onChange={(e) => chooseAnswer(q.questionId, Number(e.target.value))}
-                                                            >
-                                                                {q.choices.map((c) => (
-                                                                    <FormControlLabel
-                                                                        key={c.choiceId}
-                                                                        value={c.choiceId}
-                                                                        control={<Radio disabled={result != null} />}
-                                                                        label={c.content}
+                                                            {q.questionType === 'SPEAKING' ? (
+                                                                <Stack spacing={1}>
+                                                                    <Typography variant="body2" color="text.secondary">
+                                                                        {t('quiz-speaking-hint')}
+                                                                    </Typography>
+                                                                    <UIStream
+                                                                        initialData={null}
+                                                                        stream={bloc.getStream('recordingQuestionId')}
+                                                                        builder={(recSnap) => {
+                                                                            const recordingId = recSnap.data;
+                                                                            const isRecording = recordingId === q.questionId;
+                                                                            const otherRecording = recordingId != null && recordingId !== q.questionId;
+                                                                            return (
+                                                                                <UIStream
+                                                                                    initialData={null}
+                                                                                    stream={bloc.getStream('speakingAudioUrls')}
+                                                                                    builder={(urlsSnap) => {
+                                                                                        const url = (urlsSnap.data ?? {})[q.questionId];
+                                                                                        return (
+                                                                                            <UIStream
+                                                                                                initialData={null}
+                                                                                                stream={bloc.getStream('speakingLoadingIds')}
+                                                                                                builder={(loadingSnap) => {
+                                                                                                    const loading = (loadingSnap.data ?? {})[q.questionId] === true;
+                                                                                                    return (
+                                                                                                        <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
+                                                                                                            {isRecording ? (
+                                                                                                                <Button
+                                                                                                                    size="small"
+                                                                                                                    color="error"
+                                                                                                                    variant="contained"
+                                                                                                                    startIcon={<StopCircleOutlined />}
+                                                                                                                    onClick={() => stopRecording(q.questionId)}
+                                                                                                                >
+                                                                                                                    {t('quiz-speaking-stop')}
+                                                                                                                </Button>
+                                                                                                            ) : (
+                                                                                                                <Button
+                                                                                                                    size="small"
+                                                                                                                    variant="outlined"
+                                                                                                                    startIcon={<MicOutlined />}
+                                                                                                                    disabled={result != null || loading || otherRecording}
+                                                                                                                    onClick={() => startRecording(q.questionId)}
+                                                                                                                >
+                                                                                                                    {loading ? t('quiz-speaking-uploading') : url ? t('quiz-speaking-record-again') : t('quiz-speaking-record')}
+                                                                                                                </Button>
+                                                                                                            )}
+                                                                                                            {url && !isRecording && (
+                                                                                                                <>
+                                                                                                                    <Box component="audio" controls src={url} sx={{ height: 36, maxWidth: 260 }} />
+                                                                                                                    {result == null && (
+                                                                                                                        <Button
+                                                                                                                            size="small"
+                                                                                                                            color="error"
+                                                                                                                            startIcon={<DeleteOutlined />}
+                                                                                                                            disabled={loading}
+                                                                                                                            onClick={() => deleteSpeakingAnswer(q.questionId)}
+                                                                                                                        >
+                                                                                                                            {t('quiz-speaking-delete')}
+                                                                                                                        </Button>
+                                                                                                                    )}
+                                                                                                                </>
+                                                                                                            )}
+                                                                                                        </Stack>
+                                                                                                    );
+                                                                                                }}
+                                                                                            />
+                                                                                        );
+                                                                                    }}
+                                                                                />
+                                                                            );
+                                                                        }}
                                                                     />
-                                                                ))}
-                                                            </RadioGroup>
+                                                                </Stack>
+                                                            ) : (
+                                                                <RadioGroup
+                                                                    value={answers[q.questionId] ?? ''}
+                                                                    onChange={(e) => chooseAnswer(q.questionId, Number(e.target.value))}
+                                                                >
+                                                                    {q.choices.map((c) => (
+                                                                        <FormControlLabel
+                                                                            key={c.choiceId}
+                                                                            value={c.choiceId}
+                                                                            control={<Radio disabled={result != null} />}
+                                                                            label={c.content}
+                                                                        />
+                                                                    ))}
+                                                                </RadioGroup>
+                                                            )}
                                                         </Card>
                                                     ))}
                                                 </Stack>

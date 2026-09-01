@@ -49,6 +49,12 @@ export class QuizLessonApi {
     static removeImage(id: number) {
         return QuizRequestBase.delete(`${QUIZ_PARENT_PREFIX}/lessons/${id}/image`);
     }
+
+    // Import bài học bằng file (2026-09-01) - responseType 'blob' + cách gọi giống hệt
+    // QuizQuestionApi.downloadTemplate, chỉ khác endpoint.
+    static downloadImportTemplate(format: 'xlsx' | 'csv') {
+        return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/lessons/import-template`, { params: { format }, responseType: 'blob' });
+    }
 }
 
 // Upload ảnh minh hoạ (multipart/form-data) - gọi thẳng QUIZ_API thay vì qua QuizRequestBase/
@@ -61,6 +67,20 @@ export async function quizUploadLessonImage(lessonId: number, file: File) {
     const formData = new FormData();
     formData.append('file', file);
     const res = await QUIZ_API.post(`${QUIZ_PARENT_PREFIX}/lessons/${lessonId}/image`, formData, {
+        headers: { 'Content-Type': undefined }
+    });
+    return res.data;
+}
+
+// Import Excel/CSV bài học (2026-09-01, "phần bài học cho phép import bằng file") - cùng bug
+// FormData->JSON + cách sửa hệt quizImportQuestions bên QuizQuestionApi.ts (xem comment đầy đủ ở
+// đó), chỉ khác endpoint + param (subjectId thay vì lessonId, vì Lesson là con của Subject chứ
+// không phải Lesson).
+export async function quizImportLessons(subjectId: number, file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await QUIZ_API.post(`${QUIZ_PARENT_PREFIX}/lessons/import`, formData, {
+        params: { subjectId },
         headers: { 'Content-Type': undefined }
     });
     return res.data;

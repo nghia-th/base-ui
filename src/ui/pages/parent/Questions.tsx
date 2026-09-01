@@ -20,6 +20,8 @@ import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import Radio from "@mui/material/Radio";
+import RadioGroup from "@mui/material/RadioGroup";
+import FormLabel from "@mui/material/FormLabel";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Chip from "@mui/material/Chip";
@@ -36,6 +38,7 @@ import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
 import HelpOutlineOutlined from "@mui/icons-material/HelpOutlineOutlined";
 import VolumeUpOutlined from "@mui/icons-material/VolumeUpOutlined";
+import RecordVoiceOverOutlined from "@mui/icons-material/RecordVoiceOverOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import { BlocParentQuestions, QuizQuestion, QuizImportResult } from "../../bloc/BlocParentQuestions";
 import UIStream from "../../components/common/UIStream";
@@ -243,6 +246,7 @@ export default function Questions() {
                                                     <AccordionSummary expandIcon={<ExpandMoreOutlined />}>
                                                         <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%', pr: 1 }}>
                                                             <Typography sx={{ flexGrow: 1 }}>{qi + 1}. {q.content}</Typography>
+                                                            {q.questionType === 'SPEAKING' && <RecordVoiceOverOutlined fontSize="small" color="action" titleAccess={t('quiz-question-type-speaking') as string} />}
                                                             {q.hasAudio && <VolumeUpOutlined fontSize="small" color="action" titleAccess={t('quiz-question-has-audio') as string} />}
                                                             {q.knowledgeTag && <Chip size="small" label={q.knowledgeTag} />}
                                                             <IconButton size="small" onClick={(e) => { e.stopPropagation(); bloc.openEditQuestion(q); }}>
@@ -254,16 +258,20 @@ export default function Questions() {
                                                         </Stack>
                                                     </AccordionSummary>
                                                     <AccordionDetails>
-                                                        <Stack spacing={0.5} sx={{ mb: 1 }}>
-                                                            {q.choices.map((c) => (
-                                                                <Stack key={c.id} direction="row" alignItems="center" spacing={1}>
-                                                                    {c.correct ? <CheckCircleOutlined color="success" fontSize="small" /> : <Box sx={{ width: 20 }} />}
-                                                                    <Typography variant="body2" color={c.correct ? 'success.main' : 'text.primary'} fontWeight={c.correct ? 700 : 400}>
-                                                                        {c.content}
-                                                                    </Typography>
-                                                                </Stack>
-                                                            ))}
-                                                        </Stack>
+                                                        {q.questionType === 'SPEAKING' ? (
+                                                            <Typography variant="body2" color="text.secondary">{t('quiz-question-type-speaking-hint')}</Typography>
+                                                        ) : (
+                                                            <Stack spacing={0.5} sx={{ mb: 1 }}>
+                                                                {q.choices.map((c) => (
+                                                                    <Stack key={c.id} direction="row" alignItems="center" spacing={1}>
+                                                                        {c.correct ? <CheckCircleOutlined color="success" fontSize="small" /> : <Box sx={{ width: 20 }} />}
+                                                                        <Typography variant="body2" color={c.correct ? 'success.main' : 'text.primary'} fontWeight={c.correct ? 700 : 400}>
+                                                                            {c.content}
+                                                                        </Typography>
+                                                                    </Stack>
+                                                                ))}
+                                                            </Stack>
+                                                        )}
                                                     </AccordionDetails>
                                                 </Accordion>
                                             ))}
@@ -289,50 +297,79 @@ export default function Questions() {
                                                                     minRows={2}
                                                                     fullWidth
                                                                 />
+                                                                <UIStream
+                                                                    initialData="MULTIPLE_CHOICE"
+                                                                    stream={bloc.getStream('questionType')}
+                                                                    builder={(typeSnap) => (
+                                                                        <FormControl>
+                                                                            <FormLabel sx={{ typography: 'subtitle2' }}>{t('quiz-question-type')}</FormLabel>
+                                                                            <RadioGroup
+                                                                                row
+                                                                                value={typeSnap.data ?? 'MULTIPLE_CHOICE'}
+                                                                                onChange={(e) => bloc.changeQuestionType(e.target.value as 'MULTIPLE_CHOICE' | 'SPEAKING')}
+                                                                            >
+                                                                                <FormControlLabel value="MULTIPLE_CHOICE" control={<Radio />} label={t('quiz-question-type-multiple-choice')} />
+                                                                                <FormControlLabel value="SPEAKING" control={<Radio />} label={t('quiz-question-type-speaking')} />
+                                                                            </RadioGroup>
+                                                                        </FormControl>
+                                                                    )}
+                                                                />
                                                                 <TextField
                                                                     label={t('quiz-question-knowledge-tag')}
                                                                     defaultValue={bloc.getField('knowledgeTag', 'req') ?? ''}
                                                                     onChange={(e) => bloc.setStream('knowledgeTag', e.target.value, 'req')}
                                                                     fullWidth
                                                                 />
-                                                                <Typography variant="subtitle2">{t('quiz-question-choices')}</Typography>
                                                                 <UIStream
-                                                                    initialData={bloc.getField('choicesReq') ?? []}
-                                                                    stream={bloc.getStream('choicesMeta')}
-                                                                    builder={(choicesSnap) => {
-                                                                        const choices: { content: string; correct: boolean }[] = choicesSnap.data ?? [];
-                                                                        return (
-                                                                            <Stack spacing={1}>
-                                                                                {choices.map((c, i) => (
-                                                                                    <Stack key={i} direction="row" alignItems="center" spacing={1}>
-                                                                                        <Radio
-                                                                                            checked={c.correct}
-                                                                                            onChange={() => bloc.setChoiceCorrect(i)}
-                                                                                            title={t('quiz-correct-answer') as string}
-                                                                                        />
-                                                                                        <TextField
-                                                                                            size="small"
-                                                                                            fullWidth
-                                                                                            placeholder={`${t('quiz-question-choices')} ${i + 1}`}
-                                                                                            defaultValue={c.content}
-                                                                                            onChange={(e) => bloc.setChoiceContent(i, e.target.value)}
-                                                                                        />
-                                                                                        <IconButton
-                                                                                            size="small"
-                                                                                            disabled={choices.length <= 2}
-                                                                                            onClick={() => bloc.removeChoice(i)}
-                                                                                        >
-                                                                                            <CloseOutlined fontSize="small" />
-                                                                                        </IconButton>
-                                                                                    </Stack>
-                                                                                ))}
-                                                                            </Stack>
-                                                                        );
-                                                                    }}
+                                                                    initialData="MULTIPLE_CHOICE"
+                                                                    stream={bloc.getStream('questionType')}
+                                                                    builder={(typeSnap) => (
+                                                                        (typeSnap.data ?? 'MULTIPLE_CHOICE') === 'SPEAKING' ? (
+                                                                            <Typography variant="body2" color="text.secondary">{t('quiz-question-type-speaking-hint')}</Typography>
+                                                                        ) : (
+                                                                            <>
+                                                                                <Typography variant="subtitle2">{t('quiz-question-choices')}</Typography>
+                                                                                <UIStream
+                                                                                    initialData={bloc.getField('choicesReq') ?? []}
+                                                                                    stream={bloc.getStream('choicesMeta')}
+                                                                                    builder={(choicesSnap) => {
+                                                                                        const choices: { content: string; correct: boolean }[] = choicesSnap.data ?? [];
+                                                                                        return (
+                                                                                            <Stack spacing={1}>
+                                                                                                {choices.map((c, i) => (
+                                                                                                    <Stack key={i} direction="row" alignItems="center" spacing={1}>
+                                                                                                        <Radio
+                                                                                                            checked={c.correct}
+                                                                                                            onChange={() => bloc.setChoiceCorrect(i)}
+                                                                                                            title={t('quiz-correct-answer') as string}
+                                                                                                        />
+                                                                                                        <TextField
+                                                                                                            size="small"
+                                                                                                            fullWidth
+                                                                                                            placeholder={`${t('quiz-question-choices')} ${i + 1}`}
+                                                                                                            defaultValue={c.content}
+                                                                                                            onChange={(e) => bloc.setChoiceContent(i, e.target.value)}
+                                                                                                        />
+                                                                                                        <IconButton
+                                                                                                            size="small"
+                                                                                                            disabled={choices.length <= 2}
+                                                                                                            onClick={() => bloc.removeChoice(i)}
+                                                                                                        >
+                                                                                                            <CloseOutlined fontSize="small" />
+                                                                                                        </IconButton>
+                                                                                                    </Stack>
+                                                                                                ))}
+                                                                                            </Stack>
+                                                                                        );
+                                                                                    }}
+                                                                                />
+                                                                                <Button size="small" startIcon={<AddOutlined />} onClick={() => bloc.addChoice()} sx={{ alignSelf: 'flex-start' }}>
+                                                                                    {t('quiz-add-choice')}
+                                                                                </Button>
+                                                                            </>
+                                                                        )
+                                                                    )}
                                                                 />
-                                                                <Button size="small" startIcon={<AddOutlined />} onClick={() => bloc.addChoice()} sx={{ alignSelf: 'flex-start' }}>
-                                                                    {t('quiz-add-choice')}
-                                                                </Button>
 
                                                                 <Box>
                                                                     <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('quiz-question-audio')}</Typography>

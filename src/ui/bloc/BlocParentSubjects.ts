@@ -1,6 +1,6 @@
 import { IBlocUI } from "../../base/IBlocUI";
 import { QuizSubjectApi, QuizSubjectRequest } from "../../api/QuizSubjectApi";
-import { QuizLessonApi, QuizLessonCreateRequest, QuizLessonUpdateRequest, quizUploadLessonImage } from "../../api/QuizLessonApi";
+import { QuizLessonApi, QuizLessonCreateRequest, QuizLessonUpdateRequest, quizUploadLessonImage, quizImportLessons } from "../../api/QuizLessonApi";
 import { QuizClassroomApi } from "../../api/QuizClassroomApi";
 
 // Khớp SubjectResponse.java / LessonResponse.java. classroomId thay cho parentId cũ - Subject giờ
@@ -28,6 +28,20 @@ export interface QuizLesson {
 export interface QuizClassroomLite {
     id: number;
     name: string;
+}
+
+// Khớp ImportRowError.java / LessonImportResponse.java (2026-09-01) - cùng shape hệt
+// BlocParentQuestions.QuizImportRowError/QuizImportResult, tách riêng interface (không import
+// chéo Bloc khác) theo đúng convention "mỗi Bloc content tự khai báo shape riêng" của file này.
+export interface QuizLessonImportRowError {
+    rowNumber: number;
+    reason: string;
+}
+
+export interface QuizLessonImportResult {
+    totalRows: number;
+    successCount: number;
+    errors: QuizLessonImportRowError[];
 }
 
 // Bloc trang "Môn học/Bài học" (khu vực Phụ huynh, /app/parent/subjects - Task 3 backend). Quản lý
@@ -283,5 +297,57 @@ export class BlocParentSubjects extends IBlocUI {
             this.setStream('lessonHasImage', false)
             this.revokeLessonImagePreview()
         }, onError)
+    }
+
+    // --- Dialog "Nhập bài học từ file" (2026-09-01, "phần bài học cho phép import bằng file") ---
+    // Cùng shape hệt Dialog "Nhập từ file" của BlocParentQuestions.ts (openImport/closeImport/
+    // runImport/downloadTemplate/importFile) - xem comment ở đó cho lý do responseType:'blob' và
+    // vì sao quizImportLessons đi thẳng QUIZ_API thay vì qua apiRequest.
+    openLessonImport() {
+        this.setStream('lessonImportResult', null)
+        this.setStream('lesson_import_view', { isShow: true })
+    }
+
+    closeLessonImport() {
+        this.setStream('lesson_import_view', { isShow: false })
+        this.setStream('lessonImporting', false)
+        this.setStream('lessonImportResult', null)
+    }
+
+    downloadLessonImportTemplate(format: 'xlsx' | 'csv', onError: (error: any) => void) {
+        this.apiRequest(QuizLessonApi.downloadImportTemplate(format), (res: any) => {
+            const blob: Blob = res.data
+            const disposition: string | undefined = res.disposition
+            const match = disposition?.match(/filename="?([^"]+)"?/)
+            const filename = match?.[1] ?? `lesson-import-template.${format}`
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = filename
+            a.click()
+            URL.revokeObjectURL(url)
+        }, { onError })
+    }
+
+    async importLessonsFile(subjectId: number, file: File, onComplete: (result: QuizLessonImportResult) => void, onError: (error: any) => void) {
+        try {
+            const res = await quizImportLessons(subjectId, file)
+            if (res.code === 100) {
+                onComplete(res.data as QuizLessonImportResult)
+                this.loadLessons(subjectId)
+            } else {
+                onError(res)
+            }
+        } catch (e) {
+            onError(e)
+        }
+    }
+
+    runLessonImport(subjectId: number, file: File, onError: (error: any) => void) {
+        this.setStream('lessonImporting', true)
+        this.importLessonsFile(subjectId, file, (result) => {
+            this.setStream('lessonImporting', false)
+            this.setStream('lessonImportResult', result)
+        }, (error) => { this.setStream('lessonImporting', false); onError(error) })
     }
 }
