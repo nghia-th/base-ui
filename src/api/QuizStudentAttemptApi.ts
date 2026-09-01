@@ -47,4 +47,11 @@ export class QuizStudentAttemptApi {
     static generatePractice(request: QuizStudentPracticeGenerateRequest) {
         return QuizRequestBase.post(`${QUIZ_STUDENT_PREFIX}/tests/practice`, request);
     }
+
+    // Tải audio câu hỏi (tính năng "Câu hỏi dạng âm thanh", 2026-09-01) về dạng blob để phát
+    // <audio> - cùng lý do cần responseType:'blob' + header Authorization như getImage bên
+    // QuizStudentLessonApi.ts (endpoint cần JWT nên không dùng thẳng <audio src="<url>">).
+    static getQuestionAudio(questionId: number) {
+        return QuizRequestBase.get(`${QUIZ_STUDENT_PREFIX}/questions/${questionId}/audio`, { responseType: 'blob' });
+    }
 }

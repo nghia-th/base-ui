@@ -20,6 +20,8 @@ import Accordion from "@mui/material/Accordion";
 import AccordionSummary from "@mui/material/AccordionSummary";
 import AccordionDetails from "@mui/material/AccordionDetails";
 import Radio from "@mui/material/Radio";
+import Checkbox from "@mui/material/Checkbox";
+import FormControlLabel from "@mui/material/FormControlLabel";
 import Chip from "@mui/material/Chip";
 import IconButton from "@mui/material/IconButton";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -33,6 +35,7 @@ import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
 import HelpOutlineOutlined from "@mui/icons-material/HelpOutlineOutlined";
+import VolumeUpOutlined from "@mui/icons-material/VolumeUpOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import { BlocParentQuestions, QuizQuestion, QuizImportResult } from "../../bloc/BlocParentQuestions";
 import UIStream from "../../components/common/UIStream";
@@ -95,6 +98,13 @@ export default function Questions() {
         const lessonId = bloc.getField('filterLessonId');
         if (!file || typeof lessonId !== 'number') return;
         bloc.runImport(lessonId, file, showError);
+    };
+
+    const onAudioFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        bloc.uploadAudioForCurrentQuestion(file, showError);
     };
 
     return (
@@ -233,6 +243,7 @@ export default function Questions() {
                                                     <AccordionSummary expandIcon={<ExpandMoreOutlined />}>
                                                         <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%', pr: 1 }}>
                                                             <Typography sx={{ flexGrow: 1 }}>{qi + 1}. {q.content}</Typography>
+                                                            {q.hasAudio && <VolumeUpOutlined fontSize="small" color="action" titleAccess={t('quiz-question-has-audio') as string} />}
                                                             {q.knowledgeTag && <Chip size="small" label={q.knowledgeTag} />}
                                                             <IconButton size="small" onClick={(e) => { e.stopPropagation(); bloc.openEditQuestion(q); }}>
                                                                 <EditOutlined fontSize="small" />
@@ -322,6 +333,82 @@ export default function Questions() {
                                                                 <Button size="small" startIcon={<AddOutlined />} onClick={() => bloc.addChoice()} sx={{ alignSelf: 'flex-start' }}>
                                                                     {t('quiz-add-choice')}
                                                                 </Button>
+
+                                                                <Box>
+                                                                    <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('quiz-question-audio')}</Typography>
+                                                                    {!isEditing ? (
+                                                                        <Typography variant="body2" color="text.secondary">{t('quiz-question-audio-save-first')}</Typography>
+                                                                    ) : (
+                                                                        <Stack spacing={1}>
+                                                                            <UIStream
+                                                                                initialData={false}
+                                                                                stream={bloc.getStream('questionAudioLoading')}
+                                                                                builder={(loadingSnap) => (
+                                                                                    loadingSnap.data === true ? (
+                                                                                        <CircularProgress size={32} />
+                                                                                    ) : (
+                                                                                        <UIStream
+                                                                                            initialData={null}
+                                                                                            stream={bloc.getStream('questionAudioPreviewUrl')}
+                                                                                            builder={(urlSnap) => (
+                                                                                                urlSnap.data ? (
+                                                                                                    <Box component="audio" controls src={urlSnap.data} sx={{ height: 36, maxWidth: 320 }} />
+                                                                                                ) : null
+                                                                                            )}
+                                                                                        />
+                                                                                    )
+                                                                                )}
+                                                                            />
+                                                                            <Stack direction="row" spacing={1}>
+                                                                                <UIStream
+                                                                                    initialData={false}
+                                                                                    stream={bloc.getStream('questionAudioUploading')}
+                                                                                    builder={(uploadingSnap) => (
+                                                                                        <Button
+                                                                                            component="label"
+                                                                                            variant="outlined"
+                                                                                            size="small"
+                                                                                            startIcon={<VolumeUpOutlined />}
+                                                                                            disabled={uploadingSnap.data === true}
+                                                                                        >
+                                                                                            {uploadingSnap.data === true ? t('quiz-question-audio-uploading') : t('quiz-question-audio-upload')}
+                                                                                            <input type="file" accept="audio/mpeg,audio/mp4,audio/wav,audio/x-wav,audio/ogg" hidden onChange={onAudioFileSelected} />
+                                                                                        </Button>
+                                                                                    )}
+                                                                                />
+                                                                                <UIStream
+                                                                                    initialData={false}
+                                                                                    stream={bloc.getStream('questionHasAudio')}
+                                                                                    builder={(hasAudioSnap) => (
+                                                                                        hasAudioSnap.data === true ? (
+                                                                                            <Button color="error" size="small" onClick={() => bloc.removeAudioForCurrentQuestion(showError)}>
+                                                                                                {t('quiz-question-audio-remove')}
+                                                                                            </Button>
+                                                                                        ) : null
+                                                                                    )}
+                                                                                />
+                                                                            </Stack>
+                                                                            <UIStream
+                                                                                initialData={false}
+                                                                                stream={bloc.getStream('questionHasAudio')}
+                                                                                builder={(hasAudioSnap) => (
+                                                                                    hasAudioSnap.data === true ? (
+                                                                                        <UIStream
+                                                                                            initialData={false}
+                                                                                            stream={bloc.getStream('hideContentInTest')}
+                                                                                            builder={(hideSnap) => (
+                                                                                                <FormControlLabel
+                                                                                                    control={<Checkbox checked={hideSnap.data === true} onChange={(e) => bloc.setStream('hideContentInTest', e.target.checked)} />}
+                                                                                                    label={t('quiz-question-hide-content-in-test')}
+                                                                                                />
+                                                                                            )}
+                                                                                        />
+                                                                                    ) : null
+                                                                                )}
+                                                                            />
+                                                                        </Stack>
+                                                                    )}
+                                                                </Box>
                                                             </Stack>
                                                         </DialogContent>
                                                         <DialogActions>

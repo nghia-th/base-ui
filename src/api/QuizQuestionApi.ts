@@ -9,11 +9,16 @@ export interface QuizChoiceRequest {
     correct: boolean;
 }
 
+// hideContentInTest (2026-09-01, tính năng "Câu hỏi dạng âm thanh") - đi cùng content/knowledgeTag/
+// choices qua chính request này (Phụ huynh tự chọn ẩn/hiện chữ khi câu hỏi có audio), KHÁC với file
+// audio thật (upload qua endpoint riêng /questions/{id}/audio, xem quizUploadQuestionAudio bên
+// dưới) - đúng tách "field thường qua JSON, file qua endpoint riêng" giống hệt ảnh Bài học.
 export interface QuizQuestionRequest {
     lessonId: number;
     content: string;
     knowledgeTag?: string;
     choices: QuizChoiceRequest[];
+    hideContentInTest?: boolean;
 }
 
 export class QuizQuestionApi {
@@ -38,6 +43,28 @@ export class QuizQuestionApi {
     static downloadTemplate(format: 'xlsx' | 'csv') {
         return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/questions/import-template`, { params: { format }, responseType: 'blob' });
     }
+
+    // Tải audio câu hỏi về dạng blob để phát <audio> (không dùng thẳng <audio src="<url>"> vì
+    // endpoint cần header Authorization - xem QuizLessonApi.getImage cho lý do gốc/pattern giống hệt).
+    static getAudio(id: number) {
+        return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/questions/${id}/audio`, { responseType: 'blob' });
+    }
+
+    static removeAudio(id: number) {
+        return QuizRequestBase.delete(`${QUIZ_PARENT_PREFIX}/questions/${id}/audio`);
+    }
+}
+
+// Upload audio (multipart/form-data) - gọi thẳng QUIZ_API, cùng lý do + cách sửa hệt
+// quizUploadLessonImage/quizImportQuestions (bug axios FormData -> JSON đã sửa 2026-09-01, xem
+// comment đầy đủ ở QuizQuestionApi.quizImportQuestions phía trên).
+export async function quizUploadQuestionAudio(questionId: number, file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await QUIZ_API.post(`${QUIZ_PARENT_PREFIX}/questions/${questionId}/audio`, formData, {
+        headers: { 'Content-Type': undefined }
+    });
+    return res.data;
 }
 
 // Import Excel/CSV (multipart/form-data) - gọi thẳng QUIZ_API (axios instance của QuizApiService.ts)

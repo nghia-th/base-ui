@@ -1,5 +1,5 @@
 import { IBlocUI } from "../../base/IBlocUI";
-import { QuizQuestionApi, QuizQuestionRequest, quizImportQuestions } from "../../api/QuizQuestionApi";
+import { QuizQuestionApi, QuizQuestionRequest, quizImportQuestions, quizUploadQuestionAudio } from "../../api/QuizQuestionApi";
 import { QuizSubjectApi } from "../../api/QuizSubjectApi";
 import { QuizLessonApi } from "../../api/QuizLessonApi";
 import { QuizClassroomApi } from "../../api/QuizClassroomApi";
@@ -20,12 +20,17 @@ export interface QuizChoice {
     correct: boolean;
 }
 
+// hasAudio/hideContentInTest khớp QuestionResponse.java (2026-09-01, tính năng "Câu hỏi dạng âm
+// thanh") - hasAudio suy ra từ audioPath có/không ở backend, giống hệt QuizLesson.hasImage (ảnh lấy
+// riêng qua QuizQuestionApi.getAudio, xem Questions.tsx).
 export interface QuizQuestion {
     id: number;
     lessonId: number;
     content: string;
     knowledgeTag?: string;
     choices: QuizChoice[];
+    hasAudio: boolean;
+    hideContentInTest: boolean;
 }
 
 // Khớp ImportRowError.java / QuestionImportResponse.java.
@@ -167,6 +172,11 @@ export class BlocParentQuestions extends IBlocUI {
         const choices = [{ content: '', correct: false }, { content: '', correct: false }]
         this.setField('choicesReq', choices)
         this.setStream('choicesMeta', choices)
+        this.setStream('hideContentInTest', false)
+        this.setStream('questionHasAudio', false)
+        this.setStream('questionAudioPreviewUrl', null)
+        this.setStream('questionAudioLoading', false)
+        this.setStream('questionAudioUploading', false)
         this.setStream('question_form_view', { isShow: true, id: 0 })
     }
 
@@ -175,12 +185,86 @@ export class BlocParentQuestions extends IBlocUI {
         const choices = q.choices.map((c) => ({ content: c.content, correct: c.correct }))
         this.setField('choicesReq', choices)
         this.setStream('choicesMeta', choices)
+        this.setStream('hideContentInTest', q.hideContentInTest)
+        this.setStream('questionHasAudio', q.hasAudio)
+        this.setStream('questionAudioPreviewUrl', null)
+        this.setStream('questionAudioLoading', false)
+        this.setStream('questionAudioUploading', false)
         this.setStream('question_form_view', { isShow: true, id: q.id })
+        if (q.hasAudio) this.loadQuestionAudioPreview(q.id)
     }
 
     closeQuestionForm() {
         this.setStream('question_form_view', { isShow: false, id: 0 })
         this.setStream('submitting', false)
+        this.revokeQuestionAudioPreview()
+    }
+
+    private revokeQuestionAudioPreview() {
+        const old = this.getField('questionAudioPreviewUrl')
+        if (old) URL.revokeObjectURL(old)
+        this.setStream('questionAudioPreviewUrl', null)
+    }
+
+    // responseType:'blob' -> CallApi.ts's nhánh blob trả {data,disposition} - xem
+    // BlocParentSubjects.loadLessonImage cho pattern gốc.
+    loadQuestionAudio(id: number, onData: (blob: Blob) => void, onError: (error: any) => void) {
+        this.apiRequest(QuizQuestionApi.getAudio(id), (res: any) => {
+            onData(res.data as Blob)
+        }, { onError })
+    }
+
+    loadQuestionAudioPreview(id: number) {
+        this.setStream('questionAudioLoading', true)
+        this.loadQuestionAudio(id, (blob) => {
+            this.setStream('questionAudioLoading', false)
+            const old = this.getField('questionAudioPreviewUrl')
+            if (old) URL.revokeObjectURL(old)
+            this.setStream('questionAudioPreviewUrl', URL.createObjectURL(blob))
+        }, () => { this.setStream('questionAudioLoading', false) })
+    }
+
+    // Không qua apiRequest (không phải QuizRequestBase call) vì quizUploadQuestionAudio gọi thẳng
+    // QUIZ_API - tự check res.code===100 giống hệt BlocParentSubjects.uploadLessonImage.
+    async uploadQuestionAudio(id: number, file: File, onComplete: () => void, onError: (error: any) => void) {
+        try {
+            const res = await quizUploadQuestionAudio(id, file)
+            if (res.code === 100) {
+                onComplete()
+            } else {
+                onError(res)
+            }
+        } catch (e) {
+            onError(e)
+        }
+    }
+
+    // Sau khi upload/xoá audio, tự loadQuestions(filterLessonId) lại - đọc filterLessonId từ chính
+    // stream lọc của Bloc này (không cần Questions.tsx truyền vào), để Accordion danh sách ngoài
+    // Dialog cập nhật đúng hasAudio mới nhất mà không phải đóng/mở lại Dialog - giống hệt
+    // BlocParentSubjects.uploadLessonImage tự loadLessons(subjectId) lại.
+    uploadAudioForCurrentQuestion(file: File, onError: (error: any) => void) {
+        const view = this.getField('question_form_view') ?? {}
+        if ((view.id ?? 0) <= 0) return
+        this.setStream('questionAudioUploading', true)
+        this.uploadQuestionAudio(view.id, file, () => {
+            this.setStream('questionAudioUploading', false)
+            this.setStream('questionHasAudio', true)
+            this.loadQuestionAudioPreview(view.id)
+            const lessonId = this.getField('filterLessonId')
+            if (lessonId) this.loadQuestions(lessonId)
+        }, (error) => { this.setStream('questionAudioUploading', false); onError(error) })
+    }
+
+    removeAudioForCurrentQuestion(onError: (error: any) => void) {
+        const view = this.getField('question_form_view') ?? {}
+        if ((view.id ?? 0) <= 0) return
+        this.apiRequest(QuizQuestionApi.removeAudio(view.id), () => {
+            this.setStream('questionHasAudio', false)
+            this.revokeQuestionAudioPreview()
+            const lessonId = this.getField('filterLessonId')
+            if (lessonId) this.loadQuestions(lessonId)
+        }, { onError })
     }
 
     setChoiceContent(index: number, value: string) {
@@ -223,7 +307,8 @@ export class BlocParentQuestions extends IBlocUI {
             lessonId,
             content: req.content,
             knowledgeTag: req.knowledgeTag || undefined,
-            choices: choices.map((c) => ({ content: c.content, correct: c.correct }))
+            choices: choices.map((c) => ({ content: c.content, correct: c.correct })),
+            hideContentInTest: this.getField('hideContentInTest') ?? false
         }
         if ((view.id ?? 0) > 0) {
             this.update(view.id, request, done, fail)

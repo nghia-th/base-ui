@@ -151,49 +151,60 @@ export default function Subjects() {
                                                 <UIStream
                                                     initialData={bloc.getField('classrooms')}
                                                     stream={bloc.getStream('classrooms')}
-                                                    builder={(classroomsSnap) => (
-                                                        <UIStream
-                                                            initialData={bloc.getField('filterClassroomId') ?? ''}
-                                                            stream={bloc.getStream('filterClassroomId')}
-                                                            builder={(filterSnap) => (
-                                                                <FormControl fullWidth size="small" sx={{ mb: 1 }}>
-                                                                    <InputLabel>{t('quiz-classrooms')}</InputLabel>
-                                                                    <Select
-                                                                        label={t('quiz-classrooms')}
-                                                                        value={filterSnap.data ?? ''}
-                                                                        onChange={(e) => bloc.changeFilterClassroom(e.target.value === '' ? '' : Number(e.target.value))}
-                                                                    >
-                                                                        <MenuItem value="">{t('quiz-all-classrooms')}</MenuItem>
-                                                                        {(classroomsSnap.data ?? []).map((c: QuizClassroomLite) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
-                                                                    </Select>
-                                                                </FormControl>
-                                                            )}
-                                                        />
-                                                    )}
+                                                    builder={(classroomsSnap) => {
+                                                        // Cần classroomsSnap ở CẢ Select lọc lẫn List bên dưới (mỗi Subject hiện kèm
+                                                        // tên Lớp) nên bọc chung 1 UIStream ngoài cùng thay vì lồng riêng cho Select
+                                                        // như trước - lý do anh test thấy 2 môn cùng tên "Toán" không phân biệt được
+                                                        // thuộc Lớp nào khi lọc "Tất cả lớp" (2026-09-01).
+                                                        const classrooms: QuizClassroomLite[] = classroomsSnap.data ?? [];
+                                                        const classroomName = (classroomId: number) =>
+                                                            classrooms.find((c) => c.id === classroomId)?.name ?? '';
+                                                        return (
+                                                            <>
+                                                                <UIStream
+                                                                    initialData={bloc.getField('filterClassroomId') ?? ''}
+                                                                    stream={bloc.getStream('filterClassroomId')}
+                                                                    builder={(filterSnap) => (
+                                                                        <FormControl fullWidth size="small" sx={{ mb: 1 }}>
+                                                                            <InputLabel>{t('quiz-classrooms')}</InputLabel>
+                                                                            <Select
+                                                                                label={t('quiz-classrooms')}
+                                                                                value={filterSnap.data ?? ''}
+                                                                                onChange={(e) => bloc.changeFilterClassroom(e.target.value === '' ? '' : Number(e.target.value))}
+                                                                            >
+                                                                                <MenuItem value="">{t('quiz-all-classrooms')}</MenuItem>
+                                                                                {classrooms.map((c: QuizClassroomLite) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+                                                                            </Select>
+                                                                        </FormControl>
+                                                                    )}
+                                                                />
+                                                                <List disablePadding>
+                                                                    {subjects.map((s) => (
+                                                                        <ListItemButton
+                                                                            key={s.id}
+                                                                            selected={selectedSubject?.id === s.id}
+                                                                            onClick={() => bloc.selectSubject(s)}
+                                                                            sx={{ borderRadius: 1, mb: 0.5 }}
+                                                                        >
+                                                                            <ListItemText primary={s.name} secondary={classroomName(s.classroomId)} />
+                                                                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); bloc.openEditSubject(s); }}>
+                                                                                <EditOutlined fontSize="small" />
+                                                                            </IconButton>
+                                                                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); askRemoveSubject(s); }}>
+                                                                                <DeleteOutlined fontSize="small" />
+                                                                            </IconButton>
+                                                                        </ListItemButton>
+                                                                    ))}
+                                                                    {subjects.length === 0 && snapshot.data != null && (
+                                                                        <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
+                                                                            {t('quiz-no-subjects')}
+                                                                        </Typography>
+                                                                    )}
+                                                                </List>
+                                                            </>
+                                                        );
+                                                    }}
                                                 />
-                                                <List disablePadding>
-                                                    {subjects.map((s) => (
-                                                        <ListItemButton
-                                                            key={s.id}
-                                                            selected={selectedSubject?.id === s.id}
-                                                            onClick={() => bloc.selectSubject(s)}
-                                                            sx={{ borderRadius: 1, mb: 0.5 }}
-                                                        >
-                                                            <ListItemText primary={s.name} />
-                                                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); bloc.openEditSubject(s); }}>
-                                                                <EditOutlined fontSize="small" />
-                                                            </IconButton>
-                                                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); askRemoveSubject(s); }}>
-                                                                <DeleteOutlined fontSize="small" />
-                                                            </IconButton>
-                                                        </ListItemButton>
-                                                    ))}
-                                                    {subjects.length === 0 && snapshot.data != null && (
-                                                        <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
-                                                            {t('quiz-no-subjects')}
-                                                        </Typography>
-                                                    )}
-                                                </List>
                                             </Card>
 
                                             <UIStream

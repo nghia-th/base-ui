@@ -17,6 +17,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
+import VolumeUpOutlined from "@mui/icons-material/VolumeUpOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import { BlocStudentAttempt, QuizStudentQuestion } from "../../bloc/BlocStudentAttempt";
 import UIStream from "../../components/common/UIStream";
@@ -61,6 +62,7 @@ export default function TakeTest() {
     const chooseAnswer = (questionId: number, choiceId: number) => bloc.chooseAnswer(questionId, choiceId, showError);
     const askSubmit = () => bloc.doSubmit(showError);
     const openLessonDialog = (lessonId: number) => bloc.openLessonDialog(lessonId, showError);
+    const playQuestionAudio = (questionId: number) => bloc.loadQuestionAudio(questionId, showError);
 
     return (
         <UIStream
@@ -143,7 +145,9 @@ export default function TakeTest() {
                                                     {questions.map((q, i) => (
                                                         <Card key={q.questionId} sx={{ p: { xs: 2, sm: 3 } }}>
                                                             <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={1} sx={{ mb: 1 }}>
-                                                                <Typography variant="body1" fontWeight={700}>{i + 1}. {q.content}</Typography>
+                                                                <Typography variant="body1" fontWeight={700}>
+                                                                    {i + 1}. {q.content ?? t('quiz-question-audio-only-hint')}
+                                                                </Typography>
                                                                 <Button
                                                                     size="small"
                                                                     startIcon={<MenuBookOutlined />}
@@ -153,6 +157,36 @@ export default function TakeTest() {
                                                                     {t('quiz-view-lesson')}
                                                                 </Button>
                                                             </Stack>
+                                                            {q.hasAudio && (
+                                                                <UIStream
+                                                                    initialData={null}
+                                                                    stream={bloc.getStream('audioUrls')}
+                                                                    builder={(urlsSnap) => {
+                                                                        const url = (urlsSnap.data ?? {})[q.questionId];
+                                                                        if (url) {
+                                                                            return <Box component="audio" controls src={url} sx={{ height: 36, mb: 1.5, maxWidth: 320, display: 'block' }} />;
+                                                                        }
+                                                                        return (
+                                                                            <UIStream
+                                                                                initialData={null}
+                                                                                stream={bloc.getStream('audioLoadingIds')}
+                                                                                builder={(loadingSnap) => (
+                                                                                    <Button
+                                                                                        size="small"
+                                                                                        variant="outlined"
+                                                                                        startIcon={<VolumeUpOutlined />}
+                                                                                        disabled={(loadingSnap.data ?? {})[q.questionId] === true}
+                                                                                        onClick={() => playQuestionAudio(q.questionId)}
+                                                                                        sx={{ mb: 1.5 }}
+                                                                                    >
+                                                                                        {(loadingSnap.data ?? {})[q.questionId] === true ? t('quiz-question-audio-loading') : t('quiz-question-audio-play')}
+                                                                                    </Button>
+                                                                                )}
+                                                                            />
+                                                                        );
+                                                                    }}
+                                                                />
+                                                            )}
                                                             <RadioGroup
                                                                 value={answers[q.questionId] ?? ''}
                                                                 onChange={(e) => chooseAnswer(q.questionId, Number(e.target.value))}

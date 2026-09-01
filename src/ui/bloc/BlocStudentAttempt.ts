@@ -10,11 +10,16 @@ export interface QuizStudentChoice {
 }
 
 // Khớp StudentQuestionResponse.java. lessonId thêm 2026-09-01 để "xem lại bài học" (nút mở
-// QuizStudentLesson của đúng bài chứa câu hỏi này, xem TakeTest.tsx).
+// QuizStudentLesson của đúng bài chứa câu hỏi này, xem TakeTest.tsx). hasAudio/content (thêm
+// 2026-09-01, tính năng "Câu hỏi dạng âm thanh") - content có thể là null: backend TỰ ẩn content
+// (không phải FE ẩn) khi câu hỏi có audio VÀ Phụ huynh chọn "ẩn nội dung khi làm bài" cho câu đó -
+// xem StudentQuestionResponse.java's javadoc, KHÔNG được tự suy ra/hiện lại content ở FE trong
+// trường hợp null (server đã cố tình không gửi).
 export interface QuizStudentQuestion {
     questionId: number;
     lessonId: number;
-    content: string;
+    content: string | null;
+    hasAudio: boolean;
     choices: QuizStudentChoice[];
 }
 
@@ -117,6 +122,28 @@ export class BlocStudentAttempt extends IBlocUI {
         const old = this.getField('lessonImageUrl')
         if (old) URL.revokeObjectURL(old)
         this.setStream('lessonImageUrl', null)
+    }
+
+    // Nghe audio câu hỏi (2026-09-01, "Câu hỏi dạng âm thanh") - cache theo questionId trong 1 map
+    // {questionId: url}, KHÔNG tải lại nếu đã có (không giới hạn số lần bấm nghe lại - phát lại
+    // trực tiếp qua thẻ <audio controls> của trình duyệt một khi đã có url, xem TakeTest.tsx) và
+    // KHÔNG revoke url của câu khác khi tải câu mới - khác BlocParentSubjects.loadLessonImagePreview
+    // (chỉ 1 ảnh hiện tại 1 lúc trong Dialog), ở đây nhiều câu hỏi audio có thể cùng hiện trên 1
+    // trang nên mỗi câu giữ url riêng suốt vòng đời trang TakeTest.
+    loadQuestionAudio(questionId: number, onError: (error: any) => void) {
+        const urls = this.getField('audioUrls') ?? {}
+        if (urls[questionId]) return
+        this.setStream('audioLoadingIds', { ...(this.getField('audioLoadingIds') ?? {}), [questionId]: true })
+        this.apiRequest(QuizStudentAttemptApi.getQuestionAudio(questionId), (res: any) => {
+            const nextUrls = { ...(this.getField('audioUrls') ?? {}), [questionId]: URL.createObjectURL(res.data as Blob) }
+            this.setStream('audioUrls', nextUrls)
+            this.setStream('audioLoadingIds', { ...(this.getField('audioLoadingIds') ?? {}), [questionId]: false })
+        }, {
+            onError: (error: any) => {
+                this.setStream('audioLoadingIds', { ...(this.getField('audioLoadingIds') ?? {}), [questionId]: false })
+                onError(error)
+            }
+        })
     }
 
     // Lưu ngay khi học sinh chọn 1 đáp án (progressive save, đúng như API cho phép gọi lặp lại
