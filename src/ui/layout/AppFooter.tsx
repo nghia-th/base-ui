@@ -8,7 +8,7 @@ export default function AppFooter() {
     return (
         <Box component="footer" sx={{ py: 2, textAlign: "center", opacity: 0.7 }}>
             <Typography variant="caption">
-                base-ui &copy; {new Date().getFullYear()} — {t('powered-by-mui-bloc')}
+                {/*base-ui &copy; {new Date().getFullYear()} — {t('powered-by-mui-bloc')}*/}
             </Typography>
         </Box>
     );

@@ -67,7 +67,7 @@ export default function Profile() {
                             </Button>
                         </Box>
                         <Typography variant="h6" fontWeight={700}>{fullName}</Typography>
-                        <Typography variant="body2" color="text.secondary">{t('demo-role')}</Typography>
+                        {/*<Typography variant="body2" color="text.secondary">{t('demo-role')}</Typography>*/}
                     </CardContent>
                 </Card>
             </Grid>

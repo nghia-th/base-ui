@@ -89,6 +89,8 @@ export class BlocQuizLogin extends IBlocUI {
         LocalStorage.setItem('token', token ?? '')
         LocalStorage.setItem('quizRole', role)
         LocalStorage.setItem('quizProfile', JSON.stringify(profile ?? {}))
+        //fullName
+        LocalStorage.setItem('fullName', profile.fullName ?? '')
         onComplete({ ...res, role, profile })
     }
 }

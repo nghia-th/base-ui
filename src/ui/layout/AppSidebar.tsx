@@ -35,7 +35,7 @@ export default function AppSidebar({ menu, mode, mobileOpen, onCloseMobile, full
             <Toolbar sx={{ gap: 1, flexShrink: 0 }}>
                 <ApartmentOutlined color="primary" />
                 <Typography variant="subtitle1" fontWeight={700} noWrap sx={{ color: "inherit" }}>
-                    base-ui
+                    quiz
                 </Typography>
             </Toolbar>
             <Divider sx={{ borderColor: "sidebar.border" }} />
@@ -49,7 +49,7 @@ export default function AppSidebar({ menu, mode, mobileOpen, onCloseMobile, full
                 </Avatar>
                 <Box sx={{ minWidth: 0 }}>
                     <Typography variant="body2" fontWeight={600} noWrap sx={{ color: "inherit" }}>{fullName || t('account')}</Typography>
-                    <Typography variant="caption" noWrap sx={{ color: "sidebar.muted" }}>{t('demo-role')}</Typography>
+                    {/*<Typography variant="caption" noWrap sx={{ color: "sidebar.muted" }}>{t('demo-role')}</Typography>*/}
                 </Box>
             </Box>
         </Box>

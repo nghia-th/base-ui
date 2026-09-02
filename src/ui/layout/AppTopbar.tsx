@@ -152,47 +152,47 @@ export default function AppTopbar({bloc, leftOffset, breadcrumb, onMenuClick, on
                 {/* Ứng dụng nội bộ / ngôn ngữ / panel phải / cài đặt giao diện: hiện riêng từng icon
                     từ "sm" trở lên, gộp vào nút "more" (3 chấm) trên mobile để topbar không tràn -
                     xem nút more bên dưới. */}
-                <Tooltip title={t('internal-apps') as string}>
-                    <IconButton
-                        color="inherit"
-                        onClick={(e) => setAppsAnchor(e.currentTarget)}
-                        sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
-                    >
-                        <AppsOutlined />
-                    </IconButton>
-                </Tooltip>
-                <Popover
-                    anchorEl={appsAnchor}
-                    open={!!appsAnchor}
-                    onClose={() => setAppsAnchor(null)}
-                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                    transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                >
-                    <Box sx={{ p: 2, width: 280 }}>
-                        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>{t('internal-apps')}</Typography>
-                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>
-                            {INTERNAL_APPS.map((app) => (
-                                <ButtonBase
-                                    key={app.nameKey}
-                                    onClick={() => openApp(app)}
-                                    sx={{
-                                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.75,
-                                        p: 1, borderRadius: 2, textAlign: 'center',
-                                        '&:hover': { bgcolor: 'action.hover' }
-                                    }}
-                                >
-                                    <Box sx={{
-                                        width: 40, height: 40, borderRadius: '50%', bgcolor: `${app.color}1f`,
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                    }}>
-                                        <app.icon sx={{ color: app.color, fontSize: 20 }} />
-                                    </Box>
-                                    <Typography variant="caption" noWrap sx={{ maxWidth: '100%' }}>{t(app.nameKey)}</Typography>
-                                </ButtonBase>
-                            ))}
-                        </Box>
-                    </Box>
-                </Popover>
+                {/*<Tooltip title={t('internal-apps') as string}>*/}
+                {/*    <IconButton*/}
+                {/*        color="inherit"*/}
+                {/*        onClick={(e) => setAppsAnchor(e.currentTarget)}*/}
+                {/*        sx={{ display: { xs: 'none', sm: 'inline-flex' } }}*/}
+                {/*    >*/}
+                {/*        <AppsOutlined />*/}
+                {/*    </IconButton>*/}
+                {/*</Tooltip>*/}
+                {/*<Popover*/}
+                {/*    anchorEl={appsAnchor}*/}
+                {/*    open={!!appsAnchor}*/}
+                {/*    onClose={() => setAppsAnchor(null)}*/}
+                {/*    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}*/}
+                {/*    transformOrigin={{ vertical: 'top', horizontal: 'right' }}*/}
+                {/*>*/}
+                {/*    <Box sx={{ p: 2, width: 280 }}>*/}
+                {/*        <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>{t('internal-apps')}</Typography>*/}
+                {/*        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 1 }}>*/}
+                {/*            {INTERNAL_APPS.map((app) => (*/}
+                {/*                <ButtonBase*/}
+                {/*                    key={app.nameKey}*/}
+                {/*                    onClick={() => openApp(app)}*/}
+                {/*                    sx={{*/}
+                {/*                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.75,*/}
+                {/*                        p: 1, borderRadius: 2, textAlign: 'center',*/}
+                {/*                        '&:hover': { bgcolor: 'action.hover' }*/}
+                {/*                    }}*/}
+                {/*                >*/}
+                {/*                    <Box sx={{*/}
+                {/*                        width: 40, height: 40, borderRadius: '50%', bgcolor: `${app.color}1f`,*/}
+                {/*                        display: 'flex', alignItems: 'center', justifyContent: 'center'*/}
+                {/*                    }}>*/}
+                {/*                        <app.icon sx={{ color: app.color, fontSize: 20 }} />*/}
+                {/*                    </Box>*/}
+                {/*                    <Typography variant="caption" noWrap sx={{ maxWidth: '100%' }}>{t(app.nameKey)}</Typography>*/}
+                {/*                </ButtonBase>*/}
+                {/*            ))}*/}
+                {/*        </Box>*/}
+                {/*    </Box>*/}
+                {/*</Popover>*/}
 
                 <Tooltip title={t('language') as string}>
                     <IconButton
@@ -211,25 +211,25 @@ export default function AppTopbar({bloc, leftOffset, breadcrumb, onMenuClick, on
 
 
 
-                <Tooltip title={t('right-menu') as string}>
-                    <IconButton
-                        color="inherit"
-                        onClick={onRightMenuClick}
-                        sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
-                    >
-                        <ViewSidebarOutlined sx={{ transform: "scaleX(-1)" }} />
-                    </IconButton>
-                </Tooltip>
+                {/*<Tooltip title={t('right-menu') as string}>*/}
+                {/*    <IconButton*/}
+                {/*        color="inherit"*/}
+                {/*        onClick={onRightMenuClick}*/}
+                {/*        sx={{ display: { xs: 'none', sm: 'inline-flex' } }}*/}
+                {/*    >*/}
+                {/*        <ViewSidebarOutlined sx={{ transform: "scaleX(-1)" }} />*/}
+                {/*    </IconButton>*/}
+                {/*</Tooltip>*/}
 
-                <Tooltip title={t('theme-settings') as string}>
-                    <IconButton
-                        color="inherit"
-                        onClick={onConfigClick}
-                        sx={{ display: { xs: 'none', sm: 'inline-flex' } }}
-                    >
-                        <SettingsOutlined />
-                    </IconButton>
-                </Tooltip>
+                {/*<Tooltip title={t('theme-settings') as string}>*/}
+                {/*    <IconButton*/}
+                {/*        color="inherit"*/}
+                {/*        onClick={onConfigClick}*/}
+                {/*        sx={{ display: { xs: 'none', sm: 'inline-flex' } }}*/}
+                {/*    >*/}
+                {/*        <SettingsOutlined />*/}
+                {/*    </IconButton>*/}
+                {/*</Tooltip>*/}
 
                 {/* Nút "more" (3 chấm dọc) - chỉ hiện trên mobile (xs), gộp 4 hành động ít quan
                     trọng hơn ở trên (app nội bộ/ngôn ngữ/panel phải/cài đặt) vào 1 menu duy nhất
@@ -279,22 +279,22 @@ export default function AppTopbar({bloc, leftOffset, breadcrumb, onMenuClick, on
                         </Typography>
                     </Box>
                     <Divider />
-                    <MenuItemMui onClick={() => { setUserAnchor(null); navigate('/demo/profile'); }}>
-                        <ListItemIcon><PersonOutlined fontSize="small" /></ListItemIcon>
-                        {t('profile')}
-                    </MenuItemMui>
+                    {/*<MenuItemMui onClick={() => { setUserAnchor(null); navigate('/demo/profile'); }}>*/}
+                    {/*    <ListItemIcon><PersonOutlined fontSize="small" /></ListItemIcon>*/}
+                    {/*    {t('profile')}*/}
+                    {/*</MenuItemMui>*/}
                     <MenuItemMui onClick={() => { setUserAnchor(null); onConfigClick(); }}>
                         <ListItemIcon><SettingsOutlined fontSize="small" /></ListItemIcon>
                         {t('settings')}
                     </MenuItemMui>
-                    <MenuItemMui onClick={() => { setUserAnchor(null); navigate('/demo/calendar'); }}>
-                        <ListItemIcon><CalendarMonthOutlined fontSize="small" /></ListItemIcon>
-                        {t('calendar')}
-                    </MenuItemMui>
-                    <MenuItemMui onClick={() => { setUserAnchor(null); navigate('/demo/messages'); }}>
-                        <ListItemIcon><InboxOutlined fontSize="small" /></ListItemIcon>
-                        {t('inbox')}
-                    </MenuItemMui>
+                    {/*<MenuItemMui onClick={() => { setUserAnchor(null); navigate('/demo/calendar'); }}>*/}
+                    {/*    <ListItemIcon><CalendarMonthOutlined fontSize="small" /></ListItemIcon>*/}
+                    {/*    {t('calendar')}*/}
+                    {/*</MenuItemMui>*/}
+                    {/*<MenuItemMui onClick={() => { setUserAnchor(null); navigate('/demo/messages'); }}>*/}
+                    {/*    <ListItemIcon><InboxOutlined fontSize="small" /></ListItemIcon>*/}
+                    {/*    {t('inbox')}*/}
+                    {/*</MenuItemMui>*/}
                 </Menu>
 
                 <Tooltip title={t('log-out') as string}>
