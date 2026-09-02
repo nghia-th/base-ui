@@ -298,7 +298,7 @@ export default function Questions() {
                                                                     fullWidth
                                                                 />
                                                                 <UIStream
-                                                                    initialData="MULTIPLE_CHOICE"
+                                                                    initialData={bloc.getField('questionType') ?? 'MULTIPLE_CHOICE'}
                                                                     stream={bloc.getStream('questionType')}
                                                                     builder={(typeSnap) => (
                                                                         <FormControl>
@@ -321,14 +321,14 @@ export default function Questions() {
                                                                     fullWidth
                                                                 />
                                                                 <UIStream
-                                                                    initialData="MULTIPLE_CHOICE"
+                                                                    initialData={bloc.getField('questionType') ?? 'MULTIPLE_CHOICE'}
                                                                     stream={bloc.getStream('questionType')}
                                                                     builder={(typeSnap) => (
                                                                         (typeSnap.data ?? 'MULTIPLE_CHOICE') === 'SPEAKING' ? (
                                                                             <Stack spacing={2}>
                                                                                 <Typography variant="body2" color="text.secondary">{t('quiz-question-type-speaking-hint')}</Typography>
                                                                                 <UIStream
-                                                                                    initialData="AUDIO"
+                                                                                    initialData={bloc.getField('answerMode') ?? 'AUDIO'}
                                                                                     stream={bloc.getStream('answerMode')}
                                                                                     builder={(modeSnap) => (
                                                                                         <FormControl>
