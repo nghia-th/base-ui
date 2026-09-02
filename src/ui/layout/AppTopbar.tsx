@@ -10,7 +10,7 @@ import Menu from "@mui/material/Menu";
 import MenuItemMui from "@mui/material/MenuItem";
 import Popover from "@mui/material/Popover";
 import Avatar from "@mui/material/Avatar";
-import Badge from "@mui/material/Badge";
+
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import Divider from "@mui/material/Divider";
@@ -21,7 +21,7 @@ import AppsOutlined from "@mui/icons-material/AppsOutlined";
 import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
 import TranslateOutlined from "@mui/icons-material/TranslateOutlined";
-import NotificationsOutlined from "@mui/icons-material/NotificationsOutlined";
+
 import ViewSidebarOutlined from "@mui/icons-material/ViewSidebarOutlined";
 import MoreVertOutlined from "@mui/icons-material/MoreVertOutlined";
 import PersonOutlined from "@mui/icons-material/PersonOutlined";
@@ -46,6 +46,7 @@ import LocalStorage from "../../base/LocalStorage";
 import { BreadcrumbItem } from "../AppMenuData";
 
 interface AppTopbarProps {
+    bloc:any;
     leftOffset: number;
     breadcrumb: BreadcrumbItem[];
     onMenuClick: () => void;
@@ -55,19 +56,9 @@ interface AppTopbarProps {
     onLogout: () => void;
 }
 
-interface NotificationItem {
-    icon: React.ElementType;
-    color: string;
-    titleKey: string;
-    time: string;
-}
 
-const NOTIFICATIONS: NotificationItem[] = [
-    { icon: ShoppingCartOutlined, color: '#2196F3', titleKey: 'notif-new-order', time: '2m' },
-    { icon: ChatBubbleOutlineOutlined, color: '#9C27B0', titleKey: 'notif-new-comment', time: '15m' },
-    { icon: CloudDoneOutlined, color: '#4CAF50', titleKey: 'notif-backup-done', time: '1h' },
-    { icon: AssignmentOutlined, color: '#FF9800', titleKey: 'notif-approval', time: '3h' }
-];
+
+
 
 interface InternalApp {
     icon: React.ElementType;
@@ -84,7 +75,7 @@ const INTERNAL_APPS: InternalApp[] = [
     { icon: PaidOutlined, color: '#4CAF50', nameKey: 'app-payroll' },
     { icon: AccessTimeOutlined, color: '#FF9800', nameKey: 'app-attendance' },
     { icon: SecurityOutlined, color: '#F44336', nameKey: 'app-access-control' },
-    { icon: BadgeOutlined, color: '#9C27B0', nameKey: 'app-visitor' },
+
     { icon: RestaurantOutlined, color: '#795548', nameKey: 'app-canteen' },
     { icon: LocalParkingOutlined, color: '#3F51B5', nameKey: 'app-parking' },
     { icon: VideocamOutlined, color: '#009688', nameKey: 'app-camera-ai' },
@@ -96,14 +87,14 @@ const INTERNAL_APPS: InternalApp[] = [
 // AppConfigDrawer (tuỳ chỉnh theme), menu user (Profile/Settings/Calendar/Inbox), nút mở
 // AppRightMenu (panel bên phải), và nút Log out đứng riêng (giống module-ui, có confirm trước
 // khi đăng xuất thật - xem AppShell.tsx).
-export default function AppTopbar({ leftOffset, breadcrumb, onMenuClick, onConfigClick, onRightMenuClick, fullName, onLogout }: AppTopbarProps) {
+export default function AppTopbar({bloc, leftOffset, breadcrumb, onMenuClick, onConfigClick, onRightMenuClick, fullName, onLogout }: AppTopbarProps) {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
     const { enqueueSnackbar } = useSnackbar();
     const [userAnchor, setUserAnchor] = useState<null | HTMLElement>(null);
     const [langAnchor, setLangAnchor] = useState<null | HTMLElement>(null);
-    const [notifAnchor, setNotifAnchor] = useState<null | HTMLElement>(null);
+
     const [appsAnchor, setAppsAnchor] = useState<null | HTMLElement>(null);
     const [moreAnchor, setMoreAnchor] = useState<null | HTMLElement>(null);
     // Trên màn hình hẹp (mobile), nút "Ứng dụng nội bộ" tự thu vào menu "more" (3 chấm dọc) thay
@@ -113,8 +104,17 @@ export default function AppTopbar({ leftOffset, breadcrumb, onMenuClick, onConfi
     const moreButtonRef = useRef<HTMLButtonElement>(null);
 
     const changeLanguage = async (code: string) => {
-        await lang.loadLang(code, i18n);
-        setLangAnchor(null);
+        try {
+            console.log(`Changing language to ${code}`);
+            // await lang.loadLang(code, i18n);
+            await bloc.loadLang(code)
+        } catch (e) {
+            // Show a snackbar error if language change fails
+            enqueueSnackbar(t('error') as string, { variant: 'error' });
+        } finally {
+            // Always close the language menu
+            setLangAnchor(null);
+        }
     };
 
     const currentCrumb = breadcrumb.find((b) => b.path === location.pathname);
@@ -208,30 +208,8 @@ export default function AppTopbar({ leftOffset, breadcrumb, onMenuClick, onConfi
                     <MenuItemMui onClick={() => changeLanguage('en')}>{t('english')}</MenuItemMui>
                 </Menu>
 
-                <Tooltip title={t('notifications') as string}>
-                    <IconButton color="inherit" onClick={(e) => setNotifAnchor(e.currentTarget)}>
-                        <Badge badgeContent={NOTIFICATIONS.length} color="error">
-                            <NotificationsOutlined />
-                        </Badge>
-                    </IconButton>
-                </Tooltip>
-                <Menu anchorEl={notifAnchor} open={!!notifAnchor} onClose={() => setNotifAnchor(null)}>
-                    <Box sx={{ px: 2, py: 1 }}>
-                        <Typography variant="subtitle2" fontWeight={700}>{t('notifications')}</Typography>
-                    </Box>
-                    <Divider />
-                    {NOTIFICATIONS.map((n) => (
-                        <MenuItemMui key={n.titleKey} onClick={() => setNotifAnchor(null)} sx={{ py: 1.2 }}>
-                            <ListItemIcon>
-                                <n.icon fontSize="small" sx={{ color: n.color }} />
-                            </ListItemIcon>
-                            <Box>
-                                <Typography variant="body2">{t(n.titleKey)}</Typography>
-                                <Typography variant="caption" color="text.secondary">{n.time}</Typography>
-                            </Box>
-                        </MenuItemMui>
-                    ))}
-                </Menu>
+
+
 
                 <Tooltip title={t('right-menu') as string}>
                     <IconButton

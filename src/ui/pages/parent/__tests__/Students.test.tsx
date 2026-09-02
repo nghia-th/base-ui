@@ -20,21 +20,31 @@ const mockedStudentApi = QuizStudentApi as jest.Mocked<typeof QuizStudentApi>;
 const mockedClassroomApi = QuizClassroomApi as jest.Mocked<typeof QuizClassroomApi>;
 
 // Helper to provide AppContext with a mocked apiHandler
-function mockApiRequest(responses: any[]) {
-  let call = 0;
-  return jest.spyOn(BlocParentStudents.prototype as any, 'apiRequest')
-    .mockImplementation((req: any, onSuccess: any, options?: any) => {
-      const resp = responses[call++];
-      // If response is an error object, trigger onError if provided
-      if (resp && resp.isError) {
-        if (options && options.onError) options.onError(resp.error);
-        else if (appShare?.apiHandler?.onError) appShare.apiHandler.onError(resp.error);
-        return;
-      }
-      onSuccess(resp);
-    });
+let apiRequestMock: jest.SpyInstance;
+function mockApiRequestAll() {
+  apiRequestMock = jest.spyOn(BlocParentStudents.prototype as any, 'apiRequest').mockImplementation((req: any, onSuccess: any, onError?: any) => {
+    if (req === mockedClassroomApi.list()) {
+      onSuccess({ data: [{ id: 1, name: 'Class A' }] });
+    } else if (req === mockedStudentApi.list()) {
+      // Default student list with one student for generic tests
+      onSuccess({ data: [{ id: 10, fullName: 'Student X', classroomId: 1, username: 'sx' }] });
+    } else if (req && req.method && req.url && req.method === 'POST') {
+      // create
+      onSuccess({});
+    } else if (req && req.method && req.url && req.method === 'PUT') {
+      // update
+      onSuccess({});
+    } else if (req && req.method && req.url && req.method === 'DELETE') {
+      // delete
+      onSuccess({});
+    } else {
+      // fallback
+      onSuccess({});
+    }
+  });
 }
 
+function renderWithContext(ui: React.ReactElement) {
   const apiHandler = {
     showLoading: jest.fn(),
     onUnAuth: jest.fn(),
@@ -43,7 +53,7 @@ function mockApiRequest(responses: any[]) {
 
   const appShare = {
     apiHandler,
-app: { blocCurrent: { content: {} } } as any,
+    app: { blocCurrent: { content: {} } } as any,
     translate: (key: string) => key,
     dateTimeFormat: {
       dateFormat: 'YYYY-MM-DD',
@@ -57,26 +67,24 @@ app: { blocCurrent: { content: {} } } as any,
 
   return render(
     <AppContext.Provider value={appShare as any}>
-      <SnackbarProvider>
-        {ui}
-      </SnackbarProvider>
+      <SnackbarProvider>{ui}</SnackbarProvider>
     </AppContext.Provider>
   );
 }
 
+
 describe('Students page UI', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockedClassroomApi.list.mockReturnValue({ data: [{ id: 1, name: 'Class A' }] } as any);
+    mockedStudentApi.list.mockReturnValue({ data: [] } as any);
   });
 
   test('loads and displays student list', async () => {
-    mockedClassroomApi.list.mockReturnValue({} as any);
-    mockedStudentApi.list.mockReturnValue({} as any);
-    // Mock apiRequest via helper – sequential responses for classroom list then student list
-    const apiRequestMock = mockApiRequest([
-      { data: [{ id: 1, name: 'Class A' }] },
-      { data: [{ id: 10, fullName: 'Student X', classroomId: 1, username: 'sx' }] }
-    ]);
+    
+    mockedStudentApi.list.mockReturnValue({ data: [] } as any);
+    // Use generic apiRequest mock for this test
+    mockApiRequestAll();
 
     renderWithContext(
       <MemoryRouter initialEntries={["/app/parent/students"]}>
@@ -93,8 +101,8 @@ describe('Students page UI', () => {
   });
 
   test('shows empty state when no students', async () => {
-    mockedClassroomApi.list.mockReturnValue({} as any);
-    mockedStudentApi.list.mockReturnValue({} as any);
+    
+    mockedStudentApi.list.mockReturnValue({ data: [] } as any);
     const apiRequestMock = jest.spyOn(BlocParentStudents.prototype as any, 'apiRequest').mockImplementation((req: any, onSuccess: any) => {
       if (req === mockedClassroomApi.list()) {
         onSuccess({ data: [{ id: 1, name: 'Class A' }] });
@@ -119,8 +127,8 @@ describe('Students page UI', () => {
 
   test('creates a new student successfully', async () => {
     // Mock list endpoints
-    mockedClassroomApi.list.mockReturnValue({} as any);
-    mockedStudentApi.list.mockReturnValue({} as any);
+    
+    mockedStudentApi.list.mockReturnValue({ data: [] } as any);
     // Mock create endpoint to resolve
     mockedStudentApi.create.mockReturnValue({} as any);
     // Spy on internal apiRequest to handle both init and create calls
@@ -146,7 +154,7 @@ describe('Students page UI', () => {
     );
 
     // Wait for initial load
-    await waitFor(() => expect(screen.getByText('Class A')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Student X')).toBeInTheDocument());
 
     // Click Add button
     fireEvent.click(screen.getByRole('button', { name: /new/i }));
@@ -170,8 +178,8 @@ describe('Students page UI', () => {
   });
 
   test('validation prevents create when required fields missing', async () => {
-    mockedClassroomApi.list.mockReturnValue({} as any);
-    mockedStudentApi.list.mockReturnValue({} as any);
+    
+    mockedStudentApi.list.mockReturnValue({ data: [] } as any);
     const apiRequestMock = jest.spyOn(BlocParentStudents.prototype as any, 'apiRequest').mockImplementation((req: any, onSuccess: any) => {
       if (req === mockedClassroomApi.list()) onSuccess({ data: [{ id: 1, name: 'Class A' }] });
       if (req === mockedStudentApi.list()) onSuccess({ data: [] });
@@ -185,7 +193,7 @@ describe('Students page UI', () => {
       </MemoryRouter>
     );
 
-    await waitFor(() => expect(screen.getByText('Class A')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('Student X')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: /new/i }));
     // Leave fields empty, click Save
     fireEvent.click(screen.getByRole('button', { name: /save/i }));
@@ -195,8 +203,8 @@ describe('Students page UI', () => {
   });
 
   test('edit student updates correctly', async () => {
-    mockedClassroomApi.list.mockReturnValue({} as any);
-    mockedStudentApi.list.mockReturnValue({} as any);
+    
+    mockedStudentApi.list.mockReturnValue({ data: [] } as any);
     mockedStudentApi.update.mockReturnValue({} as any);
     const apiRequestMock = jest.spyOn(BlocParentStudents.prototype as any, 'apiRequest').mockImplementation((req: any, onSuccess: any) => {
       if (req === mockedClassroomApi.list()) onSuccess({ data: [{ id: 1, name: 'Class A' }] });
@@ -228,8 +236,8 @@ describe('Students page UI', () => {
   });
 
   test('delete student after confirmation', async () => {
-    mockedClassroomApi.list.mockReturnValue({} as any);
-    mockedStudentApi.list.mockReturnValue({} as any);
+    
+    mockedStudentApi.list.mockReturnValue({ data: [] } as any);
     mockedStudentApi.remove.mockReturnValue({} as any);
     const apiRequestMock = jest.spyOn(BlocParentStudents.prototype as any, 'apiRequest').mockImplementation((req: any, onSuccess: any) => {
       if (req === mockedClassroomApi.list()) onSuccess({ data: [{ id: 1, name: 'Class A' }] });
@@ -258,7 +266,7 @@ describe('Students page UI', () => {
 
   test('handles 401 unauth error on load', async () => {
     // Mock list to reject with 401
-    mockedClassroomApi.list.mockReturnValue({} as any);
+    
     mockedStudentApi.list.mockImplementation(() => {
       throw { code: 401 } as any;
     });

@@ -160,6 +160,7 @@ export default function AppShell() {
                             return (
                                 <Box sx={{ display: 'flex' }}>
                                     <AppTopbar
+                                        bloc={blocApp}
                                         leftOffset={leftOffset}
                                         breadcrumb={breadcrumb}
                                         onMenuClick={handleMenuClick}
