@@ -464,6 +464,7 @@
     "quiz-reference-answer-hint": "Chỉ để anh đối chiếu khi xem lại câu trả lời của con - không hiện cho học sinh, không dùng để tự động chấm điểm.",
     "quiz-speaking-text-label": "Câu trả lời (gõ chữ)",
     "quiz-speaking-text-hint": "Nhập câu trả lời của em vào đây...",
-    "quiz-speaking-typed-answer-label": "Câu trả lời gõ chữ"
+    "quiz-speaking-typed-answer-label": "Câu trả lời gõ chữ",
+    "quiz-view-answers": "Xem đáp án"
   }
 }

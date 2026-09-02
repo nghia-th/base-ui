@@ -22,15 +22,23 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import AssignmentOutlined from "@mui/icons-material/AssignmentOutlined";
 import AutorenewOutlined from "@mui/icons-material/AutorenewOutlined";
+import FactCheckOutlined from "@mui/icons-material/FactCheckOutlined";
+import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
+import CancelOutlined from "@mui/icons-material/CancelOutlined";
+import RecordVoiceOverOutlined from "@mui/icons-material/RecordVoiceOverOutlined";
+import LinearProgress from "@mui/material/LinearProgress";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
-import { BlocStudentTests, QuizStudentTestSummary, QuizStudentSubjectLite } from "../../bloc/BlocStudentTests";
+import { BlocStudentTests, QuizStudentTestSummary, QuizStudentSubjectLite, QuizStudentAttemptReport } from "../../bloc/BlocStudentTests";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
 // Trang "Đề của tôi" (khu vực Học sinh, /app/student/tests - Task 6 backend, danh sách). Đề trạng
-// thái ASSIGNED có nút "Bắt đầu làm" -> /app/student/tests/:id/take; COMPLETED chỉ hiện nhãn, v1
-// backend chưa có endpoint cho học sinh xem lại kết quả bài đã nộp (chỉ Phụ huynh xem được qua
-// Task 7 - ReportApi.java), nên không có gì để bấm vào ở đây.
+// thái ASSIGNED có nút "Bắt đầu làm" -> /app/student/tests/:id/take; COMPLETED hiện nhãn + nút "Xem
+// đáp án" (mới, 2026-09-02, theo yêu cầu "xem lại đáp án những đề đã làm") mở Dialog đọc-only cùng
+// hình dạng UI với báo cáo bên Phụ huynh (Reports.tsx) - điểm số, phân tích theo chủ đề kiến thức,
+// và từng câu (đã chọn gì so với đáp án đúng) - nhưng KHÔNG có nút chấm Đúng/Sai cho câu SPEAKING
+// (đó là quyền của Phụ huynh, xem StudentAttemptAnswerDetail.java's javadoc: học sinh chỉ được đọc,
+// không có referenceAnswer của Phụ huynh).
 //
 // Thêm nút "Ôn tập kiến thức" (2026-09-01) - học sinh tự chọn 1 Môn học, server random câu hỏi và
 // tạo ngay 1 đề PRACTICE mới, bấm lại bao nhiêu lần cũng được (mỗi lần là 1 đề random khác, xem
@@ -47,6 +55,8 @@ export default function Tests() {
     const appContext = useContext(AppContext);
     const bloc = reUseBlocContent(appContext, BlocStudentTests);
     const showError = (error: any) => enqueueSnackbar(quizErrorMessage(t, error), { variant: error?.variant ?? 'error' });
+    const openAnswerReview = (testId: number) => bloc.openAnswerReview(testId, showError);
+    const playSpeakingAnswer = (attemptId: number, questionId: number) => bloc.loadSpeakingAnswer(attemptId, questionId, showError);
 
     useEffect(() => {
         bloc.initData();
@@ -94,7 +104,12 @@ export default function Tests() {
                                                     {t('quiz-start-test')}
                                                 </Button>
                                             ) : (
-                                                <Chip size="small" label={t('quiz-test-status-COMPLETED')} color="success" />
+                                                <Stack direction="row" alignItems="center" spacing={1}>
+                                                    <Chip size="small" label={t('quiz-test-status-COMPLETED')} color="success" />
+                                                    <Button size="small" variant="outlined" startIcon={<FactCheckOutlined />} onClick={() => openAnswerReview(test.id)}>
+                                                        {t('quiz-view-answers')}
+                                                    </Button>
+                                                </Stack>
                                             )
                                         }
                                     >
@@ -175,6 +190,132 @@ export default function Tests() {
                                         <Button variant="contained" disabled={submittingSnap.data === true} onClick={submitPractice}>{t('quiz-practice-generate')}</Button>
                                     )}
                                 />
+                            </DialogActions>
+                        </Dialog>
+                    );
+                }}
+            />
+
+            <UIStream
+                initialData={null}
+                stream={bloc.getStream('answerReview')}
+                builder={(reviewSnap) => {
+                    const review: QuizStudentAttemptReport | null = reviewSnap.data;
+                    return (
+                        <Dialog open={review != null} onClose={() => bloc.closeAnswerReview()} maxWidth="sm" fullWidth>
+                            <DialogTitle>{review?.testName}</DialogTitle>
+                            <DialogContent>
+                                {review && (
+                                    <Stack spacing={2}>
+                                        <Stack direction="row" alignItems="baseline" spacing={1}>
+                                            <Typography variant="h5" fontWeight={700} color="primary.main">
+                                                {review.correctCount}/{review.totalQuestions}
+                                            </Typography>
+                                            <Typography variant="body2" color="text.secondary">
+                                                ({Math.round(review.scorePercent)}%) — {new Date(review.submittedAt).toLocaleString()}
+                                            </Typography>
+                                        </Stack>
+
+                                        <Box>
+                                            <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('quiz-knowledge-breakdown')}</Typography>
+                                            <Stack spacing={1}>
+                                                {review.byKnowledgeTag.map((tag) => (
+                                                    <Box key={tag.knowledgeTag}>
+                                                        <Stack direction="row" justifyContent="space-between">
+                                                            <Typography variant="body2">{tag.knowledgeTag}</Typography>
+                                                            <Typography variant="body2" color="text.secondary">{tag.correctCount}/{tag.totalCount}</Typography>
+                                                        </Stack>
+                                                        <LinearProgress
+                                                            variant="determinate"
+                                                            value={tag.totalCount === 0 ? 0 : (tag.correctCount / tag.totalCount) * 100}
+                                                            sx={{ height: 6, borderRadius: 3 }}
+                                                        />
+                                                    </Box>
+                                                ))}
+                                            </Stack>
+                                        </Box>
+
+                                        <Box>
+                                            <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('quiz-answer-detail')}</Typography>
+                                            <Stack spacing={1.5}>
+                                                {review.answers.map((a, i) => (
+                                                    <Box key={a.questionId}>
+                                                        {a.questionType === 'SPEAKING' ? (
+                                                            <Stack direction="row" alignItems="flex-start" spacing={1}>
+                                                                {a.parentMarkedCorrect === true && <CheckCircleOutlined color="success" fontSize="small" sx={{ mt: 0.3 }} />}
+                                                                {a.parentMarkedCorrect === false && <CancelOutlined color="error" fontSize="small" sx={{ mt: 0.3 }} />}
+                                                                {a.parentMarkedCorrect == null && <RecordVoiceOverOutlined color="disabled" fontSize="small" sx={{ mt: 0.3 }} />}
+                                                                <Box sx={{ flexGrow: 1 }}>
+                                                                    <Typography variant="body2" fontWeight={600}>{i + 1}. {a.questionContent}</Typography>
+                                                                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                                                                        {t('quiz-speaking-not-auto-graded')}
+                                                                    </Typography>
+                                                                    {a.hasSpeakingAnswer && (
+                                                                        <UIStream
+                                                                            initialData={null}
+                                                                            stream={bloc.getStream('speakingAudioUrls')}
+                                                                            builder={(urlsSnap) => {
+                                                                                const url = (urlsSnap.data ?? {})[a.questionId];
+                                                                                if (url) {
+                                                                                    return <Box component="audio" controls src={url} sx={{ height: 36, mb: 1, maxWidth: 300, display: 'block' }} />;
+                                                                                }
+                                                                                return (
+                                                                                    <UIStream
+                                                                                        initialData={null}
+                                                                                        stream={bloc.getStream('speakingLoadingIds')}
+                                                                                        builder={(loadingSnap) => (
+                                                                                            <Button
+                                                                                                size="small"
+                                                                                                variant="outlined"
+                                                                                                disabled={(loadingSnap.data ?? {})[a.questionId] === true}
+                                                                                                onClick={() => playSpeakingAnswer(review.attemptId, a.questionId)}
+                                                                                                sx={{ mb: 1 }}
+                                                                                            >
+                                                                                                {(loadingSnap.data ?? {})[a.questionId] === true ? t('quiz-question-audio-loading') : t('quiz-speaking-listen')}
+                                                                                            </Button>
+                                                                                        )}
+                                                                                    />
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                    )}
+                                                                    {a.answerText && (
+                                                                        <Typography variant="body2" sx={{ mb: 1, whiteSpace: 'pre-wrap' }}>
+                                                                            {t('quiz-speaking-typed-answer-label')}: {a.answerText}
+                                                                        </Typography>
+                                                                    )}
+                                                                    {!a.hasSpeakingAnswer && !a.answerText && (
+                                                                        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>{t('quiz-speaking-no-answer')}</Typography>
+                                                                    )}
+                                                                    {a.knowledgeTag && <Chip size="small" label={a.knowledgeTag} sx={{ mt: 0.5, display: 'block', width: 'fit-content' }} />}
+                                                                </Box>
+                                                            </Stack>
+                                                        ) : (
+                                                            <Stack direction="row" alignItems="flex-start" spacing={1}>
+                                                                {a.correct ? <CheckCircleOutlined color="success" fontSize="small" sx={{ mt: 0.3 }} /> : <CancelOutlined color="error" fontSize="small" sx={{ mt: 0.3 }} />}
+                                                                <Box sx={{ flexGrow: 1 }}>
+                                                                    <Typography variant="body2" fontWeight={600}>{i + 1}. {a.questionContent}</Typography>
+                                                                    <Typography variant="body2" color={a.correct ? 'success.main' : 'error.main'}>
+                                                                        {t('quiz-chosen-answer', { answer: a.chosenChoiceContent ?? t('quiz-no-answer') })}
+                                                                    </Typography>
+                                                                    {!a.correct && (
+                                                                        <Typography variant="body2" color="success.main">
+                                                                            {t('quiz-correct-answer-was', { answer: a.correctChoiceContent })}
+                                                                        </Typography>
+                                                                    )}
+                                                                    {a.knowledgeTag && <Chip size="small" label={a.knowledgeTag} sx={{ mt: 0.5 }} />}
+                                                                </Box>
+                                                            </Stack>
+                                                        )}
+                                                    </Box>
+                                                ))}
+                                            </Stack>
+                                        </Box>
+                                    </Stack>
+                                )}
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={() => bloc.closeAnswerReview()}>{t('close')}</Button>
                             </DialogActions>
                         </Dialog>
                     );

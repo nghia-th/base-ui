@@ -23,6 +23,16 @@ export class QuizStudentAttemptApi {
         return QuizRequestBase.get(`${QUIZ_STUDENT_PREFIX}/tests`);
     }
 
+    // Xem lại đáp án của 1 đề ĐÃ NỘP (mới, 2026-09-02, theo yêu cầu "xem lại đáp án những đề đã
+    // làm") - trả về chi tiết từng câu (đã chọn gì so với đáp án đúng) + phân tích theo chủ đề kiến
+    // thức, cùng hình dạng dữ liệu với báo cáo bên Phụ huynh (QuizReportApi.getAttemptReport) nhưng
+    // scoped theo testId của CHÍNH học sinh đang đăng nhập, không có field 'referenceAnswer' (ghi
+    // chú riêng của Phụ huynh - xem StudentAttemptAnswerDetail.java's javadoc). Backend chặn 409 nếu
+    // đề CHƯA nộp bài (QUIZ_013 ATTEMPT_NOT_SUBMITTED).
+    static getOwnAttemptReport(testId: number) {
+        return QuizRequestBase.get(`${QUIZ_STUDENT_PREFIX}/tests/${testId}/answers`);
+    }
+
     // Idempotent bên backend - gọi lại nhiều lần (vd học sinh vào lại giữa chừng) trả về đúng
     // attemptId cũ, không tạo attempt mới (v1 chỉ cho làm 1 lần/đề - xem StudentAttemptApi.java).
     static start(testId: number) {

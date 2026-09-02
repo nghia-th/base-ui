@@ -464,6 +464,7 @@
     "quiz-reference-answer-hint": "Only for your own comparison when reviewing your child's answer - never shown to the student, never used for auto-grading.",
     "quiz-speaking-text-label": "Answer (typed)",
     "quiz-speaking-text-hint": "Type your answer here...",
-    "quiz-speaking-typed-answer-label": "Typed answer"
+    "quiz-speaking-typed-answer-label": "Typed answer",
+    "quiz-view-answers": "View answers"
   }
 }
