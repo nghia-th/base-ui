@@ -67,11 +67,22 @@ export default function TakeTest() {
     const askSubmit = () => bloc.doSubmit(showError);
     const openLessonDialog = (lessonId: number) => bloc.openLessonDialog(lessonId, showError);
     const playQuestionAudio = (questionId: number) => bloc.loadQuestionAudio(questionId, showError);
-    const attemptId: number | null = bloc.getField('attemptId') ?? null;
     const startRecording = (questionId: number) => bloc.startRecording(questionId, showError);
-    const stopRecording = (questionId: number) => { if (attemptId != null) bloc.stopRecording(attemptId, questionId, showError); };
-    const deleteSpeakingAnswer = (questionId: number) => { if (attemptId != null) bloc.deleteSpeakingAnswer(attemptId, questionId, showError); };
-    const saveSpeakingText = (questionId: number, text: string) => { if (attemptId != null) bloc.saveSpeakingTextAnswer(attemptId, questionId, text, showError); };
+    // Read attemptId at call time. TakeTest doesn't subscribe to the attemptId stream, so it never
+    // re-renders after startAttempt sets it - a top-level const would stay stale (null) and silently
+    // block stop/delete/save. Reading inside each handler always sees the current value.
+    const stopRecording = (questionId: number) => {
+        const attemptId: number | null = bloc.getField('attemptId') ?? null;
+        if (attemptId != null) bloc.stopRecording(attemptId, questionId, showError);
+    };
+    const deleteSpeakingAnswer = (questionId: number) => {
+        const attemptId: number | null = bloc.getField('attemptId') ?? null;
+        if (attemptId != null) bloc.deleteSpeakingAnswer(attemptId, questionId, showError);
+    };
+    const saveSpeakingText = (questionId: number, text: string) => {
+        const attemptId: number | null = bloc.getField('attemptId') ?? null;
+        if (attemptId != null) bloc.saveSpeakingTextAnswer(attemptId, questionId, text, showError);
+    };
 
     return (
         <UIStream
@@ -224,77 +235,77 @@ export default function TakeTest() {
                                                                 <Stack spacing={1}>
                                                                     {q.answerMode !== 'TEXT' && (
                                                                         <>
-                                                                    <Typography variant="body2" color="text.secondary">
-                                                                        {t('quiz-speaking-hint')}
-                                                                    </Typography>
-                                                                    <UIStream
-                                                                        initialData={null}
-                                                                        stream={bloc.getStream('recordingQuestionId')}
-                                                                        builder={(recSnap) => {
-                                                                            const recordingId = recSnap.data;
-                                                                            const isRecording = recordingId === q.questionId;
-                                                                            const otherRecording = recordingId != null && recordingId !== q.questionId;
-                                                                            return (
-                                                                                <UIStream
-                                                                                    initialData={null}
-                                                                                    stream={bloc.getStream('speakingAudioUrls')}
-                                                                                    builder={(urlsSnap) => {
-                                                                                        const url = (urlsSnap.data ?? {})[q.questionId];
-                                                                                        return (
-                                                                                            <UIStream
-                                                                                                initialData={null}
-                                                                                                stream={bloc.getStream('speakingLoadingIds')}
-                                                                                                builder={(loadingSnap) => {
-                                                                                                    const loading = (loadingSnap.data ?? {})[q.questionId] === true;
-                                                                                                    return (
-                                                                                                        <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
-                                                                                                            {isRecording ? (
-                                                                                                                <Button
-                                                                                                                    size="small"
-                                                                                                                    color="error"
-                                                                                                                    variant="contained"
-                                                                                                                    startIcon={<StopCircleOutlined />}
-                                                                                                                    onClick={() => stopRecording(q.questionId)}
-                                                                                                                >
-                                                                                                                    {t('quiz-speaking-stop')}
-                                                                                                                </Button>
-                                                                                                            ) : (
-                                                                                                                <Button
-                                                                                                                    size="small"
-                                                                                                                    variant="outlined"
-                                                                                                                    startIcon={<MicOutlined />}
-                                                                                                                    disabled={result != null || loading || otherRecording}
-                                                                                                                    onClick={() => startRecording(q.questionId)}
-                                                                                                                >
-                                                                                                                    {loading ? t('quiz-speaking-uploading') : url ? t('quiz-speaking-record-again') : t('quiz-speaking-record')}
-                                                                                                                </Button>
-                                                                                                            )}
-                                                                                                            {url && !isRecording && (
-                                                                                                                <>
-                                                                                                                    <Box component="audio" controls src={url} sx={{ height: 36, maxWidth: 260 }} />
-                                                                                                                    {result == null && (
+                                                                            <Typography variant="body2" color="text.secondary">
+                                                                                {t('quiz-speaking-hint')}
+                                                                            </Typography>
+                                                                            <UIStream
+                                                                                initialData={null}
+                                                                                stream={bloc.getStream('recordingQuestionId')}
+                                                                                builder={(recSnap) => {
+                                                                                    const recordingId = recSnap.data;
+                                                                                    const isRecording = recordingId === q.questionId;
+                                                                                    const otherRecording = recordingId != null && recordingId !== q.questionId;
+                                                                                    return (
+                                                                                        <UIStream
+                                                                                            initialData={null}
+                                                                                            stream={bloc.getStream('speakingAudioUrls')}
+                                                                                            builder={(urlsSnap) => {
+                                                                                                const url = (urlsSnap.data ?? {})[q.questionId];
+                                                                                                return (
+                                                                                                    <UIStream
+                                                                                                        initialData={null}
+                                                                                                        stream={bloc.getStream('speakingLoadingIds')}
+                                                                                                        builder={(loadingSnap) => {
+                                                                                                            const loading = (loadingSnap.data ?? {})[q.questionId] === true;
+                                                                                                            return (
+                                                                                                                <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
+                                                                                                                    {isRecording ? (
                                                                                                                         <Button
                                                                                                                             size="small"
                                                                                                                             color="error"
-                                                                                                                            startIcon={<DeleteOutlined />}
-                                                                                                                            disabled={loading}
-                                                                                                                            onClick={() => deleteSpeakingAnswer(q.questionId)}
+                                                                                                                            variant="contained"
+                                                                                                                            startIcon={<StopCircleOutlined />}
+                                                                                                                            onClick={() => stopRecording(q.questionId)}
                                                                                                                         >
-                                                                                                                            {t('quiz-speaking-delete')}
+                                                                                                                            {t('quiz-speaking-stop')}
+                                                                                                                        </Button>
+                                                                                                                    ) : (
+                                                                                                                        <Button
+                                                                                                                            size="small"
+                                                                                                                            variant="outlined"
+                                                                                                                            startIcon={<MicOutlined />}
+                                                                                                                            disabled={result != null || loading || otherRecording}
+                                                                                                                            onClick={() => startRecording(q.questionId)}
+                                                                                                                        >
+                                                                                                                            {loading ? t('quiz-speaking-uploading') : url ? t('quiz-speaking-record-again') : t('quiz-speaking-record')}
                                                                                                                         </Button>
                                                                                                                     )}
-                                                                                                                </>
-                                                                                                            )}
-                                                                                                        </Stack>
-                                                                                                    );
-                                                                                                }}
-                                                                                            />
-                                                                                        );
-                                                                                    }}
-                                                                                />
-                                                                            );
-                                                                        }}
-                                                                    />
+                                                                                                                    {url && !isRecording && (
+                                                                                                                        <>
+                                                                                                                            <Box component="audio" controls src={url} sx={{ height: 36, maxWidth: 260 }} />
+                                                                                                                            {result == null && (
+                                                                                                                                <Button
+                                                                                                                                    size="small"
+                                                                                                                                    color="error"
+                                                                                                                                    startIcon={<DeleteOutlined />}
+                                                                                                                                    disabled={loading}
+                                                                                                                                    onClick={() => deleteSpeakingAnswer(q.questionId)}
+                                                                                                                                >
+                                                                                                                                    {t('quiz-speaking-delete')}
+                                                                                                                                </Button>
+                                                                                                                            )}
+                                                                                                                        </>
+                                                                                                                    )}
+                                                                                                                </Stack>
+                                                                                                            );
+                                                                                                        }}
+                                                                                                    />
+                                                                                                );
+                                                                                            }}
+                                                                                        />
+                                                                                    );
+                                                                                }}
+                                                                            />
                                                                         </>
                                                                     )}
                                                                     {q.answerMode !== 'AUDIO' && (
