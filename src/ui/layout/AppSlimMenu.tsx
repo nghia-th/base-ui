@@ -9,7 +9,6 @@ import Tooltip from "@mui/material/Tooltip";
 import Popper from "@mui/material/Popper";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import ApartmentOutlined from "@mui/icons-material/ApartmentOutlined";
 import { MenuItem } from "../AppMenuData";
 import { getIcon } from "./iconMap";
 import AppMenuList from "./AppMenuList";
@@ -95,7 +94,12 @@ export default function AppSlimMenu({ menu }: AppSlimMenuProps) {
                 }}
             >
                 <Toolbar sx={{ justifyContent: "center", width: "100%" }}>
-                    <ApartmentOutlined color="primary" />
+                    <Box
+                        component="img"
+                        src={`${process.env.PUBLIC_URL}/logo192.png`}
+                        alt="Hiểu Bài"
+                        sx={{ width: 28, height: 28, borderRadius: "8px" }}
+                    />
                 </Toolbar>
                 <Box sx={{ width: "100%", py: 1 }}>
                     {menu.map((item) => (

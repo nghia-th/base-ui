@@ -6,7 +6,6 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import Divider from "@mui/material/Divider";
 import Avatar from "@mui/material/Avatar";
-import ApartmentOutlined from "@mui/icons-material/ApartmentOutlined";
 import { MenuItem } from "../AppMenuData";
 import AppMenuList from "./AppMenuList";
 import { DRAWER_WIDTH } from "./layoutConstants";
@@ -33,9 +32,14 @@ export default function AppSidebar({ menu, mode, mobileOpen, onCloseMobile, full
     const content = (
         <Box sx={{ height: "100%", display: "flex", flexDirection: "column", bgcolor: "sidebar.bg", color: "sidebar.ink" }}>
             <Toolbar sx={{ gap: 1, flexShrink: 0 }}>
-                <ApartmentOutlined color="primary" />
+                <Box
+                    component="img"
+                    src={`${process.env.PUBLIC_URL}/logo192.png`}
+                    alt="Hiểu Bài"
+                    sx={{ width: 28, height: 28, borderRadius: "8px", flexShrink: 0 }}
+                />
                 <Typography variant="subtitle1" fontWeight={700} noWrap sx={{ color: "inherit" }}>
-                    quiz
+                    Hiểu Bài
                 </Typography>
             </Toolbar>
             <Divider sx={{ borderColor: "sidebar.border" }} />
