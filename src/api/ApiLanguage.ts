@@ -11,7 +11,7 @@ export class ApiLanguage {
         // if(process.env!.NODE_ENV === "development"){
         //     return RequestBase.get(BASE_URL+"/public/language/"+lang)
         // }
-        return RequestBase.get(`http://localhost:3000/languages/${lang}.json`)
+        return RequestBase.get(`/languages/${lang}.json`)
     }
     static list(): RequestBase {
         return RequestBase.get(`/languages/listDataLanguages.json`)
