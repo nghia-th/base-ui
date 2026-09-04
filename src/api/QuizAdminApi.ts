@@ -28,6 +28,14 @@ export class QuizAdminApi {
         return QuizRequestBase.patch(`${QUIZ_ADMIN_PREFIX}/parents/${id}/active`, { active });
     }
 
+    // 2026-09-04 - Admin tự nhập mật khẩu mới trực tiếp cho Parent (cùng UX với tạo Parent, xem
+    // AdminResetPasswordRequest.java's javadoc) - chỉ đăng xuất NGAY các phiên của CHÍNH Parent
+    // này (không đăng xuất Student của họ - đổi mật khẩu Parent không đụng tới tài khoản Student),
+    // xem AdminParentService#resetPassword's javadoc.
+    static resetParentPassword(id: number, newPassword: string) {
+        return QuizRequestBase.post(`${QUIZ_ADMIN_PREFIX}/parents/${id}/reset-password`, { newPassword });
+    }
+
     // Xoá VĨNH VIỄN, cascade toàn bộ dữ liệu của Parent này - không có rule chặn nào (theo đúng
     // quyết định của anh khi scope tính năng này: "Xoá hẳn toàn bộ (cascade) - không chặn"), xem
     // AdminParentService#deleteCascade's javadoc. Không thể hoàn tác.

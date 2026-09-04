@@ -20,6 +20,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import AppsOutlined from "@mui/icons-material/AppsOutlined";
 import SettingsOutlined from "@mui/icons-material/SettingsOutlined";
 import LogoutOutlined from "@mui/icons-material/LogoutOutlined";
+import VpnKeyOutlined from "@mui/icons-material/VpnKeyOutlined";
 import TranslateOutlined from "@mui/icons-material/TranslateOutlined";
 
 import ViewSidebarOutlined from "@mui/icons-material/ViewSidebarOutlined";
@@ -54,6 +55,9 @@ interface AppTopbarProps {
     onRightMenuClick: () => void;
     fullName?: string;
     onLogout: () => void;
+    // 2026-09-04 - mở dialog đổi mật khẩu tự phục vụ (ChangePasswordDialog.tsx, render ở
+    // AppShell.tsx) - xem menu người dùng bên dưới.
+    onChangePasswordClick: () => void;
 }
 
 
@@ -87,7 +91,7 @@ const INTERNAL_APPS: InternalApp[] = [
 // AppConfigDrawer (tuỳ chỉnh theme), menu user (Profile/Settings/Calendar/Inbox), nút mở
 // AppRightMenu (panel bên phải), và nút Log out đứng riêng (giống module-ui, có confirm trước
 // khi đăng xuất thật - xem AppShell.tsx).
-export default function AppTopbar({bloc, leftOffset, breadcrumb, onMenuClick, onConfigClick, onRightMenuClick, fullName, onLogout }: AppTopbarProps) {
+export default function AppTopbar({bloc, leftOffset, breadcrumb, onMenuClick, onConfigClick, onRightMenuClick, fullName, onLogout, onChangePasswordClick }: AppTopbarProps) {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
@@ -286,6 +290,10 @@ export default function AppTopbar({bloc, leftOffset, breadcrumb, onMenuClick, on
                     <MenuItemMui onClick={() => { setUserAnchor(null); onConfigClick(); }}>
                         <ListItemIcon><SettingsOutlined fontSize="small" /></ListItemIcon>
                         {t('settings')}
+                    </MenuItemMui>
+                    <MenuItemMui onClick={() => { setUserAnchor(null); onChangePasswordClick(); }}>
+                        <ListItemIcon><VpnKeyOutlined fontSize="small" /></ListItemIcon>
+                        {t('change-password')}
                     </MenuItemMui>
                     {/*<MenuItemMui onClick={() => { setUserAnchor(null); navigate('/demo/calendar'); }}>*/}
                     {/*    <ListItemIcon><CalendarMonthOutlined fontSize="small" /></ListItemIcon>*/}

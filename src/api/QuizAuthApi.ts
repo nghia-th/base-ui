@@ -47,4 +47,14 @@ export class QuizAuthApi {
     static logoutAll(role: 'parent' | 'student' | 'admin') {
         return QuizRequestBase.post(`/api/${role}/logout-all`, {});
     }
+
+    // 2026-09-04 - đổi mật khẩu tự phục vụ (self-service), cho cả 3 role, theo đúng yêu cầu của
+    // anh. Cần token hợp lệ (giống logoutAll ở trên, KHÔNG dùng QUIZ_AUTH_PREFIX) - AuthService's
+    // changePassword() đọc CurrentUser.get() để biết đang đổi mật khẩu của ai, xác thực
+    // oldPassword trước rồi mới lưu newPassword + đăng xuất NGAY mọi phiên (kể cả phiên hiện tại)
+    // - xem AuthService.java's javadoc. ChangePasswordDialog.tsx (nơi gọi hàm này) phải điều
+    // hướng về /login giống hệt handleLogout khi gọi thành công, xem đó cho luồng đầy đủ.
+    static changePassword(role: 'parent' | 'student' | 'admin', oldPassword: string, newPassword: string) {
+        return QuizRequestBase.post(`/api/${role}/change-password`, { oldPassword, newPassword });
+    }
 }

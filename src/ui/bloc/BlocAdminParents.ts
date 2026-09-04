@@ -48,6 +48,38 @@ export class BlocAdminParents extends IBlocUI {
         }, { onError })
     }
 
+    // 2026-09-04 - Admin đặt lại mật khẩu cho Parent (xem AdminParentApi.java's reset-password
+    // endpoint). Dialog riêng (reset_password_view), tách khỏi form_view tạo mới ở trên - chỉ có
+    // 1 field newPassword, không cần reload() (list Parent không có cột nào phụ thuộc mật khẩu).
+    openResetPassword(parentId: number) {
+        this.setField('newPassword', '', 'req_reset')
+        this.setStream('reset_password_view', { isShow: true, parentId })
+    }
+
+    closeResetPassword() {
+        this.setStream('reset_password_view', { isShow: false, parentId: null })
+        this.setStream('reset_submitting', false)
+    }
+
+    saveResetPassword(onComplete: () => void, onError: (error: any) => void) {
+        const newPassword = this.getField('newPassword', 'req_reset')
+        if (!newPassword) {
+            onError({ messageKey: 'required-field' })
+            return
+        }
+        const view = this.getField('reset_password_view')
+        const parentId = view?.parentId
+        if (!parentId) {
+            return
+        }
+        this.setStream('reset_submitting', true)
+        const done = () => { this.setStream('reset_submitting', false); onComplete() }
+        const fail = (error: any) => { this.setStream('reset_submitting', false); onError(error) }
+        this.apiRequest(QuizAdminApi.resetParentPassword(parentId, newPassword), () => {
+            done()
+        }, { onError: fail })
+    }
+
     openNew() {
         this.setField('req', { fullName: '', email: '', phone: '', password: '' })
         this.setStream('form_view', { isShow: true })

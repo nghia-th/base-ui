@@ -19,6 +19,7 @@ import AppHorizontalMenu from "./layout/AppHorizontalMenu";
 import AppRightMenu from "./layout/AppRightMenu";
 import AppFooter from "./layout/AppFooter";
 import AppConfigDrawer from "./layout/AppConfigDrawer";
+import ChangePasswordDialog from "./components/common/ChangePasswordDialog";
 import LocalStorage from "../base/LocalStorage";
 import { BASE_URL } from "../base/PrefixService";
 import { QuizAuthApi } from "../api/QuizAuthApi";
@@ -189,6 +190,7 @@ export default function AppShell() {
                                         onRightMenuClick={() => setRightMenuOpen(true)}
                                         fullName={LocalStorage.getItem('fullName') ?? undefined}
                                         onLogout={handleLogout}
+                                        onChangePasswordClick={() => blocApp.openChangePassword()}
                                     />
 
                                     {isHorizontal && <AppHorizontalMenu menu={menu} />}
@@ -329,6 +331,7 @@ export default function AppShell() {
                                         open={rightMenuOpen}
                                         onClose={() => setRightMenuOpen(false)}
                                     />
+                                    <ChangePasswordDialog bloc={blocApp} />
                                 </Box>
                             );
                         }}

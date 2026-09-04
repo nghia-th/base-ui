@@ -17,6 +17,7 @@ import AddOutlined from "@mui/icons-material/AddOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import LockOutlined from "@mui/icons-material/LockOutlined";
 import LockOpenOutlined from "@mui/icons-material/LockOpenOutlined";
+import VpnKeyOutlined from "@mui/icons-material/VpnKeyOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import { BlocAdminParents, QuizAdminParent } from "../../bloc/BlocAdminParents";
 import UIStream from "../../components/common/UIStream";
@@ -63,6 +64,21 @@ export default function AdminParents() {
         });
     };
 
+    // 2026-09-04 - Admin đặt lại mật khẩu cho Parent (mở dialog nhập newPassword, xem
+    // BlocAdminParents.ts's openResetPassword/saveResetPassword). Không có ConfirmDialog trước -
+    // hành động này chỉ có tác dụng sau khi Admin thực sự bấm "Lưu" trong dialog (khác
+    // khoá/xoá ở trên vốn chỉ 1 click là xong ngay nên cần hỏi lại trước).
+    const askResetPassword = (row: QuizAdminParent) => {
+        bloc.openResetPassword(row.id);
+    };
+
+    const saveResetPassword = () => {
+        bloc.saveResetPassword(() => {
+            enqueueSnackbar(t('quiz-admin-parent-password-reset') as string, { variant: 'success' });
+            bloc.closeResetPassword();
+        }, showError);
+    };
+
     const askRemove = (row: QuizAdminParent) => {
         bloc.confirm({
             title: 'delete',
@@ -95,6 +111,7 @@ export default function AdminParents() {
                 params.row.active
                     ? <GridActionsCellItem icon={<LockOutlined fontSize="small" />} label="deactivate" onClick={() => askSetActive(params.row, false)} />
                     : <GridActionsCellItem icon={<LockOpenOutlined fontSize="small" />} label="activate" onClick={() => askSetActive(params.row, true)} />,
+                <GridActionsCellItem icon={<VpnKeyOutlined fontSize="small" />} label="reset-password" onClick={() => askResetPassword(params.row)} />,
                 <GridActionsCellItem icon={<DeleteOutlined fontSize="small" />} label="delete" onClick={() => askRemove(params.row)} />
             ]
         }
@@ -169,6 +186,43 @@ export default function AdminParents() {
                                                 stream={bloc.getStream('submitting')}
                                                 builder={(submittingSnap) => (
                                                     <Button variant="contained" disabled={submittingSnap.data === true} onClick={save}>
+                                                        {t('save')}
+                                                    </Button>
+                                                )}
+                                            />
+                                        </DialogActions>
+                                    </Dialog>
+                                );
+                            }}
+                        />
+
+                        <UIStream
+                            initialData={{ isShow: false, parentId: null }}
+                            stream={bloc.getStream('reset_password_view')}
+                            builder={(resetViewSnap) => {
+                                const resetView = resetViewSnap.data ?? { isShow: false, parentId: null };
+                                return (
+                                    <Dialog open={resetView.isShow === true} onClose={() => bloc.closeResetPassword()} maxWidth="xs" fullWidth>
+                                        <DialogTitle>{t('quiz-admin-parent-reset-password')}</DialogTitle>
+                                        <DialogContent>
+                                            <Stack spacing={2} sx={{ mt: 1 }}>
+                                                <TextField
+                                                    label={t('new-password')}
+                                                    type="password"
+                                                    defaultValue={bloc.getField('newPassword', 'req_reset') ?? ''}
+                                                    onChange={(e) => bloc.setField('newPassword', e.target.value, 'req_reset')}
+                                                    autoFocus
+                                                    fullWidth
+                                                />
+                                            </Stack>
+                                        </DialogContent>
+                                        <DialogActions>
+                                            <Button onClick={() => bloc.closeResetPassword()}>{t('cancel')}</Button>
+                                            <UIStream
+                                                initialData={false}
+                                                stream={bloc.getStream('reset_submitting')}
+                                                builder={(submittingSnap) => (
+                                                    <Button variant="contained" disabled={submittingSnap.data === true} onClick={saveResetPassword}>
                                                         {t('save')}
                                                     </Button>
                                                 )}
