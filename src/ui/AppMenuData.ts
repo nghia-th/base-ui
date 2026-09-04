@@ -132,7 +132,10 @@ export const STUDENT_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
 // (list/create/khoá-mở/xoá, xem AdminParentApi.java) - không có dashboard riêng, giống Học sinh
 // (STUDENT_MENU_DATA ở trên) chỉ xoay quanh đúng 1 việc nên KHÔNG cần trang tổng quan trung gian.
 export const ADMIN_MENU_DATA: MenuItem[] = [
-    { label: 'quiz-admin-parents', icon: 'PeopleOutlined', to: '/app/admin/parents', items: null, section: 'menu-section-main' }
+    { label: 'quiz-admin-parents', icon: 'PeopleOutlined', to: '/app/admin/parents', items: null, section: 'menu-section-main' },
+    // 2026-09-04, phần 4/4 - Admin tự sửa chuỗi dịch UI (vi/en) mà không cần deploy lại code, xem
+    // BlocAdminTranslations.ts.
+    { label: 'quiz-admin-translations', icon: 'TranslateOutlined', to: '/app/admin/translations', items: null }
 ]
 
 export const ADMIN_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {

@@ -2,6 +2,7 @@ import IBloc from "../../base/IBloc";
 import LocalStorage from "../../base/LocalStorage";
 import { MultiRequest } from "../../base/CallApi";
 import { ApiLanguage } from "../../api/ApiLanguage";
+import { QuizLanguageApi } from "../../api/QuizLanguageApi";
 import i18n from "../i18next/i18next";
 
 export interface UIState {
@@ -100,6 +101,19 @@ export class BlocApplication extends IBloc {
                 return
             }
             this.setStream('loadInit', { loginRequire: { status: 0, url: '' }, finish: true })
+        }, { isShowLoading: false })
+        // Lớp đè bản dịch Admin đã sửa (2026-09-04, phần 4/4) - CỐ Ý gọi RIÊNG bằng
+        // apiRequestAwait (không nhét chung vào mảng requests/apiSyncMultiRequest ở trên): đọc kỹ
+        // CallApi.ts's CallMultiApi thì thấy nó có 1 nhánh đặc biệt cho URL chứa "languages"
+        // (dành cho chính request 'lang' ở trên, response file tĩnh không theo envelope
+        // {code,data} thường) mà sau khi xử lý xong LUÔN `break` vòng lặp - nghĩa là bất kỳ
+        // request nào xếp SAU 'lang' trong cùng mảng sẽ không bao giờ được chạy tới. Vì vậy phải
+        // await tuần tự sau khi multi-request ở trên xong, đúng pattern IBlocUI.loadLang đang
+        // dùng (xem đó cho giải thích đầy đủ về deep-merge+overwrite/fallback khi lỗi).
+        await this.apiRequestAwait(QuizLanguageApi.overrides(langKey), (res) => {
+            if (res?.data) {
+                i18n.addResourceBundle(langKey, 'translations', res.data, true, true)
+            }
         }, { isShowLoading: false })
     }
 

@@ -493,6 +493,14 @@
     "quiz-question-video-only-hint": "Watch the video and choose an answer",
     "quiz-question-media-only-hint": "Listen/watch and choose an answer",
     "QUIZ_028": "Question video must be an MP4, WebM, MOV or OGG file",
-    "QUIZ_029": "Question video must be 50MB or smaller"
+    "QUIZ_029": "Question video must be 50MB or smaller",
+    "quiz-admin-translations": "Manage translations",
+    "quiz-admin-translation-key": "Translation key",
+    "quiz-admin-translation-search": "Search by key or content...",
+    "quiz-admin-translation-new": "Add translation key",
+    "quiz-admin-translation-edit": "Edit translation key",
+    "quiz-admin-translation-saved": "Translation saved",
+    "quiz-admin-translation-deleted": "Translation key deleted",
+    "quiz-admin-delete-translation-confirm": "Are you sure you want to delete this translation key? It will be removed from ALL languages. This action cannot be undone."
   }
 }

@@ -493,6 +493,14 @@
     "quiz-question-video-only-hint": "Xem video và chọn đáp án",
     "quiz-question-media-only-hint": "Nghe audio/xem video và chọn đáp án",
     "QUIZ_028": "Video câu hỏi phải là file MP4, WebM, MOV hoặc OGG",
-    "QUIZ_029": "Video câu hỏi phải nhỏ hơn hoặc bằng 50MB"
+    "QUIZ_029": "Video câu hỏi phải nhỏ hơn hoặc bằng 50MB",
+    "quiz-admin-translations": "Quản lý bản dịch",
+    "quiz-admin-translation-key": "Khoá dịch (key)",
+    "quiz-admin-translation-search": "Tìm theo khoá hoặc nội dung...",
+    "quiz-admin-translation-new": "Thêm khoá dịch",
+    "quiz-admin-translation-edit": "Sửa khoá dịch",
+    "quiz-admin-translation-saved": "Đã lưu bản dịch",
+    "quiz-admin-translation-deleted": "Đã xoá khoá dịch",
+    "quiz-admin-delete-translation-confirm": "Bạn có chắc muốn xoá khoá dịch này không? Khoá sẽ bị xoá khỏi TẤT CẢ ngôn ngữ. Hành động này không thể hoàn tác."
   }
 }
