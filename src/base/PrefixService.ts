@@ -26,3 +26,4 @@ export const WEB_SOCKET_PREFIX = "/utilities-service" + API_PREFIX
 export const QUIZ_AUTH_PREFIX = "/api/auth"
 export const QUIZ_PARENT_PREFIX = "/api/parent"
 export const QUIZ_STUDENT_PREFIX = "/api/student"
+export const QUIZ_ADMIN_PREFIX = "/api/admin"

@@ -9,7 +9,8 @@ import UIStream from "./components/common/UIStream";
 import { DRAWER_WIDTH, SLIM_WIDTH, HORIZONTAL_MENU_HEIGHT } from "./layout/layoutConstants";
 import {
     PARENT_MENU_DATA, PARENT_BREADCRUMB_DATA,
-    STUDENT_MENU_DATA, STUDENT_BREADCRUMB_DATA
+    STUDENT_MENU_DATA, STUDENT_BREADCRUMB_DATA,
+    ADMIN_MENU_DATA, ADMIN_BREADCRUMB_DATA
 } from "./AppMenuData";
 import AppTopbar from "./layout/AppTopbar";
 import AppSidebar from "./layout/AppSidebar";
@@ -20,6 +21,7 @@ import AppFooter from "./layout/AppFooter";
 import AppConfigDrawer from "./layout/AppConfigDrawer";
 import LocalStorage from "../base/LocalStorage";
 import { BASE_URL } from "../base/PrefixService";
+import { QuizAuthApi } from "../api/QuizAuthApi";
 
 import ParentDashboard from "./pages/parent/ParentDashboard";
 import StudentTests from "./pages/student/Tests";
@@ -30,6 +32,7 @@ import ParentSubjects from "./pages/parent/Subjects";
 import ParentQuestions from "./pages/parent/Questions";
 import ParentTests from "./pages/parent/Tests";
 import ParentReports from "./pages/parent/Reports";
+import AdminParents from "./pages/admin/Parents";
 import { QuizLoginRole } from "./bloc/BlocQuizLogin";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
@@ -69,7 +72,12 @@ import SearchOffOutlined from "@mui/icons-material/SearchOffOutlined";
 function RequireQuizRole({ role, children }: { role: QuizLoginRole; children: React.ReactElement }) {
     const currentRole = LocalStorage.getItem('quizRole');
     if (currentRole !== role) {
-        return <Navigate replace to={currentRole === 'student' ? '/app/student/tests' : '/app/parent'} />;
+        // 2026-09-04: thêm nhánh 'admin' - Admin không có gì chung với khu vực Phụ huynh/Học sinh
+        // (RequireQuizRole role="admin" chỉ canh app/admin/parents), nên khi role hiện tại LÀ admin
+        // mà lỡ vào nhầm 1 route parent/student, đưa thẳng về /app/admin/parents thay vì mặc định
+        // /app/parent (Admin không có Parent data để xem).
+        const homeOf = currentRole === 'admin' ? '/app/admin/parents' : (currentRole === 'student' ? '/app/student/tests' : '/app/parent');
+        return <Navigate replace to={homeOf} />;
     }
     return children;
 }
@@ -98,6 +106,7 @@ export default function AppShell() {
     // trong thực tế chỉ còn path lạ (404) - mặc định về menu Phụ huynh cho an toàn.
     const isParentArea = location.pathname === '/app/parent' || location.pathname.startsWith('/app/parent/');
     const isStudentArea = location.pathname === '/app/student' || location.pathname.startsWith('/app/student/');
+    const isAdminArea = location.pathname === '/app/admin' || location.pathname.startsWith('/app/admin/');
     // Sidebar tự thu gọn theo mặc định trên tablet/mobile (< 960px, giống breakpoint "md" của MUI)
     // để không chiếm hết màn hình hẹp - vẫn mở lại được qua nút menu (3 gạch). Chỉ đọc 1 lần lúc
     // mount (lazy initializer) để không tự ý đóng lại sidebar mà người dùng đã chủ động mở/đóng
@@ -121,7 +130,18 @@ export default function AppShell() {
             { title: 'log-out', message: 'confirm-logout-message', labelYes: 'log-out', labelNo: 'cancel' },
             (result: { action: string }) => {
                 if (result.action === 'yes') {
+                    // Thu hồi refresh token của thiết bị này trên server (2026-09-04, xem
+                    // AuthService.java's javadoc) TRƯỚC khi xoá LocalStorage - fire-and-forget
+                    // (không chờ/không chặn UI, không cần xử lý lỗi: dù call này thất bại thì
+                    // luồng đăng xuất phía client vẫn diễn ra như cũ, chỉ là refresh token đó nằm
+                    // im tới khi tự hết hạn thay vì bị thu hồi ngay - không phải lỗ hổng MỚI so
+                    // với hành vi trước đây, xem QuizAuthApi.ts's logout()).
+                    const refreshToken = LocalStorage.getRefreshToken();
+                    if (refreshToken) {
+                        QuizAuthApi.logout(refreshToken).run().catch(() => {});
+                    }
                     LocalStorage.deleteToken();
+                    LocalStorage.deleteRefreshToken();
                     window.location.href = BASE_URL + '/login';
                 }
             }
@@ -143,8 +163,8 @@ export default function AppShell() {
             stream={blocApp.getStream('loadInitStream')}
             builder={(snapshot) => {
                 const viewMain = snapshot.data ?? blocApp.getField('viewMain');
-                const menu = isDemoRoute ? viewMain.menu : (isParentArea ? PARENT_MENU_DATA : (isStudentArea ? STUDENT_MENU_DATA : PARENT_MENU_DATA));
-                const breadcrumb = isDemoRoute ? viewMain.breadcrumb : (isParentArea ? PARENT_BREADCRUMB_DATA : (isStudentArea ? STUDENT_BREADCRUMB_DATA : PARENT_BREADCRUMB_DATA));
+                const menu = isDemoRoute ? viewMain.menu : (isParentArea ? PARENT_MENU_DATA : (isStudentArea ? STUDENT_MENU_DATA : (isAdminArea ? ADMIN_MENU_DATA : PARENT_MENU_DATA)));
+                const breadcrumb = isDemoRoute ? viewMain.breadcrumb : (isParentArea ? PARENT_BREADCRUMB_DATA : (isStudentArea ? STUDENT_BREADCRUMB_DATA : (isAdminArea ? ADMIN_BREADCRUMB_DATA : PARENT_BREADCRUMB_DATA)));
                 return (
                     <UIStream
                         initialData={app.getUI()}
@@ -224,7 +244,10 @@ export default function AppShell() {
                                                 {/* "/" luôn redirect ngay sang đúng khu vực đã đăng nhập theo quizRole
                                                     (lưu lúc login - xem BlocQuizLogin.ts) - không có nội dung riêng cho "/". */}
                                                 <Route path="/" element={
-                                                    <Navigate replace to={LocalStorage.getItem('quizRole') === 'student' ? '/app/student/tests' : '/app/parent'} />
+                                                    <Navigate replace to={
+                                                        LocalStorage.getItem('quizRole') === 'student' ? '/app/student/tests'
+                                                            : (LocalStorage.getItem('quizRole') === 'admin' ? '/app/admin/parents' : '/app/parent')
+                                                    } />
                                                 } />
                                                 <Route path="app/parent" element={
                                                     <RequireQuizRole role="parent"><ParentDashboard /></RequireQuizRole>
@@ -252,6 +275,9 @@ export default function AppShell() {
                                                 } />
                                                 <Route path="app/student/tests/:testId/take" element={
                                                     <RequireQuizRole role="student"><TakeTest /></RequireQuizRole>
+                                                } />
+                                                <Route path="app/admin/parents" element={
+                                                    <RequireQuizRole role="admin"><AdminParents /></RequireQuizRole>
                                                 } />
                                                 <Route path="demo" element={<Dashboard />} />
                                                 <Route path="demo/formlayout" element={<FormLayoutDemo />} />

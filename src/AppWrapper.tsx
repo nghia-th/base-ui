@@ -13,6 +13,7 @@ import { createAppTheme } from "./theme/muiTheme";
 import AlertDialog from "./ui/components/dialogs/AlertDialog";
 import ConfirmDialog from "./ui/components/dialogs/ConfirmDialog";
 import Login from "./ui/pages/Login";
+import AdminLogin from "./ui/pages/admin/AdminLogin";
 import Register from "./ui/pages/Register";
 import ForgotPassword from "./ui/pages/ForgotPassword";
 import NotFound from "./ui/pages/NotFound";
@@ -39,6 +40,7 @@ export default function AppWrapper({ app }: AppWrapperProps) {
         onUnAuth: () => {
             setTimeout(() => {
                 LocalStorage.deleteToken();
+                LocalStorage.deleteRefreshToken(); // 2026-09-04 - dọn luôn refresh token khi bị đăng xuất (QuizApiService.ts's tryRefreshAndRetry đã tự thử refresh trước khi rơi tới đây - còn tới được đây nghĩa là refresh cũng thất bại hoặc không áp dụng).
                 app.setStream('loadInit', { loginRequire: { status: 1, url: location.pathname }, finish: true });
             });
         },
@@ -92,6 +94,7 @@ export default function AppWrapper({ app }: AppWrapperProps) {
                                     {snapshot.data?.finish ? (
                                         <Routes>
                                             <Route path="/login" element={<Login />} />
+                                            <Route path="/admin/login" element={<AdminLogin />} />
                                             <Route path="/register" element={<Register />} />
                                             <Route path="/forgot-password" element={<ForgotPassword />} />
                                             <Route path="/error" element={<ErrorPage />} />

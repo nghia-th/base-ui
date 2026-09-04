@@ -24,12 +24,21 @@ import {QUIZ_AUTH_PREFIX} from "../base/PrefixService";
 //    onUnAuth) - CallApi.ts so sánh `res.data.code === 100`/`997`/`998`/`999` là SỐ, không phải
 //    chuỗi, nên nếu không dịch thì MỌI response thành công của quiz-service sẽ bị hiểu nhầm là lỗi.
 //
-// quiz-service KHÔNG có endpoint refresh-token (task 1 không yêu cầu, chưa code) - khác hẳn
-// base/ApiService.ts's cơ chế tự refresh khi gặp mã 998/403. Instance này CHỦ ĐỘNG không làm theo
-// cơ chế đó: token hết hạn/sai sẽ trả thẳng code=401 -> base/CallApi.ts tự gọi onUnAuth() (đăng xuất
-// + về /login), đúng hành vi thật duy nhất quiz-service hỗ trợ. Nếu sau này quiz-service có thêm
-// refresh-token thật, sửa lại đúng 1 chỗ này (response error-interceptor bên dưới), không phải sửa
-// base/ApiService.ts.
+// quiz-service CÓ endpoint refresh-token thật từ 2026-09-04 (xem AuthService.java's javadoc -
+// tokenVersion + refresh token, sửa luôn bug "token cũ của account đã xoá vẫn dùng được") - access
+// token giờ sống ngắn (60 phút, xem application.yaml's quiz.jwt.access-token-expiration-minutes)
+// nên CẦN cơ chế tự refresh mới không bắt người dùng đăng nhập lại liên tục. Đúng như comment cũ
+// ở đây đã dự đoán trước: chỉ sửa DUY NHẤT 1 chỗ - response error-interceptor bên dưới (hàm
+// tryRefreshAndRetry) - không đụng gì base/ApiService.ts.
+//
+// Cơ chế: gặp lỗi 401 ở 1 request KHÔNG PHẢI /api/auth/** (login/register/refresh/logout luôn mở,
+// không cần - và không nên - tự refresh cho chính chúng) và đang CÓ sẵn refresh token lưu trong
+// LocalStorage -> gọi thẳng POST /api/auth/refresh (axios trần, KHÔNG qua QUIZ_API để tránh
+// interceptor tự gọi lại chính nó) -> thành công thì lưu cặp token mới rồi TỰ ĐỘNG phát lại đúng
+// request gốc (transparent với Bloc gọi request đó, không cần Bloc tự biết gì về refresh) -> thất
+// bại (refresh token cũng hết hạn/đã bị thu hồi - vd sau khi bấm "Đăng xuất khỏi mọi thiết bị") thì
+// dọn sạch cả 2 token và để lỗi 401 GỐC rơi xuống như cũ, base/CallApi.ts's onUnAuth() tự đăng xuất
+// + điều hướng /login - hành vi không đổi cho trường hợp này.
 // ---------------------------------------------------------------------------------------------
 
 const QUIZ_API = axios.create({
@@ -54,6 +63,42 @@ QUIZ_API.interceptors.request.use((request) => {
     }
     return request
 })
+
+// Tự refresh access token khi gặp 401 rồi phát lại request gốc - xem comment ở đầu file. Trả về
+// Promise<response phát lại thành công> nếu refresh+retry OK; trả về null nếu KHÔNG đủ điều kiện
+// thử refresh (không có refresh token, request lỗi chính là /api/auth/**, hoặc đã retry 1 lần rồi -
+// tránh vòng lặp vô hạn nếu backend vẫn trả 401 sau khi refresh) hoặc refresh thất bại thật (refresh
+// token cũng hết hạn/đã bị thu hồi) - cả 2 trường hợp null đều để nhánh gọi rơi xuống xử lý lỗi 401
+// như cũ.
+async function tryRefreshAndRetry(error: any): Promise<any> {
+    const config: any = error?.config
+    const refreshTokenValue = LocalStorage.getRefreshToken()
+    if (!config || !refreshTokenValue || config._retriedAfterRefresh || config.url?.startsWith(QUIZ_AUTH_PREFIX)) {
+        return null
+    }
+    try {
+        const rs = await axios.post(`${QUIZ_AUTH_PREFIX}/refresh`, {refreshToken: refreshTokenValue}, {
+            headers: {'Content-Type': 'application/json'}
+        })
+        const body = rs.data ?? {}
+        if (body.success !== true || !body.data?.accessToken) {
+            return null
+        }
+        LocalStorage.setItem('token', body.data.accessToken)
+        LocalStorage.setRefreshToken(body.data.refreshToken ?? '')
+
+        config._retriedAfterRefresh = true
+        config.headers = config.headers ?? {}
+        config.headers['Authorization'] = `Bearer ${body.data.accessToken}`
+        return await QUIZ_API(config)
+    } catch (refreshError) {
+        // Refresh token cũng không dùng được nữa (hết hạn/đã bị thu hồi qua "Đăng xuất khỏi mọi
+        // thiết bị", hoặc account đã bị xoá) - dọn sạch, để lỗi 401 gốc rơi xuống như cũ.
+        LocalStorage.deleteToken()
+        LocalStorage.deleteRefreshToken()
+        return null
+    }
+}
 
 // Response 2xx: quiz-service's BaseCtl.ok(...) luôn trả { success:true, code:"COMMON_000",
 // message, data, timestamp } khi request tới được đây (mọi lỗi nghiệp vụ đều throw exception ->
@@ -91,12 +136,25 @@ QUIZ_API.interceptors.response.use((response) => {
         data: body.data
     }
     return response
-}, (error) => {
+}, async (error) => {
     // Bắt lỗi ở ĐÂY (trước khi bất kỳ ai khác kịp vứt bỏ error.response.data) để giữ được đúng
     // message/code thật quiz-service trả về (vd "Subject still has lessons - delete its lessons
     // first" / "QUIZ_005"), thay vì chỉ có statusText chung chung ("Conflict").
     try {
         const status: number | undefined = error?.response?.status
+
+        // 401 = access token thiếu/sai/hết hạn (JwtAuthFilter.java) HOẶC account không còn tồn
+        // tại/đã bị force-logout (tokenVersion không khớp, xem JwtAuthFilter's tokenVersion
+        // re-check) - thử refresh trước khi coi đây là lỗi thật. tryRefreshAndRetry tự lo phần
+        // "không đủ điều kiện" (vd đây chính là request đăng nhập sai mật khẩu - QUIZ_004 cũng là
+        // 401 - không nên thử refresh cho trường hợp đó, xem hàm này's guard theo QUIZ_AUTH_PREFIX).
+        if (status === 401) {
+            const retried = await tryRefreshAndRetry(error)
+            if (retried) {
+                return retried
+            }
+        }
+
         const body = error?.response?.data // ApiResponse.error(...): { success:false, code, message, timestamp }
         if (status && body) {
             return Promise.resolve({

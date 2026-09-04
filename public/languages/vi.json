@@ -465,6 +465,22 @@
     "quiz-speaking-text-label": "Câu trả lời (gõ chữ)",
     "quiz-speaking-text-hint": "Nhập câu trả lời của em vào đây...",
     "quiz-speaking-typed-answer-label": "Câu trả lời gõ chữ",
-    "quiz-view-answers": "Xem đáp án"
+    "quiz-view-answers": "Xem đáp án",
+    "quiz-admin-login-link": "Đăng nhập quản trị viên",
+    "quiz-admin-login-title": "Đăng nhập quản trị viên",
+    "quiz-back-to-user-login": "Quay lại đăng nhập Phụ huynh/Học sinh",
+    "quiz-admin-parents": "Quản lý phụ huynh",
+    "quiz-admin-parent-new": "Thêm phụ huynh",
+    "quiz-admin-parent-created": "Đã thêm phụ huynh",
+    "quiz-admin-parent-active-updated": "Đã cập nhật trạng thái tài khoản",
+    "quiz-admin-parent-deleted": "Đã xoá phụ huynh",
+    "quiz-admin-delete-parent-confirm": "Bạn có chắc muốn xoá phụ huynh này không? TOÀN BỘ dữ liệu của phụ huynh này (lớp học, môn học, bài học, câu hỏi, đề kiểm tra, học sinh, kết quả...) sẽ bị xoá VĨNH VIỄN. Hành động này không thể hoàn tác.",
+    "quiz-admin-parent-active": "Đang hoạt động",
+    "quiz-admin-parent-inactive": "Đã khoá",
+    "quiz-admin-activate": "Mở lại",
+    "quiz-admin-deactivate": "Khoá",
+    "quiz-admin-activate-confirm": "Bạn có chắc muốn mở lại tài khoản phụ huynh này? Phụ huynh sẽ đăng nhập lại được như bình thường.",
+    "quiz-admin-deactivate-confirm": "Bạn có chắc muốn khoá tài khoản phụ huynh này? Phụ huynh và toàn bộ học sinh của họ sẽ bị đăng xuất ngay lập tức và không thể đăng nhập lại cho tới khi được mở lại.",
+    "QUIZ_027": "Tài khoản này đã bị quản trị viên khoá"
   }
 }

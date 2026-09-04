@@ -2,7 +2,7 @@ import { QuizAuthApi } from "../../api/QuizAuthApi";
 import { IBlocUI } from "../../base/IBlocUI";
 import LocalStorage from "../../base/LocalStorage";
 
-export type QuizLoginRole = 'parent' | 'student';
+export type QuizLoginRole = 'parent' | 'student' | 'admin';
 
 // Bloc đăng nhập THẬT cho Hiểu Bài (quiz-service) - khác BlocLogin.ts (giữ nguyên 100%, chỉ còn
 // dùng để minh hoạ pattern cũ, không gắn vào route /login nữa - xem Login.tsx).
@@ -30,9 +30,15 @@ export class BlocQuizLogin extends IBlocUI {
             return
         }
         this.setStream('submitting', true)
+        // 2026-09-04: thêm nhánh 'admin' (AdminLogin.tsx gọi doLogin() y hệt Login.tsx, chỉ khác
+        // là tự setStream('role','admin') trước - xem AdminLogin.tsx) - dùng lại đúng field
+        // identifier/password (Admin đăng nhập bằng email, giống Parent - xem
+        // QuizAuthApi.ts's loginAdmin).
         const request = role === 'parent'
             ? QuizAuthApi.loginParent(req.identifier, req.password)
-            : QuizAuthApi.loginStudent(req.identifier, req.password)
+            : role === 'student'
+                ? QuizAuthApi.loginStudent(req.identifier, req.password)
+                : QuizAuthApi.loginAdmin(req.identifier, req.password)
 
         this.apiRequest(request, (res: any) => {
             this.setStream('submitting', false)
@@ -82,11 +88,19 @@ export class BlocQuizLogin extends IBlocUI {
     }
 
     // Lưu token thủ công (xem ghi chú ở đầu file) - dùng chung cho cả login và register vì cả 2
-    // đều trả về đúng {data:{token, parent|student}}.
+    // đều trả về đúng {data:{accessToken, refreshToken, parent|student}}.
+    //
+    // 2026-09-04: backend đổi field {token} -> {accessToken, refreshToken} (thêm refresh token,
+    // xem AuthService.java's javadoc + QuizApiService.ts's error interceptor) - đổi đúng 1 chỗ
+    // đọc field ở đây, không đổi gì khác trong luồng login/register.
     private handleAuthSuccess(role: QuizLoginRole, res: any, onComplete: { (res: any): void }) {
-        const token: string | undefined = res?.data?.token
-        const profile = role === 'parent' ? res?.data?.parent : res?.data?.student
-        LocalStorage.setItem('token', token ?? '')
+        const accessToken: string | undefined = res?.data?.accessToken
+        const refreshToken: string | undefined = res?.data?.refreshToken
+        // 2026-09-04: AdminAuthResponse.java trả {..., admin} (khác {..., parent}/{..., student}) -
+        // thêm nhánh thứ 3 tương ứng.
+        const profile = role === 'parent' ? res?.data?.parent : (role === 'student' ? res?.data?.student : res?.data?.admin)
+        LocalStorage.setItem('token', accessToken ?? '')
+        LocalStorage.setRefreshToken(refreshToken ?? '')
         LocalStorage.setItem('quizRole', role)
         LocalStorage.setItem('quizProfile', JSON.stringify(profile ?? {}))
         //fullName

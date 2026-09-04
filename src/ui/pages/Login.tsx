@@ -150,6 +150,19 @@ export default function Login() {
                         );
                     }}
                 />
+
+                <Stack sx={{ mt: 2 }}>
+                    <Typography variant="body2" sx={{ textAlign: 'center' }}>
+                        {/* 2026-09-04 - "thêm link đăng nhập cho tài khoản quản trị" (yêu cầu của anh) -
+                            link nhỏ, không nổi bật (Admin không phải role công khai như Phụ huynh/Học
+                            sinh ở ToggleButtonGroup trên, không cần quảng bá) trỏ sang trang đăng nhập
+                            RIÊNG /admin/login (xem AdminLogin.tsx) thay vì thêm 'admin' vào
+                            ToggleButtonGroup này - tách hẳn khỏi luồng đăng nhập công khai. */}
+                        <Link component={RouterLink} to="/admin/login" color="text.secondary">
+                            {t('quiz-admin-login-link')}
+                        </Link>
+                    </Typography>
+                </Stack>
             </Paper>
         </Box>
     );

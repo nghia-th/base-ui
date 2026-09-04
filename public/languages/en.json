@@ -465,6 +465,22 @@
     "quiz-speaking-text-label": "Answer (typed)",
     "quiz-speaking-text-hint": "Type your answer here...",
     "quiz-speaking-typed-answer-label": "Typed answer",
-    "quiz-view-answers": "View answers"
+    "quiz-view-answers": "View answers",
+    "quiz-admin-login-link": "Administrator login",
+    "quiz-admin-login-title": "Administrator login",
+    "quiz-back-to-user-login": "Back to Parent/Student login",
+    "quiz-admin-parents": "Manage parents",
+    "quiz-admin-parent-new": "Add parent",
+    "quiz-admin-parent-created": "Parent added",
+    "quiz-admin-parent-active-updated": "Account status updated",
+    "quiz-admin-parent-deleted": "Parent deleted",
+    "quiz-admin-delete-parent-confirm": "Are you sure you want to delete this parent? ALL of this parent's data (classrooms, subjects, lessons, questions, tests, students, results...) will be PERMANENTLY deleted. This action cannot be undone.",
+    "quiz-admin-parent-active": "Active",
+    "quiz-admin-parent-inactive": "Deactivated",
+    "quiz-admin-activate": "Activate",
+    "quiz-admin-deactivate": "Deactivate",
+    "quiz-admin-activate-confirm": "Are you sure you want to reactivate this parent's account? They will be able to log in normally again.",
+    "quiz-admin-deactivate-confirm": "Are you sure you want to deactivate this parent's account? The parent and all of their students will be logged out immediately and unable to log in again until reactivated.",
+    "QUIZ_027": "This account has been deactivated by an administrator"
   }
 }

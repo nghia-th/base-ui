@@ -127,3 +127,16 @@ export const STUDENT_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
     flatten(STUDENT_MENU_DATA, out)
     return out
 })()
+
+// Menu khu vực Admin (/app/admin/*, 2026-09-04) - Admin chỉ quản trị tài khoản Phụ huynh trong v1
+// (list/create/khoá-mở/xoá, xem AdminParentApi.java) - không có dashboard riêng, giống Học sinh
+// (STUDENT_MENU_DATA ở trên) chỉ xoay quanh đúng 1 việc nên KHÔNG cần trang tổng quan trung gian.
+export const ADMIN_MENU_DATA: MenuItem[] = [
+    { label: 'quiz-admin-parents', icon: 'PeopleOutlined', to: '/app/admin/parents', items: null, section: 'menu-section-main' }
+]
+
+export const ADMIN_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
+    const out: BreadcrumbItem[] = []
+    flatten(ADMIN_MENU_DATA, out)
+    return out
+})()
