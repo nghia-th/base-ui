@@ -38,6 +38,7 @@ import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
 import HelpOutlineOutlined from "@mui/icons-material/HelpOutlineOutlined";
 import VolumeUpOutlined from "@mui/icons-material/VolumeUpOutlined";
+import VideocamOutlined from "@mui/icons-material/VideocamOutlined";
 import RecordVoiceOverOutlined from "@mui/icons-material/RecordVoiceOverOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import { BlocParentQuestions, QuizQuestion, QuizImportResult } from "../../bloc/BlocParentQuestions";
@@ -108,6 +109,13 @@ export default function Questions() {
         e.target.value = '';
         if (!file) return;
         bloc.uploadAudioForCurrentQuestion(file, showError);
+    };
+
+    const onVideoFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        bloc.uploadVideoForCurrentQuestion(file, showError);
     };
 
     return (
@@ -248,6 +256,7 @@ export default function Questions() {
                                                             <Typography sx={{ flexGrow: 1 }}>{qi + 1}. {q.content}</Typography>
                                                             {q.questionType === 'SPEAKING' && <RecordVoiceOverOutlined fontSize="small" color="action" titleAccess={t('quiz-question-type-speaking') as string} />}
                                                             {q.hasAudio && <VolumeUpOutlined fontSize="small" color="action" titleAccess={t('quiz-question-has-audio') as string} />}
+                                                            {q.hasVideo && <VideocamOutlined fontSize="small" color="action" titleAccess={t('quiz-question-has-video') as string} />}
                                                             {q.knowledgeTag && <Chip size="small" label={q.knowledgeTag} />}
                                                             <IconButton size="small" onClick={(e) => { e.stopPropagation(); bloc.openEditQuestion(q); }}>
                                                                 <EditOutlined fontSize="small" />
@@ -454,11 +463,77 @@ export default function Questions() {
                                                                                     )}
                                                                                 />
                                                                             </Stack>
+                                                                        </Stack>
+                                                                    )}
+                                                                </Box>
+
+                                                                    <Box>
+                                                                        <Typography variant="subtitle2" sx={{ mb: 1 }}>{t('quiz-question-video')}</Typography>
+                                                                        {!isEditing ? (
+                                                                            <Typography variant="body2" color="text.secondary">{t('quiz-question-video-save-first')}</Typography>
+                                                                        ) : (
+                                                                            <Stack spacing={1}>
+                                                                                <UIStream
+                                                                                    initialData={false}
+                                                                                    stream={bloc.getStream('questionVideoLoading')}
+                                                                                    builder={(loadingSnap) => (
+                                                                                        loadingSnap.data === true ? (
+                                                                                            <CircularProgress size={32} />
+                                                                                        ) : (
+                                                                                            <UIStream
+                                                                                                initialData={null}
+                                                                                                stream={bloc.getStream('questionVideoPreviewUrl')}
+                                                                                                builder={(urlSnap) => (
+                                                                                                    urlSnap.data ? (
+                                                                                                        <Box component="video" controls src={urlSnap.data} sx={{ height: 160, maxWidth: 280, borderRadius: 1 }} />
+                                                                                                    ) : null
+                                                                                                )}
+                                                                                            />
+                                                                                        )
+                                                                                    )}
+                                                                                />
+                                                                                <Stack direction="row" spacing={1}>
+                                                                                    <UIStream
+                                                                                        initialData={false}
+                                                                                        stream={bloc.getStream('questionVideoUploading')}
+                                                                                        builder={(uploadingSnap) => (
+                                                                                            <Button
+                                                                                                component="label"
+                                                                                                variant="outlined"
+                                                                                                size="small"
+                                                                                                startIcon={<VideocamOutlined />}
+                                                                                                disabled={uploadingSnap.data === true}
+                                                                                            >
+                                                                                                {uploadingSnap.data === true ? t('quiz-question-video-uploading') : t('quiz-question-video-upload')}
+                                                                                                <input type="file" accept="video/mp4,video/webm,video/quicktime,video/ogg" hidden onChange={onVideoFileSelected} />
+                                                                                            </Button>
+                                                                                        )}
+                                                                                    />
+                                                                                    <UIStream
+                                                                                        initialData={false}
+                                                                                        stream={bloc.getStream('questionHasVideo')}
+                                                                                        builder={(hasVideoSnap) => (
+                                                                                            hasVideoSnap.data === true ? (
+                                                                                                <Button color="error" size="small" onClick={() => bloc.removeVideoForCurrentQuestion(showError)}>
+                                                                                                    {t('quiz-question-video-remove')}
+                                                                                                </Button>
+                                                                                            ) : null
+                                                                                        )}
+                                                                                    />
+                                                                                </Stack>
+                                                                            </Stack>
+                                                                        )}
+                                                                    </Box>
+
+                                                                    <UIStream
+                                                                        initialData={false}
+                                                                        stream={bloc.getStream('questionHasAudio')}
+                                                                        builder={(hasAudioSnap) => (
                                                                             <UIStream
                                                                                 initialData={false}
-                                                                                stream={bloc.getStream('questionHasAudio')}
-                                                                                builder={(hasAudioSnap) => (
-                                                                                    hasAudioSnap.data === true ? (
+                                                                                stream={bloc.getStream('questionHasVideo')}
+                                                                                builder={(hasVideoSnap) => (
+                                                                                    (hasAudioSnap.data === true || hasVideoSnap.data === true) ? (
                                                                                         <UIStream
                                                                                             initialData={false}
                                                                                             stream={bloc.getStream('hideContentInTest')}
@@ -472,9 +547,8 @@ export default function Questions() {
                                                                                     ) : null
                                                                                 )}
                                                                             />
-                                                                        </Stack>
-                                                                    )}
-                                                                </Box>
+                                                                        )}
+                                                                    />
                                                             </Stack>
                                                         </DialogContent>
                                                         <DialogActions>

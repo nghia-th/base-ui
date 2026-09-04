@@ -1,5 +1,5 @@
 import { IBlocUI } from "../../base/IBlocUI";
-import { QuizQuestionApi, QuizQuestionRequest, quizImportQuestions, quizUploadQuestionAudio } from "../../api/QuizQuestionApi";
+import { QuizQuestionApi, QuizQuestionRequest, quizImportQuestions, quizUploadQuestionAudio, quizUploadQuestionVideo } from "../../api/QuizQuestionApi";
 import { QuizSubjectApi } from "../../api/QuizSubjectApi";
 import { QuizLessonApi } from "../../api/QuizLessonApi";
 import { QuizClassroomApi } from "../../api/QuizClassroomApi";
@@ -30,6 +30,7 @@ export interface QuizQuestion {
     knowledgeTag?: string;
     choices: QuizChoice[];
     hasAudio: boolean;
+    hasVideo: boolean;
     hideContentInTest: boolean;
     // Khớp QuestionResponse.java's questionType (2026-09-01, "Câu hỏi dạng tự luận/thu âm") -
     // "MULTIPLE_CHOICE" (câu trắc nghiệm như cũ, choices luôn có) hoặc "SPEAKING" (học sinh trả
@@ -188,6 +189,10 @@ export class BlocParentQuestions extends IBlocUI {
         this.setStream('questionAudioPreviewUrl', null)
         this.setStream('questionAudioLoading', false)
         this.setStream('questionAudioUploading', false)
+        this.setStream('questionHasVideo', false)
+        this.setStream('questionVideoPreviewUrl', null)
+        this.setStream('questionVideoLoading', false)
+        this.setStream('questionVideoUploading', false)
         this.setStream('question_form_view', { isShow: true, id: 0 })
     }
 
@@ -203,8 +208,13 @@ export class BlocParentQuestions extends IBlocUI {
         this.setStream('questionAudioPreviewUrl', null)
         this.setStream('questionAudioLoading', false)
         this.setStream('questionAudioUploading', false)
+        this.setStream('questionHasVideo', q.hasVideo)
+        this.setStream('questionVideoPreviewUrl', null)
+        this.setStream('questionVideoLoading', false)
+        this.setStream('questionVideoUploading', false)
         this.setStream('question_form_view', { isShow: true, id: q.id })
         if (q.hasAudio) this.loadQuestionAudioPreview(q.id)
+        if (q.hasVideo) this.loadQuestionVideoPreview(q.id)
     }
 
     // Đổi "Loại trả lời" (thu âm/tự luận/cả 2) trong Dialog câu SPEAKING (thêm 2026-09-01, theo
@@ -234,12 +244,19 @@ export class BlocParentQuestions extends IBlocUI {
         this.setStream('question_form_view', { isShow: false, id: 0 })
         this.setStream('submitting', false)
         this.revokeQuestionAudioPreview()
+        this.revokeQuestionVideoPreview()
     }
 
     private revokeQuestionAudioPreview() {
         const old = this.getField('questionAudioPreviewUrl')
         if (old) URL.revokeObjectURL(old)
         this.setStream('questionAudioPreviewUrl', null)
+    }
+
+    private revokeQuestionVideoPreview() {
+        const old = this.getField('questionVideoPreviewUrl')
+        if (old) URL.revokeObjectURL(old)
+        this.setStream('questionVideoPreviewUrl', null)
     }
 
     // responseType:'blob' -> CallApi.ts's nhánh blob trả {data,disposition} - xem
@@ -298,6 +315,61 @@ export class BlocParentQuestions extends IBlocUI {
         this.apiRequest(QuizQuestionApi.removeAudio(view.id), () => {
             this.setStream('questionHasAudio', false)
             this.revokeQuestionAudioPreview()
+            const lessonId = this.getField('filterLessonId')
+            if (lessonId) this.loadQuestions(lessonId)
+        }, { onError })
+    }
+
+    // ================= Video câu hỏi (2026-09-04, phần 3/4) - y hệt khối audio ở trên =================
+
+    loadQuestionVideo(id: number, onData: (blob: Blob) => void, onError: (error: any) => void) {
+        this.apiRequest(QuizQuestionApi.getVideo(id), (res: any) => {
+            onData(res.data as Blob)
+        }, { onError })
+    }
+
+    loadQuestionVideoPreview(id: number) {
+        this.setStream('questionVideoLoading', true)
+        this.loadQuestionVideo(id, (blob) => {
+            this.setStream('questionVideoLoading', false)
+            const old = this.getField('questionVideoPreviewUrl')
+            if (old) URL.revokeObjectURL(old)
+            this.setStream('questionVideoPreviewUrl', URL.createObjectURL(blob))
+        }, () => { this.setStream('questionVideoLoading', false) })
+    }
+
+    async uploadQuestionVideo(id: number, file: File, onComplete: () => void, onError: (error: any) => void) {
+        try {
+            const res = await quizUploadQuestionVideo(id, file)
+            if (res.code === 100) {
+                onComplete()
+            } else {
+                onError(res)
+            }
+        } catch (e) {
+            onError(e)
+        }
+    }
+
+    uploadVideoForCurrentQuestion(file: File, onError: (error: any) => void) {
+        const view = this.getField('question_form_view') ?? {}
+        if ((view.id ?? 0) <= 0) return
+        this.setStream('questionVideoUploading', true)
+        this.uploadQuestionVideo(view.id, file, () => {
+            this.setStream('questionVideoUploading', false)
+            this.setStream('questionHasVideo', true)
+            this.loadQuestionVideoPreview(view.id)
+            const lessonId = this.getField('filterLessonId')
+            if (lessonId) this.loadQuestions(lessonId)
+        }, (error) => { this.setStream('questionVideoUploading', false); onError(error) })
+    }
+
+    removeVideoForCurrentQuestion(onError: (error: any) => void) {
+        const view = this.getField('question_form_view') ?? {}
+        if ((view.id ?? 0) <= 0) return
+        this.apiRequest(QuizQuestionApi.removeVideo(view.id), () => {
+            this.setStream('questionHasVideo', false)
+            this.revokeQuestionVideoPreview()
             const lessonId = this.getField('filterLessonId')
             if (lessonId) this.loadQuestions(lessonId)
         }, { onError })

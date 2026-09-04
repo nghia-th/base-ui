@@ -20,6 +20,7 @@ export interface QuizStudentQuestion {
     lessonId: number;
     content: string | null;
     hasAudio: boolean;
+    hasVideo: boolean;
     choices: QuizStudentChoice[];
     // Thêm 2026-09-01, tính năng "Câu hỏi dạng tự luận/thu âm" - SPEAKING thì choices luôn rỗng
     // (không có đáp án đúng/sai để chọn), xem TakeTest.tsx nhánh hiện nút ghi âm thay vì RadioGroup.
@@ -184,6 +185,24 @@ export class BlocStudentAttempt extends IBlocUI {
         }, {
             onError: (error: any) => {
                 this.setStream('audioLoadingIds', { ...(this.getField('audioLoadingIds') ?? {}), [questionId]: false })
+                onError(error)
+            }
+        })
+    }
+
+    // Xem video câu hỏi (2026-09-04, phần 3/4 "Câu hỏi dạng video") - CÙNG PATTERN loadQuestionAudio
+    // ở trên (cache theo questionId, không giới hạn số lần xem lại, không revoke url câu khác).
+    loadQuestionVideo(questionId: number, onError: (error: any) => void) {
+        const urls = this.getField('videoUrls') ?? {}
+        if (urls[questionId]) return
+        this.setStream('videoLoadingIds', { ...(this.getField('videoLoadingIds') ?? {}), [questionId]: true })
+        this.apiRequest(QuizStudentAttemptApi.getQuestionVideo(questionId), (res: any) => {
+            const nextUrls = { ...(this.getField('videoUrls') ?? {}), [questionId]: URL.createObjectURL(res.data as Blob) }
+            this.setStream('videoUrls', nextUrls)
+            this.setStream('videoLoadingIds', { ...(this.getField('videoLoadingIds') ?? {}), [questionId]: false })
+        }, {
+            onError: (error: any) => {
+                this.setStream('videoLoadingIds', { ...(this.getField('videoLoadingIds') ?? {}), [questionId]: false })
                 onError(error)
             }
         })

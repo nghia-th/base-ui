@@ -481,6 +481,18 @@
     "quiz-admin-deactivate": "Khoá",
     "quiz-admin-activate-confirm": "Bạn có chắc muốn mở lại tài khoản phụ huynh này? Phụ huynh sẽ đăng nhập lại được như bình thường.",
     "quiz-admin-deactivate-confirm": "Bạn có chắc muốn khoá tài khoản phụ huynh này? Phụ huynh và toàn bộ học sinh của họ sẽ bị đăng xuất ngay lập tức và không thể đăng nhập lại cho tới khi được mở lại.",
-    "QUIZ_027": "Tài khoản này đã bị quản trị viên khoá"
+    "QUIZ_027": "Tài khoản này đã bị quản trị viên khoá",
+    "quiz-question-video": "Video câu hỏi",
+    "quiz-question-video-save-first": "Lưu câu hỏi trước khi tải video",
+    "quiz-question-video-upload": "Tải video lên",
+    "quiz-question-video-uploading": "Đang tải lên...",
+    "quiz-question-video-remove": "Xoá video",
+    "quiz-question-has-video": "Câu hỏi có video",
+    "quiz-question-video-play": "Xem video",
+    "quiz-question-video-loading": "Đang tải...",
+    "quiz-question-video-only-hint": "Xem video và chọn đáp án",
+    "quiz-question-media-only-hint": "Nghe audio/xem video và chọn đáp án",
+    "QUIZ_028": "Video câu hỏi phải là file MP4, WebM, MOV hoặc OGG",
+    "QUIZ_029": "Video câu hỏi phải nhỏ hơn hoặc bằng 50MB"
   }
 }

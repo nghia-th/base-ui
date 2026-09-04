@@ -66,6 +66,11 @@ export class QuizStudentAttemptApi {
         return QuizRequestBase.get(`${QUIZ_STUDENT_PREFIX}/questions/${questionId}/audio`, { responseType: 'blob' });
     }
 
+    // Tải video câu hỏi (tính năng "Câu hỏi dạng video", 2026-09-04 phần 3/4) - y hệt getQuestionAudio ở trên.
+    static getQuestionVideo(questionId: number) {
+        return QuizRequestBase.get(`${QUIZ_STUDENT_PREFIX}/questions/${questionId}/video`, { responseType: 'blob' });
+    }
+
     // Câu hỏi dạng tự luận/thu âm (2026-09-01) - phát lại câu trả lời ĐÃ ghi âm của chính học sinh,
     // cùng lý do responseType:'blob' như getQuestionAudio ở trên. Hoạt động cả lúc đang làm bài lẫn
     // sau khi đã nộp (xem StudentAttemptApi.java's javadoc).

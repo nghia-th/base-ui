@@ -19,6 +19,7 @@ import DialogActions from "@mui/material/DialogActions";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 import VolumeUpOutlined from "@mui/icons-material/VolumeUpOutlined";
+import VideocamOutlined from "@mui/icons-material/VideocamOutlined";
 import MicOutlined from "@mui/icons-material/MicOutlined";
 import StopCircleOutlined from "@mui/icons-material/StopCircleOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
@@ -67,6 +68,7 @@ export default function TakeTest() {
     const askSubmit = () => bloc.doSubmit(showError);
     const openLessonDialog = (lessonId: number) => bloc.openLessonDialog(lessonId, showError);
     const playQuestionAudio = (questionId: number) => bloc.loadQuestionAudio(questionId, showError);
+    const playQuestionVideo = (questionId: number) => bloc.loadQuestionVideo(questionId, showError);
     const startRecording = (questionId: number) => bloc.startRecording(questionId, showError);
     // Read attemptId at call time. TakeTest doesn't subscribe to the attemptId stream, so it never
     // re-renders after startAttempt sets it - a top-level const would stay stale (null) and silently
@@ -190,7 +192,7 @@ export default function TakeTest() {
                                                         <Card key={q.questionId} sx={{ p: { xs: 2, sm: 3 } }}>
                                                             <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={1} sx={{ mb: 1 }}>
                                                                 <Typography variant="body1" fontWeight={700}>
-                                                                    {i + 1}. {q.content ?? t('quiz-question-audio-only-hint')}
+                                                                    {i + 1}. {q.content ?? (q.hasAudio && q.hasVideo ? t('quiz-question-media-only-hint') : q.hasVideo ? t('quiz-question-video-only-hint') : t('quiz-question-audio-only-hint'))}
                                                                 </Typography>
                                                                 <Button
                                                                     size="small"
@@ -224,6 +226,36 @@ export default function TakeTest() {
                                                                                         sx={{ mb: 1.5 }}
                                                                                     >
                                                                                         {(loadingSnap.data ?? {})[q.questionId] === true ? t('quiz-question-audio-loading') : t('quiz-question-audio-play')}
+                                                                                    </Button>
+                                                                                )}
+                                                                            />
+                                                                        );
+                                                                    }}
+                                                                />
+                                                            )}
+                                                            {q.hasVideo && (
+                                                                <UIStream
+                                                                    initialData={null}
+                                                                    stream={bloc.getStream('videoUrls')}
+                                                                    builder={(urlsSnap) => {
+                                                                        const url = (urlsSnap.data ?? {})[q.questionId];
+                                                                        if (url) {
+                                                                            return <Box component="video" controls src={url} sx={{ maxHeight: 240, mb: 1.5, maxWidth: 360, display: 'block' }} />;
+                                                                        }
+                                                                        return (
+                                                                            <UIStream
+                                                                                initialData={null}
+                                                                                stream={bloc.getStream('videoLoadingIds')}
+                                                                                builder={(loadingSnap) => (
+                                                                                    <Button
+                                                                                        size="small"
+                                                                                        variant="outlined"
+                                                                                        startIcon={<VideocamOutlined />}
+                                                                                        disabled={(loadingSnap.data ?? {})[q.questionId] === true}
+                                                                                        onClick={() => playQuestionVideo(q.questionId)}
+                                                                                        sx={{ mb: 1.5 }}
+                                                                                    >
+                                                                                        {(loadingSnap.data ?? {})[q.questionId] === true ? t('quiz-question-video-loading') : t('quiz-question-video-play')}
                                                                                     </Button>
                                                                                 )}
                                                                             />

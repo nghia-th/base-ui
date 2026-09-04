@@ -65,6 +65,16 @@ export class QuizQuestionApi {
     static removeAudio(id: number) {
         return QuizRequestBase.delete(`${QUIZ_PARENT_PREFIX}/questions/${id}/audio`);
     }
+
+    // Video câu hỏi (2026-09-04, phần 3/4) - cùng lý do/cách làm y hệt getAudio/removeAudio ở trên
+    // (endpoint cần header Authorization nên phải tải qua blob, không dùng thẳng <video src>).
+    static getVideo(id: number) {
+        return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/questions/${id}/video`, { responseType: 'blob' });
+    }
+
+    static removeVideo(id: number) {
+        return QuizRequestBase.delete(`${QUIZ_PARENT_PREFIX}/questions/${id}/video`);
+    }
 }
 
 // Upload audio (multipart/form-data) - gọi thẳng QUIZ_API, cùng lý do + cách sửa hệt
@@ -74,6 +84,17 @@ export async function quizUploadQuestionAudio(questionId: number, file: File) {
     const formData = new FormData();
     formData.append('file', file);
     const res = await QUIZ_API.post(`${QUIZ_PARENT_PREFIX}/questions/${questionId}/audio`, formData, {
+        headers: { 'Content-Type': undefined }
+    });
+    return res.data;
+}
+
+// Upload video (multipart/form-data, 2026-09-04 phần 3/4) - y hệt quizUploadQuestionAudio ở trên,
+// cùng bug fix Content-Type: undefined đã ghi chú đầy đủ phía dưới.
+export async function quizUploadQuestionVideo(questionId: number, file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await QUIZ_API.post(`${QUIZ_PARENT_PREFIX}/questions/${questionId}/video`, formData, {
         headers: { 'Content-Type': undefined }
     });
     return res.data;

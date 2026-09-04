@@ -481,6 +481,18 @@
     "quiz-admin-deactivate": "Deactivate",
     "quiz-admin-activate-confirm": "Are you sure you want to reactivate this parent's account? They will be able to log in normally again.",
     "quiz-admin-deactivate-confirm": "Are you sure you want to deactivate this parent's account? The parent and all of their students will be logged out immediately and unable to log in again until reactivated.",
-    "QUIZ_027": "This account has been deactivated by an administrator"
+    "QUIZ_027": "This account has been deactivated by an administrator",
+    "quiz-question-video": "Question video",
+    "quiz-question-video-save-first": "Save the question before uploading video",
+    "quiz-question-video-upload": "Upload video",
+    "quiz-question-video-uploading": "Uploading...",
+    "quiz-question-video-remove": "Remove video",
+    "quiz-question-has-video": "Question has video",
+    "quiz-question-video-play": "Watch video",
+    "quiz-question-video-loading": "Loading...",
+    "quiz-question-video-only-hint": "Watch the video and choose an answer",
+    "quiz-question-media-only-hint": "Listen/watch and choose an answer",
+    "QUIZ_028": "Question video must be an MP4, WebM, MOV or OGG file",
+    "QUIZ_029": "Question video must be 50MB or smaller"
   }
 }
