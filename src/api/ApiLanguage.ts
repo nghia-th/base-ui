@@ -8,9 +8,9 @@ import { BASE_URL } from "../base/PrefixService";
 export class ApiLanguage {
     static lang(lang: string | null = 'vi'): RequestBase {
         // return RequestBase.get(`/languages/${lang}.json`)
-        if(process.env!.NODE_ENV === "development"){
-            return RequestBase.get(BASE_URL+"/public/language/"+lang)
-        }
+        // if(process.env!.NODE_ENV === "development"){
+        //     return RequestBase.get(BASE_URL+"/public/language/"+lang)
+        // }
         return RequestBase.get(`/languages/${lang}.json`)
     }
     static list(): RequestBase {

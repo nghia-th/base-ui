@@ -5,27 +5,28 @@ import { QUIZ_PARENT_PREFIX } from "../base/PrefixService";
 // bieu" - phan 1: CRUD cho Phu huynh). dayOfWeek: 1=Thu Hai..7=Chu Nhat (khop
 // java.time.DayOfWeek#getValue(), ISO-8601) - dung chung o ca frontend lan backend, khong dich
 // nguoc lai kieu 0-based/Chu Nhat dau tuan.
+//
+// Doi tu gan Lesson cu the sang chi gan Subject (2026-09-06, sau khi anh test ban dau va yeu cau
+// "thoi khoa bieu la: toan, anh van, hoa") - khong con lessonId/lessonName nua, xem
+// TimetableEntry.java's javadoc ben backend.
 export interface QuizTimetableEntry {
     id: number;
     dayOfWeek: number;
-    lessonId: number;
-    lessonName: string;
     subjectId: number;
     subjectName: string;
     orderIndex: number;
 }
 
 export interface QuizTimetableDayRequest {
-    lessonIds: number[];
+    subjectIds: number[];
 }
 
 // Khop LessonPreparationStatus.java (dot 11 yeu cau, item 10 - "phu huynh xem duoc con da chuan
 // bi bai cho ngay mai hay chua"). Y het QuizLessonPreparationStatus ben QuizStudentPreparationApi
 // (cung 1 DTO backend tra ve cho ca 2 phia) - khai bao rieng o day theo dung convention "moi file
-// API tu khai bao interface rieng, khong import cheo" cua du an nay.
+// API tu khai bao interface rieng, khong import cheo" cua du an nay. Doi sang subjectId/subjectName
+// (2026-09-06, cung revision voi QuizTimetableEntry o tren).
 export interface QuizTimetableLessonPreparation {
-    lessonId: number;
-    lessonName: string;
     subjectId: number;
     subjectName: string;
     orderIndex: number;
@@ -40,8 +41,8 @@ export class QuizTimetableApi {
         return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/classrooms/${classroomId}/timetable`);
     }
 
-    // THAY TOAN BO danh sach bai hoc cua 1 ngay trong 1 lan goi (khong phai them/xoa tung dong) -
-    // lessonIds rong = xoa trong ngay do. Xem TimetableService#setDay's javadoc ben backend.
+    // THAY TOAN BO danh sach mon hoc cua 1 ngay trong 1 lan goi (khong phai them/xoa tung dong) -
+    // subjectIds rong = xoa trong ngay do. Xem TimetableService#setDay's javadoc ben backend.
     static setDay(classroomId: number, dayOfWeek: number, request: QuizTimetableDayRequest) {
         return QuizRequestBase.put(`${QUIZ_PARENT_PREFIX}/classrooms/${classroomId}/timetable/${dayOfWeek}`, request);
     }

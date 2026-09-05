@@ -4,11 +4,12 @@ import { QUIZ_STUDENT_PREFIX } from "../base/PrefixService";
 // Khop StudentTimetableApi.java (2026-09-05, item 5 trong dot 11 yeu cau - phan 2 cua tinh nang
 // "thoi khoa bieu"). Hoc sinh chi xem duoc dung Lop hoc cua minh nen khong co classroomId o day
 // (khac QuizTimetableApi.ts ben Phu huynh) - backend tu resolve tu Student dang dang nhap.
+//
+// Doi tu gan Lesson cu the sang chi gan Subject (2026-09-06) - khong con lessonId/lessonName nua,
+// xem TimetableEntry.java's javadoc ben backend.
 export interface QuizStudentTimetableEntry {
     id: number;
     dayOfWeek: number;
-    lessonId: number;
-    lessonName: string;
     subjectId: number;
     subjectName: string;
     orderIndex: number;

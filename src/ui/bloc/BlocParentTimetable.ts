@@ -1,7 +1,6 @@
 import { IBlocUI } from "../../base/IBlocUI";
 import { QuizClassroomApi } from "../../api/QuizClassroomApi";
 import { QuizSubjectApi } from "../../api/QuizSubjectApi";
-import { QuizLessonApi } from "../../api/QuizLessonApi";
 import { QuizTimetableApi, QuizTimetableEntry } from "../../api/QuizTimetableApi";
 
 // Chi lay field can dung o trang nay - moi Bloc "content" tu khai bao shape rieng, khong import
@@ -16,17 +15,10 @@ export interface QuizSubjectLite {
     name: string;
 }
 
-export interface QuizLessonLite {
-    id: number;
+// 1 dong dang soan trong Dialog sua 1 ngay - giu ca subjectName de hien thi ngay, khoi phai tra
+// cuu nguoc lai danh sach Subject moi lan render danh sach.
+export interface QuizTimetableDraftSubject {
     subjectId: number;
-    name: string;
-}
-
-// 1 dong dang soan trong Dialog sua 1 ngay - giu ca lessonName/subjectName de hien thi ngay,
-// khong can tra cuu nguoc lai lessonsBySubject moi lan render danh sach.
-export interface QuizTimetableDraftLesson {
-    lessonId: number;
-    lessonName: string;
     subjectName: string;
 }
 
@@ -34,12 +26,17 @@ export interface QuizTimetableDraftLesson {
 // cua tinh nang - CRUD cho Phu huynh, theo dung yeu cau "tao chuc nang thoi khoa bieu trong 1 tuan
 // cua con"). La bloc "content" (dung reUseBlocContent trong Timetable.tsx).
 //
-// Luong: chon 1 Lop (classroomId) -> tai ca tuan (getWeek, flat list) + tai Subject/Lesson cua lop
-// do de lam nguon chon trong Dialog sua tung ngay -> bam "Sua" 1 ngay mo Dialog voi danh sach nhap
-// nhap (draftLessons, mang OrderED, KHONG phai bloc stream rieng tung dong) -> Luu goi
-// setDay(classroomId, dayOfWeek, {lessonIds: draftLessons.map(...)}) THAY TOAN BO ngay do, roi tai
-// lai ca tuan tu response tra ve (khong can goi getWeek rieng, xem QuizTimetableApi#setDay tra ve
-// luon ca tuan da cap nhat, giong AdminCurriculumApi's tra ve luon list moi sau create/update).
+// Luong: chon 1 Lop (classroomId) -> tai ca tuan (getWeek, flat list) + tai Subject cua lop do de
+// lam nguon chon trong Dialog sua tung ngay -> bam "Sua" 1 ngay mo Dialog voi danh sach nhap nhap
+// (draftSubjects, mang OrderED, KHONG phai bloc stream rieng tung dong) -> Luu goi
+// setDay(classroomId, dayOfWeek, {subjectIds: draftSubjects.map(...)}) THAY TOAN BO ngay do, roi
+// tai lai ca tuan tu response tra ve (khong can goi getWeek rieng, xem QuizTimetableApi#setDay tra
+// ve luon ca tuan da cap nhat, giong AdminCurriculumApi's tra ve luon list moi sau create/update).
+//
+// Revision 2026-09-06: bo han khai niem chon Bai hoc (Lesson) trong Dialog nay - sau khi anh test
+// ban dau va yeu cau "thoi khoa bieu la: toan, anh van, hoa", 1 ngay chi con la danh sach Mon hoc
+// theo thu tu, khong gan Bai hoc cu the nua (xem BlocParentTimetable.ts's cac ham
+// loadSubjectsAndLessons/addDraftLesson cu, gio da doi thanh loadSubjects/addDraftSubject).
 export class BlocParentTimetable extends IBlocUI {
     async initData() {
         this.loadClassrooms();
@@ -61,9 +58,8 @@ export class BlocParentTimetable extends IBlocUI {
         this.setStream('selectedClassroomId', classroomId);
         this.setStream('week', null);
         this.setStream('subjects', []);
-        this.setStream('lessonsBySubject', {});
         this.loadWeek(classroomId);
-        this.loadSubjectsAndLessons(classroomId);
+        this.loadSubjects(classroomId);
     }
 
     loadWeek(classroomId: number) {
@@ -72,29 +68,19 @@ export class BlocParentTimetable extends IBlocUI {
         });
     }
 
-    loadSubjectsAndLessons(classroomId: number) {
+    loadSubjects(classroomId: number) {
         this.apiRequest(QuizSubjectApi.list(classroomId), (res) => {
-            const subjects = res.data as QuizSubjectLite[];
-            this.setStream('subjects', subjects);
-            // Tai Lesson cua tung Subject song song - moi request tra ve tu cap nhat 1 nhanh cua
-            // lessonsBySubject (khong cho het ca tuan roi moi hien, danh sach Subject/Lesson nay
-            // chi phuc vu Dialog chon, khong chan hien thi bang tuan chinh).
-            subjects.forEach((subject) => {
-                this.apiRequest(QuizLessonApi.list(subject.id), (lessonRes) => {
-                    const current = this.getField('lessonsBySubject') ?? {};
-                    this.setStream('lessonsBySubject', { ...current, [subject.id]: lessonRes.data as QuizLessonLite[] });
-                });
-            });
+            this.setStream('subjects', res.data as QuizSubjectLite[]);
         });
     }
 
     openDayEditor(dayOfWeek: number) {
         const week: QuizTimetableEntry[] = this.getField('week') ?? [];
-        const draft: QuizTimetableDraftLesson[] = week
+        const draft: QuizTimetableDraftSubject[] = week
             .filter((entry) => entry.dayOfWeek === dayOfWeek)
             .sort((a, b) => a.orderIndex - b.orderIndex)
-            .map((entry) => ({ lessonId: entry.lessonId, lessonName: entry.lessonName, subjectName: entry.subjectName }));
-        this.setStream('draftLessons', draft);
+            .map((entry) => ({ subjectId: entry.subjectId, subjectName: entry.subjectName }));
+        this.setStream('draftSubjects', draft);
         this.setStream('day_dialog_view', { isShow: true, dayOfWeek });
     }
 
@@ -102,35 +88,35 @@ export class BlocParentTimetable extends IBlocUI {
         this.setStream('day_dialog_view', { isShow: false, dayOfWeek: 0 });
     }
 
-    addDraftLesson(lesson: QuizTimetableDraftLesson) {
-        const draft: QuizTimetableDraftLesson[] = this.getField('draftLessons') ?? [];
-        // Bo qua neu da co san (1 Lesson khong nen xuat hien 2 lan trong cung 1 ngay).
-        if (draft.some((d) => d.lessonId === lesson.lessonId)) return;
-        this.setStream('draftLessons', [...draft, lesson]);
+    addDraftSubject(subject: QuizTimetableDraftSubject) {
+        const draft: QuizTimetableDraftSubject[] = this.getField('draftSubjects') ?? [];
+        // Bo qua neu da co san (1 Mon hoc khong nen xuat hien 2 lan trong cung 1 ngay).
+        if (draft.some((d) => d.subjectId === subject.subjectId)) return;
+        this.setStream('draftSubjects', [...draft, subject]);
     }
 
-    removeDraftLesson(index: number) {
-        const draft: QuizTimetableDraftLesson[] = [...(this.getField('draftLessons') ?? [])];
+    removeDraftSubject(index: number) {
+        const draft: QuizTimetableDraftSubject[] = [...(this.getField('draftSubjects') ?? [])];
         draft.splice(index, 1);
-        this.setStream('draftLessons', draft);
+        this.setStream('draftSubjects', draft);
     }
 
-    moveDraftLesson(index: number, direction: -1 | 1) {
-        const draft: QuizTimetableDraftLesson[] = [...(this.getField('draftLessons') ?? [])];
+    moveDraftSubject(index: number, direction: -1 | 1) {
+        const draft: QuizTimetableDraftSubject[] = [...(this.getField('draftSubjects') ?? [])];
         const target = index + direction;
         if (target < 0 || target >= draft.length) return;
         [draft[index], draft[target]] = [draft[target], draft[index]];
-        this.setStream('draftLessons', draft);
+        this.setStream('draftSubjects', draft);
     }
 
     saveDay(onComplete: () => void, onError: (error: any) => void) {
         const view = this.getField('day_dialog_view') ?? {};
         const classroomId: number | null = this.getField('selectedClassroomId') ?? null;
-        const draft: QuizTimetableDraftLesson[] = this.getField('draftLessons') ?? [];
+        const draft: QuizTimetableDraftSubject[] = this.getField('draftSubjects') ?? [];
         if (classroomId == null) return;
 
         this.setStream('savingDay', true);
-        const request = { lessonIds: draft.map((d) => d.lessonId) };
+        const request = { subjectIds: draft.map((d) => d.subjectId) };
         this.apiRequest(QuizTimetableApi.setDay(classroomId, view.dayOfWeek, request), (res) => {
             this.setStream('week', res.data as QuizTimetableEntry[]);
             this.setStream('savingDay', false);

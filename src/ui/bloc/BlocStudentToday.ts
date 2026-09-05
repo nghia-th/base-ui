@@ -8,7 +8,10 @@ import { QuizStudentPreparationApi, QuizLessonPreparationStatus } from "../../ap
 // "ngay mai"). "tomorrow" (them 2026-09-05, item 9) doi sang doc tu QuizStudentPreparationApi
 // thay vi QuizStudentTimetableApi - DTO LessonPreparationStatus co du moi field cua
 // TimetableEntryResponse CONG THEM "prepared", nen khong can goi 2 API rieng cho cung 1 danh sach
-// bai ngay mai.
+// mon ngay mai.
+//
+// Revision 2026-09-06: danh dau/bo danh dau theo subjectId, khong con lessonId - xem
+// QuizStudentPreparationApi.ts's comment.
 export class BlocStudentToday extends IBlocUI {
     async initData() {
         this.loadToday();
@@ -27,13 +30,13 @@ export class BlocStudentToday extends IBlocUI {
         });
     }
 
-    // Item 9 - bam checkbox 1 bai trong the "Ngay mai" -> danh dau/bo danh dau da chuan bi bai.
+    // Item 9 - bam checkbox 1 mon trong the "Ngay mai" -> danh dau/bo danh dau da chuan bi bai.
     // Ca 2 API deu tra ve luon ca checklist moi (xem QuizStudentPreparationApi.ts's comment) nen
     // set thang vao stream 'tomorrow' o day, khong can loadTomorrow() lai rieng.
-    togglePrepared(lessonId: number, currentlyPrepared: boolean, onError: (error: any) => void) {
+    togglePrepared(subjectId: number, currentlyPrepared: boolean, onError: (error: any) => void) {
         const api = currentlyPrepared
-            ? QuizStudentPreparationApi.unmarkPrepared(lessonId)
-            : QuizStudentPreparationApi.markPrepared(lessonId);
+            ? QuizStudentPreparationApi.unmarkPrepared(subjectId)
+            : QuizStudentPreparationApi.markPrepared(subjectId);
         this.apiRequest(api, (res) => {
             this.setStream('tomorrow', res.data as QuizLessonPreparationStatus[]);
         }, { onError });
