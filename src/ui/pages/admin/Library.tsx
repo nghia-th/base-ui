@@ -3,8 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
@@ -18,10 +16,14 @@ import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
 import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
 import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
+import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import { BlocAdminLibrary } from "../../bloc/BlocAdminLibrary";
 import { QuizLibraryDocument } from "../../../api/QuizLibraryApi";
 import UIStream from "../../components/common/UIStream";
+import AppDialog from "../../components/dialogs/AppDialog";
+import { DIALOG_CANCEL_BUTTON_SX, DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
 // Fixed 1-12 grade dropdown and fixed 3-value curriculum list, per the user's explicit design
@@ -135,8 +137,7 @@ export default function AdminLibrary() {
                             builder={(viewSnap) => {
                                 const view = viewSnap.data ?? { isShow: false };
                                 return (
-                                    <Dialog open={view.isShow === true} onClose={closeForm} maxWidth="xs" fullWidth>
-                                        <DialogTitle>{t('quiz-library-upload')}</DialogTitle>
+                                    <AppDialog open={view.isShow === true} onClose={closeForm} title={t('quiz-library-upload')} icon={UploadFileOutlined}>
                                         <DialogContent>
                                             <Stack spacing={2} sx={{ mt: 1 }}>
                                                 <TextField
@@ -182,18 +183,18 @@ export default function AdminLibrary() {
                                             </Stack>
                                         </DialogContent>
                                         <DialogActions>
-                                            <Button onClick={closeForm}>{t('cancel')}</Button>
+                                            <Button onClick={closeForm} variant="contained" startIcon={<CloseOutlined />} sx={DIALOG_CANCEL_BUTTON_SX}>{t('cancel')}</Button>
                                             <UIStream
                                                 initialData={false}
                                                 stream={bloc.getStream('submitting')}
                                                 builder={(submittingSnap) => (
-                                                    <Button variant="contained" disabled={submittingSnap.data === true} onClick={save}>
+                                                    <Button variant="contained" color="primary" startIcon={<CheckOutlined />} disabled={submittingSnap.data === true} onClick={save} sx={DIALOG_PRIMARY_BUTTON_SX}>
                                                         {t('save')}
                                                     </Button>
                                                 )}
                                             />
                                         </DialogActions>
-                                    </Dialog>
+                                    </AppDialog>
                                 );
                             }}
                         />

@@ -3,8 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
@@ -18,9 +16,13 @@ import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import LockOutlined from "@mui/icons-material/LockOutlined";
 import LockOpenOutlined from "@mui/icons-material/LockOpenOutlined";
 import VpnKeyOutlined from "@mui/icons-material/VpnKeyOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
+import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import { BlocAdminParents, QuizAdminParent } from "../../bloc/BlocAdminParents";
 import UIStream from "../../components/common/UIStream";
+import AppDialog from "../../components/dialogs/AppDialog";
+import { DIALOG_CANCEL_BUTTON_SX, DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
 // Trang "Quản lý phụ huynh" (khu vực Admin, /app/admin/parents) - list/create/khoá-mở/xoá Parent
@@ -147,8 +149,7 @@ export default function AdminParents() {
                             builder={(viewSnap) => {
                                 const view = viewSnap.data ?? { isShow: false };
                                 return (
-                                    <Dialog open={view.isShow === true} onClose={() => bloc.closeForm()} maxWidth="xs" fullWidth>
-                                        <DialogTitle>{t('quiz-admin-parent-new')}</DialogTitle>
+                                    <AppDialog open={view.isShow === true} onClose={() => bloc.closeForm()} title={t('quiz-admin-parent-new')} icon={AddOutlined}>
                                         <DialogContent>
                                             <Stack spacing={2} sx={{ mt: 1 }}>
                                                 <TextField
@@ -186,18 +187,18 @@ export default function AdminParents() {
                                             </Stack>
                                         </DialogContent>
                                         <DialogActions>
-                                            <Button onClick={() => bloc.closeForm()}>{t('cancel')}</Button>
+                                            <Button onClick={() => bloc.closeForm()} variant="contained" startIcon={<CloseOutlined />} sx={DIALOG_CANCEL_BUTTON_SX}>{t('cancel')}</Button>
                                             <UIStream
                                                 initialData={false}
                                                 stream={bloc.getStream('submitting')}
                                                 builder={(submittingSnap) => (
-                                                    <Button variant="contained" disabled={submittingSnap.data === true} onClick={save}>
+                                                    <Button variant="contained" color="primary" startIcon={<CheckOutlined />} disabled={submittingSnap.data === true} onClick={save} sx={DIALOG_PRIMARY_BUTTON_SX}>
                                                         {t('save')}
                                                     </Button>
                                                 )}
                                             />
                                         </DialogActions>
-                                    </Dialog>
+                                    </AppDialog>
                                 );
                             }}
                         />
@@ -208,8 +209,7 @@ export default function AdminParents() {
                             builder={(resetViewSnap) => {
                                 const resetView = resetViewSnap.data ?? { isShow: false, parentId: null };
                                 return (
-                                    <Dialog open={resetView.isShow === true} onClose={() => bloc.closeResetPassword()} maxWidth="xs" fullWidth>
-                                        <DialogTitle>{t('quiz-admin-parent-reset-password')}</DialogTitle>
+                                    <AppDialog open={resetView.isShow === true} onClose={() => bloc.closeResetPassword()} title={t('quiz-admin-parent-reset-password')} icon={VpnKeyOutlined}>
                                         <DialogContent>
                                             <Stack spacing={2} sx={{ mt: 1 }}>
                                                 <TextField
@@ -223,18 +223,18 @@ export default function AdminParents() {
                                             </Stack>
                                         </DialogContent>
                                         <DialogActions>
-                                            <Button onClick={() => bloc.closeResetPassword()}>{t('cancel')}</Button>
+                                            <Button onClick={() => bloc.closeResetPassword()} variant="contained" startIcon={<CloseOutlined />} sx={DIALOG_CANCEL_BUTTON_SX}>{t('cancel')}</Button>
                                             <UIStream
                                                 initialData={false}
                                                 stream={bloc.getStream('reset_submitting')}
                                                 builder={(submittingSnap) => (
-                                                    <Button variant="contained" disabled={submittingSnap.data === true} onClick={saveResetPassword}>
+                                                    <Button variant="contained" color="primary" startIcon={<CheckOutlined />} disabled={submittingSnap.data === true} onClick={saveResetPassword} sx={DIALOG_PRIMARY_BUTTON_SX}>
                                                         {t('save')}
                                                     </Button>
                                                 )}
                                             />
                                         </DialogActions>
-                                    </Dialog>
+                                    </AppDialog>
                                 );
                             }}
                         />

@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
@@ -20,7 +18,11 @@ import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
 import LinkOutlined from "@mui/icons-material/LinkOutlined";
 import LinkOffOutlined from "@mui/icons-material/LinkOffOutlined";
+import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import UIStream from "./UIStream";
+import AppDialog from "../dialogs/AppDialog";
+import { DIALOG_PRIMARY_BUTTON_SX } from "../dialogs/dialogToneStyles";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 import { BlocParentSubjects } from "../../bloc/BlocParentSubjects";
 import { QuizLibraryDocument, QuizSubjectLibraryLink } from "../../../api/QuizLibraryApi";
@@ -99,8 +101,7 @@ export default function SubjectLibraryDialog({ bloc, subjectId, subjectName, ope
     };
 
     return (
-        <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-            <DialogTitle>{t('quiz-library-browse')} - {subjectName}</DialogTitle>
+        <AppDialog open={open} onClose={onClose} maxWidth="sm" title={<>{t('quiz-library-browse')} - {subjectName}</>} icon={MenuBookOutlined}>
             <DialogContent>
                 <Typography variant="subtitle2" sx={{ mt: 1, mb: 1 }}>{t('quiz-library-linked-documents')}</Typography>
                 <UIStream
@@ -221,8 +222,8 @@ export default function SubjectLibraryDialog({ bloc, subjectId, subjectName, ope
                 />
             </DialogContent>
             <DialogActions>
-                <Button onClick={onClose}>{t('close')}</Button>
+                <Button onClick={onClose} variant="contained" color="primary" startIcon={<CloseOutlined />} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('close')}</Button>
             </DialogActions>
-        </Dialog>
+        </AppDialog>
     );
 }

@@ -3,8 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
@@ -15,9 +13,13 @@ import Chip from "@mui/material/Chip";
 import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
+import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import { BlocAdminAdmins, QuizAdminAdmin } from "../../bloc/BlocAdminAdmins";
 import UIStream from "../../components/common/UIStream";
+import AppDialog from "../../components/dialogs/AppDialog";
+import { DIALOG_CANCEL_BUTTON_SX, DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
 // Trang "Quản lý Admin" (khu vực Admin, /app/admin/admins, 2026-09-05) - list/create/xoá tài
@@ -112,8 +114,7 @@ export default function AdminAdmins() {
                             builder={(viewSnap) => {
                                 const view = viewSnap.data ?? { isShow: false };
                                 return (
-                                    <Dialog open={view.isShow === true} onClose={() => bloc.closeForm()} maxWidth="xs" fullWidth>
-                                        <DialogTitle>{t('quiz-admin-admin-new')}</DialogTitle>
+                                    <AppDialog open={view.isShow === true} onClose={() => bloc.closeForm()} title={t('quiz-admin-admin-new')} icon={AddOutlined}>
                                         <DialogContent>
                                             <Stack spacing={2} sx={{ mt: 1 }}>
                                                 <TextField
@@ -151,18 +152,18 @@ export default function AdminAdmins() {
                                             </Stack>
                                         </DialogContent>
                                         <DialogActions>
-                                            <Button onClick={() => bloc.closeForm()}>{t('cancel')}</Button>
+                                            <Button onClick={() => bloc.closeForm()} variant="contained" startIcon={<CloseOutlined />} sx={DIALOG_CANCEL_BUTTON_SX}>{t('cancel')}</Button>
                                             <UIStream
                                                 initialData={false}
                                                 stream={bloc.getStream('submitting')}
                                                 builder={(submittingSnap) => (
-                                                    <Button variant="contained" disabled={submittingSnap.data === true} onClick={save}>
+                                                    <Button variant="contained" color="primary" startIcon={<CheckOutlined />} disabled={submittingSnap.data === true} onClick={save} sx={DIALOG_PRIMARY_BUTTON_SX}>
                                                         {t('save')}
                                                     </Button>
                                                 )}
                                             />
                                         </DialogActions>
-                                    </Dialog>
+                                    </AppDialog>
                                 );
                             }}
                         />
