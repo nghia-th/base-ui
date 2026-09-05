@@ -171,6 +171,12 @@ export default function AdminParents() {
                                                     fullWidth
                                                 />
                                                 <TextField
+                                                    label={t('quiz-username-optional')}
+                                                    defaultValue={bloc.getField('username', 'req') ?? ''}
+                                                    onChange={(e) => bloc.setStream('username', e.target.value, 'req')}
+                                                    fullWidth
+                                                />
+                                                <TextField
                                                     label={t('password')}
                                                     type="password"
                                                     defaultValue={bloc.getField('password', 'req') ?? ''}

@@ -130,6 +130,18 @@ export default function AdminAdmins() {
                                                     fullWidth
                                                 />
                                                 <TextField
+                                                    label={t('quiz-username-optional')}
+                                                    defaultValue={bloc.getField('username', 'req') ?? ''}
+                                                    onChange={(e) => bloc.setStream('username', e.target.value, 'req')}
+                                                    fullWidth
+                                                />
+                                                <TextField
+                                                    label={t('phone')}
+                                                    defaultValue={bloc.getField('phone', 'req') ?? ''}
+                                                    onChange={(e) => bloc.setStream('phone', e.target.value, 'req')}
+                                                    fullWidth
+                                                />
+                                                <TextField
                                                     label={t('password')}
                                                     type="password"
                                                     defaultValue={bloc.getField('password', 'req') ?? ''}

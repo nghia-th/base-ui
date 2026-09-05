@@ -2,6 +2,8 @@ import { IBlocUI } from "../../base/IBlocUI";
 import { QuizSubjectApi, QuizSubjectRequest } from "../../api/QuizSubjectApi";
 import { QuizLessonApi, QuizLessonCreateRequest, QuizLessonUpdateRequest, quizUploadLessonImage, quizImportLessons } from "../../api/QuizLessonApi";
 import { QuizClassroomApi } from "../../api/QuizClassroomApi";
+import { QuizParentLibraryApi } from "../../api/QuizParentLibraryApi";
+import { QuizLibraryDocument, QuizSubjectLibraryLink } from "../../api/QuizLibraryApi";
 
 // Khớp SubjectResponse.java / LessonResponse.java. classroomId thay cho parentId cũ - Subject giờ
 // là con của Classroom (không còn gán trực tiếp vào Parent nữa), xem ClassroomApi.ts.
@@ -349,5 +351,55 @@ export class BlocParentSubjects extends IBlocUI {
             this.setStream('lessonImporting', false)
             this.setStream('lessonImportResult', result)
         }, (error) => { this.setStream('lessonImporting', false); onError(error) })
+    }
+
+    // Textbook library linking (2026-09-05, "thu vien sach giao khoa" feature) - kept as plain
+    // methods on this same "content" bloc rather than a separate bloc instance, since
+    // reUseBlocContent only keeps ONE content bloc per page/URL (see AppContext.ts) and Subjects
+    // is already this page's content bloc. SubjectLibraryDialog.tsx receives this bloc as a prop
+    // and reads/writes these same streams - 'library_links'/'library_catalog' are independent of
+    // 'subjects'/'lessons' above so they don't interfere with the master-detail streams.
+    loadLibraryLinks(subjectId: number) {
+        this.apiRequest(QuizParentLibraryApi.listLinks(subjectId), (res) => {
+            this.setStream('library_links', res.data as QuizSubjectLibraryLink[])
+        })
+    }
+
+    browseLibrary(grade?: number, subjectName?: string, curriculum?: string) {
+        this.apiRequest(QuizParentLibraryApi.browse(grade, subjectName, curriculum), (res) => {
+            this.setStream('library_catalog', res.data as QuizLibraryDocument[])
+        })
+    }
+
+    linkLibrary(subjectId: number, documentId: number, onComplete: () => void, onError: (error: any) => void) {
+        this.apiRequest(QuizParentLibraryApi.link(subjectId, documentId), () => {
+            onComplete()
+            this.loadLibraryLinks(subjectId)
+        }, { onError })
+    }
+
+    unlinkLibrary(subjectId: number, documentId: number, onComplete: () => void, onError: (error: any) => void) {
+        this.apiRequest(QuizParentLibraryApi.unlink(subjectId, documentId), () => {
+            onComplete()
+            this.loadLibraryLinks(subjectId)
+        }, { onError })
+    }
+
+    // res (the apiRequest onData param, from CallApi.ts's blob branch) has shape {data: Blob,
+    // disposition: string}, same as BlocParentQuestions.downloadTemplate - see that method's
+    // comment for why.
+    downloadLibraryFile(subjectId: number, documentId: number, defaultFilename: string, onError: (error: any) => void) {
+        this.apiRequest(QuizParentLibraryApi.downloadFile(subjectId, documentId), (res: any) => {
+            const blob: Blob = res.data
+            const disposition: string | undefined = res.disposition
+            const match = disposition?.match(/filename="?([^"]+)"?/)
+            const filename = match?.[1] ?? defaultFilename
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = filename
+            a.click()
+            URL.revokeObjectURL(url)
+        }, { onError })
     }
 }

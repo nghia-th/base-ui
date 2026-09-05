@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
@@ -32,6 +32,7 @@ import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
 import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
+import SubjectLibraryDialog from "../../components/common/SubjectLibraryDialog";
 import { BlocParentSubjects, QuizSubject, QuizLesson, QuizClassroomLite, QuizLessonImportResult } from "../../bloc/BlocParentSubjects";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
@@ -93,6 +94,12 @@ export default function Subjects() {
 
     const lessonFileInputRef = useRef<HTMLInputElement>(null);
 
+    // Which subject's textbook-library dialog is open (2026-09-05) - plain local state, not a
+    // bloc stream: SubjectLibraryDialog.tsx reuses THIS page's bloc (BlocParentSubjects) for its
+    // data since reUseBlocContent only keeps one content bloc per page (see AppContext.ts), but
+    // "which subject is the dialog currently for" is pure UI state local to this page.
+    const [libraryDialogSubject, setLibraryDialogSubject] = useState<QuizSubject | null>(null);
+
     const downloadLessonTemplate = (format: 'xlsx' | 'csv') => bloc.downloadLessonImportTemplate(format, showError);
 
     const onLessonImportFileChosen = (subjectId: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,6 +155,7 @@ export default function Subjects() {
                 const lessonColumnsMemo = selectedSubject ? lessonColumns(selectedSubject.id) : [];
 
                 return (
+                    <>
                     <Grid container spacing={2}>
                         <Grid size={{ xs: 12, md: 4 }}>
                             <UIStream
@@ -201,6 +209,9 @@ export default function Subjects() {
                                                                             sx={{ borderRadius: 1, mb: 0.5 }}
                                                                         >
                                                                             <ListItemText primary={s.name} secondary={classroomName(s.classroomId)} />
+                                                                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); setLibraryDialogSubject(s); }}>
+                                                                                <MenuBookOutlined fontSize="small" />
+                                                                            </IconButton>
                                                                             <IconButton size="small" onClick={(e) => { e.stopPropagation(); bloc.openEditSubject(s); }}>
                                                                                 <EditOutlined fontSize="small" />
                                                                             </IconButton>
@@ -520,6 +531,14 @@ export default function Subjects() {
                             )}
                         </Grid>
                     </Grid>
+                    <SubjectLibraryDialog
+                        bloc={bloc}
+                        subjectId={libraryDialogSubject?.id ?? null}
+                        subjectName={libraryDialogSubject?.name ?? ''}
+                        open={libraryDialogSubject != null}
+                        onClose={() => setLibraryDialogSubject(null)}
+                    />
+                    </>
                 );
             }}
         />

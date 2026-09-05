@@ -20,6 +20,7 @@ import AppRightMenu from "./layout/AppRightMenu";
 import AppFooter from "./layout/AppFooter";
 import AppConfigDrawer from "./layout/AppConfigDrawer";
 import ChangePasswordDialog from "./components/common/ChangePasswordDialog";
+import SetUsernameDialog from "./components/common/SetUsernameDialog";
 import LocalStorage from "../base/LocalStorage";
 import { BASE_URL } from "../base/PrefixService";
 import { QuizAuthApi } from "../api/QuizAuthApi";
@@ -35,6 +36,8 @@ import ParentTests from "./pages/parent/Tests";
 import ParentReports from "./pages/parent/Reports";
 import AdminParents from "./pages/admin/Parents";
 import AdminAdmins from "./pages/admin/Admins";
+import AdminLibrary from "./pages/admin/Library";
+import StudentLibrary from "./pages/student/Library";
 import AdminTranslations from "./pages/admin/Translations";
 import { QuizLoginRole } from "./bloc/BlocQuizLogin";
 import Dashboard from "./pages/Dashboard";
@@ -214,6 +217,7 @@ export default function AppShell() {
                                         fullName={LocalStorage.getItem('fullName') ?? undefined}
                                         onLogout={handleLogout}
                                         onChangePasswordClick={() => blocApp.openChangePassword()}
+                                        onSetUsernameClick={() => blocApp.openSetUsername()}
                                     />
 
                                     {isHorizontal && <AppHorizontalMenu menu={menu} />}
@@ -299,6 +303,9 @@ export default function AppShell() {
                                                 <Route path="app/student/tests" element={
                                                     <RequireQuizRole role="student"><StudentTests /></RequireQuizRole>
                                                 } />
+                                                <Route path="app/student/library" element={
+                                                    <RequireQuizRole role="student"><StudentLibrary /></RequireQuizRole>
+                                                } />
                                                 <Route path="app/student/tests/:testId/take" element={
                                                     <RequireQuizRole role="student"><TakeTest /></RequireQuizRole>
                                                 } />
@@ -307,6 +314,9 @@ export default function AppShell() {
                                                 } />
                                                 <Route path="app/admin/admins" element={
                                                     <RequireQuizRole role="admin"><RequireAdminRoot><AdminAdmins /></RequireAdminRoot></RequireQuizRole>
+                                                } />
+                                                <Route path="app/admin/library" element={
+                                                    <RequireQuizRole role="admin"><AdminLibrary /></RequireQuizRole>
                                                 } />
                                                 <Route path="app/admin/translations" element={
                                                     <RequireQuizRole role="admin"><AdminTranslations /></RequireQuizRole>
@@ -358,6 +368,7 @@ export default function AppShell() {
                                         onClose={() => setRightMenuOpen(false)}
                                     />
                                     <ChangePasswordDialog bloc={blocApp} />
+                                    <SetUsernameDialog bloc={blocApp} />
                                 </Box>
                             );
                         }}

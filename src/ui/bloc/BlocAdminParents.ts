@@ -8,6 +8,7 @@ export interface QuizAdminParent {
     fullName: string;
     email: string;
     phone?: string;
+    username?: string; // 2026-09-05, see AdminParentSummary.java
     active: boolean;
     createdAt: string;
 }
@@ -81,7 +82,7 @@ export class BlocAdminParents extends IBlocUI {
     }
 
     openNew() {
-        this.setField('req', { fullName: '', email: '', phone: '', password: '' })
+        this.setField('req', { fullName: '', email: '', phone: '', username: '', password: '' })
         this.setStream('form_view', { isShow: true })
     }
 
@@ -106,7 +107,8 @@ export class BlocAdminParents extends IBlocUI {
             fullName: req.fullName,
             email: req.email,
             password: req.password,
-            phone: req.phone || undefined
+            phone: req.phone || undefined,
+            username: req.username || undefined
         }, done, fail)
     }
 }

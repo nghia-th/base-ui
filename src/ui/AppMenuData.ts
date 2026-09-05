@@ -119,7 +119,10 @@ export const PARENT_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
 // nhất (làm bài được giao), nên /app/student/tests LÀ trang chủ, không cần trang tổng quan trung
 // gian trỏ sang nó (khác Phụ huynh, có nhiều mục nên giữ dashboard riêng - xem PARENT_MENU_DATA).
 export const STUDENT_MENU_DATA: MenuItem[] = [
-    { label: 'quiz-tests', icon: 'AssignmentOutlined', to: '/app/student/tests', items: null, section: 'menu-section-main' }
+    { label: 'quiz-tests', icon: 'AssignmentOutlined', to: '/app/student/tests', items: null, section: 'menu-section-main' },
+    // 2026-09-05 - textbook PDF library, read-only (view/download documents linked to a subject in
+    // the student's own classroom), see StudentLibraryApi.java.
+    { label: 'quiz-admin-library', icon: 'MenuBookOutlined', to: '/app/student/library', items: null }
 ]
 
 export const STUDENT_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
@@ -133,6 +136,10 @@ export const STUDENT_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
 // (STUDENT_MENU_DATA ở trên) chỉ xoay quanh đúng 1 việc nên KHÔNG cần trang tổng quan trung gian.
 export const ADMIN_MENU_DATA: MenuItem[] = [
     { label: 'quiz-admin-parents', icon: 'PeopleOutlined', to: '/app/admin/parents', items: null, section: 'menu-section-main' },
+    // 2026-09-05 - Textbook PDF library ("thu vien sach giao khoa") - every Admin can manage it,
+    // no root restriction (unlike the "quiz-admin-admins" entry below), so it is NOT filtered by
+    // adminSidebarMenu(isRoot) further down.
+    { label: 'quiz-admin-library', icon: 'MenuBookOutlined', to: '/app/admin/library', items: null },
     // 2026-09-05 - "Quản lý Admin" (tạo/xoá tài khoản Admin khác) CHỈ root mới thấy/dùng được -
     // xem AppShell.tsx's adminSidebarMenu(isRoot) (lọc mục này ra khỏi sidebar cho Admin thường)
     // và RequireAdminRoot (chặn cả việc gõ tay URL). Vẫn khai báo ở đây (không tách file riêng)

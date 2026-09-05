@@ -86,6 +86,12 @@ export default function Register() {
                     onChange={(e) => bloc.setStream('phone', e.target.value, 'req')}
                 />
                 <TextField
+                    label={t('quiz-username-optional')}
+                    fullWidth
+                    margin="normal"
+                    onChange={(e) => bloc.setStream('username', e.target.value, 'req')}
+                />
+                <TextField
                     label={t('password')}
                     type="password"
                     fullWidth

@@ -7,8 +7,11 @@ import { QUIZ_AUTH_PREFIX } from "../base/PrefixService";
 // bằng email (ParentLoginRequest.java), Student đăng nhập bằng username do Parent tạo ra
 // (StudentLoginRequest.java) - không có username/password chung một bảng user.
 export class QuizAuthApi {
-    static loginParent(email: string, password: string) {
-        return QuizRequestBase.post(`${QUIZ_AUTH_PREFIX}/parent/login`, { email, password });
+    // 2026-09-05: identifier accepts email, username, OR phone (AuthService#loginParent tries
+    // all 3 columns) - renamed from `email` to reflect that, BlocQuizLogin.ts already used the
+    // generic field name `identifier` at the UI layer before this change.
+    static loginParent(identifier: string, password: string) {
+        return QuizRequestBase.post(`${QUIZ_AUTH_PREFIX}/parent/login`, { identifier, password });
     }
 
     static loginStudent(username: string, password: string) {
@@ -20,14 +23,17 @@ export class QuizAuthApi {
     // AdminBootstrapRunner). Dùng lại đúng field email/password như loginParent - AdminLogin.tsx
     // là trang RIÊNG (không nằm trong ToggleButtonGroup Phụ huynh/Học sinh của Login.tsx), xem
     // BlocQuizLogin.ts's QuizLoginRole.
-    static loginAdmin(email: string, password: string) {
-        return QuizRequestBase.post(`${QUIZ_AUTH_PREFIX}/admin/login`, { email, password });
+    // 2026-09-05: same identifier (email/username/phone) change as loginParent above.
+    static loginAdmin(identifier: string, password: string) {
+        return QuizRequestBase.post(`${QUIZ_AUTH_PREFIX}/admin/login`, { identifier, password });
     }
 
     // Register.tsx (BlocQuizLogin.ts's register()) gọi hàm này - registerParent tự đăng nhập
     // luôn (trả về ParentAuthResponse giống hệt loginParent), xem AuthApi.java's Javadoc.
-    static registerParent(fullName: string, email: string, password: string, phone?: string) {
-        return QuizRequestBase.post(`${QUIZ_AUTH_PREFIX}/parent/register`, { fullName, email, password, phone });
+    // 2026-09-05: optional `username`, added last - keep the positional order backward-compatible
+    // with the existing call sites that pass exactly 4 args.
+    static registerParent(fullName: string, email: string, password: string, phone?: string, username?: string) {
+        return QuizRequestBase.post(`${QUIZ_AUTH_PREFIX}/parent/register`, { fullName, email, password, phone, username });
     }
 
     // 2026-09-04 (refresh token + force-logout, xem AuthService.java's javadoc):
@@ -56,5 +62,11 @@ export class QuizAuthApi {
     // hướng về /login giống hệt handleLogout khi gọi thành công, xem đó cho luồng đầy đủ.
     static changePassword(role: 'parent' | 'student' | 'admin', oldPassword: string, newPassword: string) {
         return QuizRequestBase.post(`/api/${role}/change-password`, { oldPassword, newPassword });
+    }
+
+    // 2026-09-05: self-service set/change username (Parent or Admin only, see AuthService#setUsername)
+    // - unlike changePassword, this does NOT force-logout, so no redirect handling is needed after it.
+    static setUsername(role: 'parent' | 'admin', username: string) {
+        return QuizRequestBase.post(`/api/${role}/set-username`, { username });
     }
 }

@@ -1,0 +1,63 @@
+import { IBlocUI } from "../../base/IBlocUI";
+import { QuizParentLibraryApi } from "../../api/QuizParentLibraryApi";
+import { QuizLibraryDocument, QuizSubjectLibraryLink } from "../../api/QuizLibraryApi";
+
+// Bloc backing SubjectLibraryDialog.tsx (2026-09-05, textbook PDF library feature) - a small,
+// self-contained bloc (kept separate from BlocParentSubjects.ts on purpose, to avoid growing that
+// already-large file further) covering: the documents linked to ONE subject ('links' stream), and
+// the whole catalog to browse/filter for linking ('catalog' stream). One instance is reused for
+// whichever subject the dialog is currently open for - callers always pass subjectId explicitly
+// rather than relying on stored state, so there is no stale-subject risk if the dialog is reopened
+// for a different subject.
+export class BlocParentLibrary extends IBlocUI {
+    loadLinks(subjectId: number) {
+        this.apiRequest(QuizParentLibraryApi.listLinks(subjectId), (res) => {
+            this.setStream('links', res.data as QuizSubjectLibraryLink[])
+        })
+    }
+
+    browse(grade?: number, subjectName?: string, curriculum?: string) {
+        this.apiRequest(QuizParentLibraryApi.browse(grade, subjectName, curriculum), (res) => {
+            this.setStream('catalog', res.data as QuizLibraryDocument[])
+        })
+    }
+
+    link(subjectId: number, documentId: number, onComplete: () => void, onError: (error: any) => void) {
+        this.apiRequest(QuizParentLibraryApi.link(subjectId, documentId), () => {
+            onComplete()
+            this.loadLinks(subjectId)
+        }, { onError })
+    }
+
+    unlink(subjectId: number, documentId: number, onComplete: () => void, onError: (error: any) => void) {
+        this.apiRequest(QuizParentLibraryApi.unlink(subjectId, documentId), () => {
+            onComplete()
+            this.loadLinks(subjectId)
+        }, { onError })
+    }
+
+    // res (the apiRequest onData param, from CallApi.ts's blob branch) has shape {data: Blob,
+    // disposition: string} - not the usual {code,message,...} envelope, since this is a
+    // responseType:'blob' request (see QuizParentLibraryApi.downloadFile). Same pattern as
+    // BlocParentQuestions.downloadTemplate, with defaultFilename as a fallback if the
+    // Content-Disposition header is missing/unparsable for any reason.
+    downloadFile(subjectId: number, documentId: number, defaultFilename: string, onError: (error: any) => void) {
+        this.apiRequest(QuizParentLibraryApi.downloadFile(subjectId, documentId), (res: any) => {
+            const blob: Blob = res.data
+            const disposition: string | undefined = res.disposition
+            const match = disposition?.match(/filename="?([^"]+)"?/)
+            const filename = match?.[1] ?? defaultFilename
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = filename
+            a.click()
+            URL.revokeObjectURL(url)
+        }, { onError })
+    }
+
+    reset() {
+        this.setStream('links', null)
+        this.setStream('catalog', null)
+    }
+}

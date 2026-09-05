@@ -99,7 +99,7 @@ export default function Login() {
                                 </ToggleButtonGroup>
 
                                 <TextField
-                                    label={role === 'parent' ? t('email') : t('username')}
+                                    label={role === 'parent' ? t('quiz-login-identifier') : t('username')}
                                     fullWidth
                                     margin="normal"
                                     autoFocus

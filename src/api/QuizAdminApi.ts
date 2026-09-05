@@ -11,14 +11,17 @@ export interface QuizAdminParentCreateRequest {
     email: string;
     password: string;
     phone?: string;
+    username?: string; // 2026-09-05: optional alternate login identifier, see ParentRegisterRequest.java
 }
 
-// Khớp AdminCreateRequest.java (2026-09-05, tính năng "Admin quản lý Admin") - không có "phone"
-// (khác QuizAdminParentCreateRequest ở trên) vì tài khoản Admin không dùng field này.
+// Khớp AdminCreateRequest.java (2026-09-05, tính năng "Admin quản lý Admin"). username/phone
+// (2026-09-05) là 2 field tuỳ chọn mới, thêm để Admin cũng đăng nhập được bằng email/username/phone.
 export interface QuizAdminCreateRequest {
     fullName: string;
     email: string;
     password: string;
+    username?: string;
+    phone?: string;
 }
 
 export class QuizAdminApi {

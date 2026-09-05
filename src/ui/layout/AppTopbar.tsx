@@ -58,6 +58,10 @@ interface AppTopbarProps {
     // 2026-09-04 - mở dialog đổi mật khẩu tự phục vụ (ChangePasswordDialog.tsx, render ở
     // AppShell.tsx) - xem menu người dùng bên dưới.
     onChangePasswordClick: () => void;
+    // 2026-09-05 - mở dialog đặt/đổi username tự phục vụ (SetUsernameDialog.tsx, render ở
+    // AppShell.tsx) - chỉ Parent/Admin, KHÔNG hiện cho Student (đã luôn có username từ lúc tạo,
+    // xem AuthService#setUsername's javadoc).
+    onSetUsernameClick: () => void;
 }
 
 
@@ -91,7 +95,7 @@ const INTERNAL_APPS: InternalApp[] = [
 // AppConfigDrawer (tuỳ chỉnh theme), menu user (Profile/Settings/Calendar/Inbox), nút mở
 // AppRightMenu (panel bên phải), và nút Log out đứng riêng (giống module-ui, có confirm trước
 // khi đăng xuất thật - xem AppShell.tsx).
-export default function AppTopbar({bloc, leftOffset, breadcrumb, onMenuClick, onConfigClick, onRightMenuClick, fullName, onLogout, onChangePasswordClick }: AppTopbarProps) {
+export default function AppTopbar({bloc, leftOffset, breadcrumb, onMenuClick, onConfigClick, onRightMenuClick, fullName, onLogout, onChangePasswordClick, onSetUsernameClick }: AppTopbarProps) {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
@@ -295,6 +299,12 @@ export default function AppTopbar({bloc, leftOffset, breadcrumb, onMenuClick, on
                         <ListItemIcon><VpnKeyOutlined fontSize="small" /></ListItemIcon>
                         {t('change-password')}
                     </MenuItemMui>
+                    {LocalStorage.getItem('quizRole') !== 'student' && (
+                        <MenuItemMui onClick={() => { setUserAnchor(null); onSetUsernameClick(); }}>
+                            <ListItemIcon><BadgeOutlined fontSize="small" /></ListItemIcon>
+                            {t('quiz-set-username-title')}
+                        </MenuItemMui>
+                    )}
                     {/*<MenuItemMui onClick={() => { setUserAnchor(null); navigate('/demo/calendar'); }}>*/}
                     {/*    <ListItemIcon><CalendarMonthOutlined fontSize="small" /></ListItemIcon>*/}
                     {/*    {t('calendar')}*/}

@@ -76,7 +76,8 @@ export class BlocQuizLogin extends IBlocUI {
             return
         }
         this.setStream('submitting', true)
-        this.apiRequest(QuizAuthApi.registerParent(req.fullName, req.email, req.password, req.phone || undefined), (res: any) => {
+        // 2026-09-05: optional username, added last (see QuizAuthApi.ts's registerParent).
+        this.apiRequest(QuizAuthApi.registerParent(req.fullName, req.email, req.password, req.phone || undefined, req.username || undefined), (res: any) => {
             this.setStream('submitting', false)
             this.handleAuthSuccess('parent', res, onComplete)
         }, {

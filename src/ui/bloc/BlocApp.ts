@@ -63,4 +63,40 @@ export class BlocApp extends IBlocUI {
             done()
         }, { onError: fail })
     }
+
+    // 2026-09-05 - self-service "set/change username" (Parent or Admin only, see
+    // AuthService#setUsername's javadoc - Student always has a username already, so AppTopbar.tsx
+    // hides this menu item entirely for a Student session). Unlike changePassword above, success
+    // does NOT force-logout - just close the dialog, no LocalStorage/redirect handling needed.
+    openSetUsername() {
+        const profile = JSON.parse(LocalStorage.getItem('quizProfile') || '{}')
+        this.setField('username', profile?.username ?? '', 'req_set_username')
+        this.setStream('set_username_view', { isShow: true })
+    }
+
+    closeSetUsername() {
+        this.setStream('set_username_view', { isShow: false })
+        this.setStream('set_username_submitting', false)
+    }
+
+    saveSetUsername(onComplete: () => void, onError: (error: any) => void) {
+        const username = this.getField('username', 'req_set_username')
+        if (!username) {
+            onError({ messageKey: 'required-field' })
+            return
+        }
+        const role = (LocalStorage.getItem('quizRole') ?? 'parent') as 'parent' | 'admin'
+        this.setStream('set_username_submitting', true)
+        const done = () => { this.setStream('set_username_submitting', false); onComplete() }
+        const fail = (error: any) => { this.setStream('set_username_submitting', false); onError(error) }
+        this.apiRequest(QuizAuthApi.setUsername(role, username), () => {
+            // Keep the locally-cached quizProfile.username in sync (LocalStorage isn't refreshed
+            // by a normal apiRequest response) so re-opening this dialog shows the new value right
+            // away, without needing a fresh login.
+            const profile = JSON.parse(LocalStorage.getItem('quizProfile') || '{}')
+            profile.username = username
+            LocalStorage.setItem('quizProfile', JSON.stringify(profile))
+            done()
+        }, { onError: fail })
+    }
 }

@@ -65,7 +65,7 @@ export default function AdminLogin() {
                 </Box>
 
                 <TextField
-                    label={t('email')}
+                    label={t('quiz-login-identifier')}
                     fullWidth
                     margin="normal"
                     autoFocus

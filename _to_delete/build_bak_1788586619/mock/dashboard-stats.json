@@ -1,0 +1,30 @@
+{
+  "data": {
+    "orders": 152,
+    "revenue": 28440,
+    "customers": 2740,
+    "comments": 431,
+    "series": {
+      "labels": ["T1", "T2", "T3", "T4", "T5", "T6", "T7"],
+      "values": [40, 55, 32, 61, 48, 70, 58]
+    },
+    "channels": [
+      { "id": 0, "labelKey": "direct", "value": 40, "color": "#2196F3" },
+      { "id": 1, "labelKey": "promoted", "value": 35, "color": "#4CAF50" },
+      { "id": 2, "labelKey": "affiliate", "value": 25, "color": "#FF9800" }
+    ],
+    "recent": [
+      { "id": 1001, "customer": "Nguyen Van A", "status": "completed", "amount": 320 },
+      { "id": 1002, "customer": "Tran Thi B", "status": "pending", "amount": 145 },
+      { "id": 1003, "customer": "Le Van C", "status": "completed", "amount": 980 },
+      { "id": 1004, "customer": "Pham Thi D", "status": "cancelled", "amount": 60 },
+      { "id": 1005, "customer": "Hoang Van E", "status": "completed", "amount": 410 }
+    ],
+    "recentLastWeek": [
+      { "id": 991, "customer": "Vo Thi F", "status": "completed", "amount": 210 },
+      { "id": 992, "customer": "Dang Van G", "status": "completed", "amount": 560 },
+      { "id": 993, "customer": "Bui Thi H", "status": "cancelled", "amount": 95 },
+      { "id": 994, "customer": "Do Van I", "status": "pending", "amount": 275 }
+    ]
+  }
+}
