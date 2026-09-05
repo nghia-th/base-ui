@@ -34,7 +34,7 @@ export default function AppDialog({ open, onClose, title, icon: Icon, tone = 'pr
             onClose={onClose}
             maxWidth={maxWidth}
             fullWidth={fullWidth}
-            PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
+            PaperProps={{ sx: { borderRadius: 1.5, overflow: 'hidden' } }}
         >
             <Box
                 sx={{

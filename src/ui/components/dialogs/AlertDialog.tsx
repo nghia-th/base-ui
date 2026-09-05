@@ -37,7 +37,7 @@ export default function AlertDialog({ info }: AlertDialogProps) {
             onClose={handleClose}
             maxWidth="xs"
             fullWidth
-            PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
+            PaperProps={{ sx: { borderRadius: 1.5, overflow: 'hidden' } }}
         >
             <Box
                 sx={{

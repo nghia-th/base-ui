@@ -40,7 +40,7 @@ export default function ConfirmDialog({ info }: ConfirmDialogProps) {
             onClose={() => answer('no')}
             maxWidth="xs"
             fullWidth
-            PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden' } }}
+            PaperProps={{ sx: { borderRadius: 1.5, overflow: 'hidden' } }}
         >
             <Box
                 sx={{
