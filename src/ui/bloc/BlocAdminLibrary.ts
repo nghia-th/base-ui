@@ -1,5 +1,6 @@
 import { IBlocUI } from "../../base/IBlocUI";
 import { QuizLibraryApi, QuizLibraryDocument, quizUploadLibraryDocument } from "../../api/QuizLibraryApi";
+import { QuizCurriculumApi, QuizCurriculum } from "../../api/QuizCurriculumApi";
 
 // Bloc for the Admin "Textbook library" page (/app/admin/library, 2026-09-05) - list/upload/
 // delete PDF textbooks via /api/admin/library (AdminLibraryApi.java). Same "content" bloc /
@@ -12,6 +13,16 @@ export class BlocAdminLibrary extends IBlocUI {
     reload() {
         this.apiRequest(QuizLibraryApi.list(), (res) => {
             this.setStream('documents', res.data as QuizLibraryDocument[])
+        })
+    }
+
+    // 2026-09-05 - Curriculum ('bo sach') is now an Admin-managed list (CurriculumService.java)
+    // instead of a hardcoded 3-value array - loaded once here to populate the upload form's
+    // dropdown (see admin/Library.tsx), same 'content bloc extra stream' shape as
+    // BlocParentSubjects.ts's 'library_links'/'library_catalog' streams.
+    loadCurricula() {
+        this.apiRequest(QuizCurriculumApi.list(), (res) => {
+            this.setStream('curricula', res.data as QuizCurriculum[])
         })
     }
 

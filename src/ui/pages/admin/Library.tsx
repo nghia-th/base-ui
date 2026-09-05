@@ -21,16 +21,19 @@ import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import { BlocAdminLibrary } from "../../bloc/BlocAdminLibrary";
 import { QuizLibraryDocument } from "../../../api/QuizLibraryApi";
+import { QuizCurriculum } from "../../../api/QuizCurriculumApi";
 import UIStream from "../../components/common/UIStream";
 import AppDialog from "../../components/dialogs/AppDialog";
 import { DIALOG_CANCEL_BUTTON_SX, DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
-// Fixed 1-12 grade dropdown and fixed 3-value curriculum list, per the user's explicit design
-// decision (AskUserQuestion, 2026-09-05) - both are re-validated on the backend too
-// (LibraryService#upload, QUIZ_032 LIBRARY_INVALID_TAXONOMY).
+// Fixed 1-12 grade dropdown, per the user's explicit design decision (AskUserQuestion,
+// 2026-09-05) - re-validated on the backend too (LibraryService#upload, QUIZ_032
+// LIBRARY_INVALID_TAXONOMY). Curriculum ('bo sach') used to be a similar hardcoded 3-value
+// list here, but per the user's later request (2026-09-05, "chổ bộ sách phải được admin tạo
+// hiện tại đang set cứng") it is now Admin-managed (see CurriculumService.java) - loaded via
+// bloc.loadCurricula() below instead of a constant, see the 'curriculum' TextField's UIStream.
 const GRADES = Array.from({ length: 12 }, (_, i) => i + 1);
-const CURRICULA = ["Kết nối tri thức", "Chân trời sáng tạo", "Cánh diều"];
 
 // Admin "Textbook library" page (/app/admin/library, 2026-09-05, "thu vien sach giao khoa"
 // feature) - upload/list/delete PDF textbooks organized by grade -> subject name -> curriculum
@@ -47,6 +50,7 @@ export default function AdminLibrary() {
 
     useEffect(() => {
         bloc.reload();
+        bloc.loadCurricula();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -155,15 +159,24 @@ export default function AdminLibrary() {
                                                     onChange={(e) => bloc.setStream('subjectName', e.target.value, 'req')}
                                                     fullWidth
                                                 />
-                                                <TextField
-                                                    select
-                                                    label={t('quiz-library-curriculum')}
-                                                    defaultValue={bloc.getField('curriculum', 'req') ?? ''}
-                                                    onChange={(e) => bloc.setStream('curriculum', e.target.value, 'req')}
-                                                    fullWidth
-                                                >
-                                                    {CURRICULA.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-                                                </TextField>
+                                                <UIStream
+                                                    initialData={null}
+                                                    stream={bloc.getStream('curricula')}
+                                                    builder={(curriculaSnap) => {
+                                                        const curricula: QuizCurriculum[] = curriculaSnap.data ?? [];
+                                                        return (
+                                                            <TextField
+                                                                select
+                                                                label={t('quiz-library-curriculum')}
+                                                                defaultValue={bloc.getField('curriculum', 'req') ?? ''}
+                                                                onChange={(e) => bloc.setStream('curriculum', e.target.value, 'req')}
+                                                                fullWidth
+                                                            >
+                                                                {curricula.map((c) => <MenuItem key={c.id} value={c.name}>{c.name}</MenuItem>)}
+                                                            </TextField>
+                                                        );
+                                                    }}
+                                                />
                                                 <TextField
                                                     label={t('quiz-library-volume-optional')}
                                                     defaultValue={bloc.getField('volume', 'req') ?? ''}

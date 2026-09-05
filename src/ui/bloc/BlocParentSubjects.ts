@@ -3,6 +3,8 @@ import { QuizSubjectApi, QuizSubjectRequest } from "../../api/QuizSubjectApi";
 import { QuizLessonApi, QuizLessonCreateRequest, QuizLessonUpdateRequest, quizUploadLessonImage, quizImportLessons } from "../../api/QuizLessonApi";
 import { QuizClassroomApi } from "../../api/QuizClassroomApi";
 import { QuizParentLibraryApi } from "../../api/QuizParentLibraryApi";
+import { QuizParentCurriculumApi } from "../../api/QuizParentCurriculumApi";
+import { QuizCurriculum } from "../../api/QuizCurriculumApi";
 import { QuizLibraryDocument, QuizSubjectLibraryLink } from "../../api/QuizLibraryApi";
 
 // Khớp SubjectResponse.java / LessonResponse.java. classroomId thay cho parentId cũ - Subject giờ
@@ -362,6 +364,16 @@ export class BlocParentSubjects extends IBlocUI {
     loadLibraryLinks(subjectId: number) {
         this.apiRequest(QuizParentLibraryApi.listLinks(subjectId), (res) => {
             this.setStream('library_links', res.data as QuizSubjectLibraryLink[])
+        })
+    }
+
+    // 2026-09-05 - Curriculum ('bo sach') filter options, now Admin-managed (CurriculumService.
+    // java) instead of a hardcoded 3-value array - see SubjectLibraryDialog.tsx's filter row.
+    // Read-only for a Parent (QuizParentCurriculumApi -> ParentCurriculumApi.java), same list
+    // an Admin manages via QuizCurriculumApi.ts.
+    loadCurricula() {
+        this.apiRequest(QuizParentCurriculumApi.list(), (res) => {
+            this.setStream('curricula', res.data as QuizCurriculum[])
         })
     }
 

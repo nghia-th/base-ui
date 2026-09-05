@@ -37,6 +37,7 @@ import ParentReports from "./pages/parent/Reports";
 import AdminParents from "./pages/admin/Parents";
 import AdminAdmins from "./pages/admin/Admins";
 import AdminLibrary from "./pages/admin/Library";
+import AdminCurricula from "./pages/admin/Curricula";
 import StudentLibrary from "./pages/student/Library";
 import AdminTranslations from "./pages/admin/Translations";
 import { QuizLoginRole } from "./bloc/BlocQuizLogin";
@@ -317,6 +318,9 @@ export default function AppShell() {
                                                 } />
                                                 <Route path="app/admin/library" element={
                                                     <RequireQuizRole role="admin"><AdminLibrary /></RequireQuizRole>
+                                                } />
+                                                <Route path="app/admin/curricula" element={
+                                                    <RequireQuizRole role="admin"><AdminCurricula /></RequireQuizRole>
                                                 } />
                                                 <Route path="app/admin/translations" element={
                                                     <RequireQuizRole role="admin"><AdminTranslations /></RequireQuizRole>

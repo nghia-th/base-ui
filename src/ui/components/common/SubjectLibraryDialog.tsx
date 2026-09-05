@@ -26,9 +26,13 @@ import { DIALOG_PRIMARY_BUTTON_SX } from "../dialogs/dialogToneStyles";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 import { BlocParentSubjects } from "../../bloc/BlocParentSubjects";
 import { QuizLibraryDocument, QuizSubjectLibraryLink } from "../../../api/QuizLibraryApi";
+import { QuizCurriculum } from "../../../api/QuizCurriculumApi";
 
+// 2026-09-05 - Curriculum ("bo sach") used to be a similar hardcoded 3-value array here, but
+// per the user's explicit request ("chổ bộ sách phải được admin tạo hiện tại đang set cứng")
+// it is now loaded from bloc.getStream('curricula') (BlocParentSubjects.ts#loadCurricula),
+// same Admin-managed list QuizCurriculumApi.ts/CurriculumService.java expose.
 const GRADES = Array.from({ length: 12 }, (_, i) => i + 1);
-const CURRICULA = ["Kết nối tri thức", "Chân trời sáng tạo", "Cánh diều"];
 
 interface SubjectLibraryDialogProps {
     bloc: BlocParentSubjects;
@@ -59,6 +63,7 @@ export default function SubjectLibraryDialog({ bloc, subjectId, subjectName, ope
         if (open && subjectId != null) {
             bloc.loadLibraryLinks(subjectId);
             bloc.browseLibrary();
+            bloc.loadCurricula();
             setGrade('');
             setCurriculum('');
             setSubjectNameFilter('');
@@ -159,17 +164,26 @@ export default function SubjectLibraryDialog({ bloc, subjectId, subjectName, ope
                                         <MenuItem value="">{t('all')}</MenuItem>
                                         {GRADES.map((g) => <MenuItem key={g} value={g}>{g}</MenuItem>)}
                                     </TextField>
-                                    <TextField
-                                        select
-                                        size="small"
-                                        label={t('quiz-library-curriculum')}
-                                        value={curriculum}
-                                        onChange={(e) => setCurriculum(e.target.value)}
-                                        sx={{ width: 180 }}
-                                    >
-                                        <MenuItem value="">{t('all')}</MenuItem>
-                                        {CURRICULA.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-                                    </TextField>
+                                    <UIStream
+                                        initialData={null}
+                                        stream={bloc.getStream('curricula')}
+                                        builder={(curriculaSnap) => {
+                                            const curricula: QuizCurriculum[] = curriculaSnap.data ?? [];
+                                            return (
+                                                <TextField
+                                                    select
+                                                    size="small"
+                                                    label={t('quiz-library-curriculum')}
+                                                    value={curriculum}
+                                                    onChange={(e) => setCurriculum(e.target.value)}
+                                                    sx={{ width: 180 }}
+                                                >
+                                                    <MenuItem value="">{t('all')}</MenuItem>
+                                                    {curricula.map((c) => <MenuItem key={c.id} value={c.name}>{c.name}</MenuItem>)}
+                                                </TextField>
+                                            );
+                                        }}
+                                    />
                                     <TextField
                                         size="small"
                                         label={t('quiz-library-subject-name')}

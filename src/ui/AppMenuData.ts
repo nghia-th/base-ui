@@ -140,6 +140,10 @@ export const ADMIN_MENU_DATA: MenuItem[] = [
     // no root restriction (unlike the "quiz-admin-admins" entry below), so it is NOT filtered by
     // adminSidebarMenu(isRoot) further down.
     { label: 'quiz-admin-library', icon: 'MenuBookOutlined', to: '/app/admin/library', items: null },
+    // 2026-09-05 - "Bo sach" (curriculum) lookup list management, per the user's explicit
+    // request to stop hardcoding the 3-value list - every Admin can manage it, no root
+    // restriction (same reasoning as the "quiz-admin-library" entry above).
+    { label: 'quiz-admin-curricula', icon: 'AutoStoriesOutlined', to: '/app/admin/curricula', items: null },
     // 2026-09-05 - "Quản lý Admin" (tạo/xoá tài khoản Admin khác) CHỈ root mới thấy/dùng được -
     // xem AppShell.tsx's adminSidebarMenu(isRoot) (lọc mục này ra khỏi sidebar cho Admin thường)
     // và RequireAdminRoot (chặn cả việc gõ tay URL). Vẫn khai báo ở đây (không tách file riêng)
