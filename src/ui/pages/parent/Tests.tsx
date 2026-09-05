@@ -381,6 +381,7 @@ export default function Tests() {
                                                                                             builder={(idsSnap) => {
                                                                                                 const selectedIds: number[] = idsSnap.data ?? [];
                                                                                                 return (
+                                                                                                    <>
                                                                                                     <Box>
                                                                                                         <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
                                                                                                             {t('quiz-select-lessons-count', { count: selectedIds.length })}
@@ -398,6 +399,53 @@ export default function Tests() {
                                                                                                             )}
                                                                                                         </Stack>
                                                                                                     </Box>
+                                                                                                    {/* Danh sách câu hỏi gộp từ các Bài đã tick ở trên (2026-09-06 revision, theo góp ý
+                                                                                                        "chưa thấy danh sách câu hỏi ... để phụ huynh chọn câu hỏi cho đề kiểm tra") - mỗi
+                                                                                                        câu hỏi hiện kèm tên Bài để dễ phân biệt, có nút "Chọn tất cả" cho lối tắt lấy hết
+                                                                                                        như hành vi cũ nếu Phụ huynh muốn. */}
+                                                                                                    {selectedIds.length > 0 && (
+                                                                                                        <UIStream
+                                                                                                            initialData={bloc.getField('formLessonQuestions') ?? []}
+                                                                                                            stream={bloc.getStream('formLessonQuestions')}
+                                                                                                            builder={(lessonQuestionsSnap) => {
+                                                                                                                const lessonQuestions: any[] = lessonQuestionsSnap.data ?? [];
+                                                                                                                return (
+                                                                                                                    <UIStream
+                                                                                                                        initialData={bloc.getField('formLessonSelectedQuestionIds') ?? []}
+                                                                                                                        stream={bloc.getStream('formLessonSelectedQuestionIds')}
+                                                                                                                        builder={(qIdsSnap) => {
+                                                                                                                            const selectedQuestionIds: number[] = qIdsSnap.data ?? [];
+                                                                                                                            return (
+                                                                                                                                <Box>
+                                                                                                                                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 0.5 }}>
+                                                                                                                                        <Typography variant="subtitle2">
+                                                                                                                                            {t('quiz-select-questions-count', { count: selectedQuestionIds.length })}
+                                                                                                                                        </Typography>
+                                                                                                                                        <Button size="small" onClick={() => bloc.selectAllFormLessonQuestions()} disabled={lessonQuestions.length === 0}>
+                                                                                                                                            {t('quiz-select-all')}
+                                                                                                                                        </Button>
+                                                                                                                                    </Stack>
+                                                                                                                                    <Stack sx={{ maxHeight: 260, overflowY: 'auto' }}>
+                                                                                                                                        {lessonQuestions.map((q) => (
+                                                                                                                                            <FormControlLabel
+                                                                                                                                                key={q.id}
+                                                                                                                                                control={<Checkbox checked={selectedQuestionIds.includes(q.id)} onChange={() => bloc.toggleFormLessonQuestion(q.id)} />}
+                                                                                                                                                label={`[${q.lessonName}] ${q.content}`}
+                                                                                                                                            />
+                                                                                                                                        ))}
+                                                                                                                                        {lessonQuestions.length === 0 && (
+                                                                                                                                            <Typography variant="body2" color="text.secondary">{t('quiz-no-lesson-questions')}</Typography>
+                                                                                                                                        )}
+                                                                                                                                    </Stack>
+                                                                                                                                </Box>
+                                                                                                                            );
+                                                                                                                        }}
+                                                                                                                    />
+                                                                                                                );
+                                                                                                            }}
+                                                                                                        />
+                                                                                                    )}
+                                                                                                    </>
                                                                                                 );
                                                                                             }}
                                                                                         />

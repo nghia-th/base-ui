@@ -19,12 +19,17 @@ export interface QuizPracticeGenerateRequest {
 }
 
 // Khớp TestCreateFromLessonsRequest.java (2026-09-05, mục 3/11 - "khi tao de thi chon nhung bai
-// con da hoc") - chế độ tạo đề SONG SONG với QuizTestCreateRequest ở trên (chọn từng câu hỏi):
-// chọn cả Bài học, server tự lấy TẤT CẢ câu hỏi trong các bài đó rồi xáo trộn thứ tự.
+// con da hoc") - chế độ tạo đề SONG SONG với QuizTestCreateRequest ở trên (chọn từng câu hỏi).
+// 2026-09-06 (theo góp ý anh: "chưa thấy danh sách câu hỏi của những bài đã chọn để phụ huynh
+// chọn câu hỏi cho đề kiểm tra"): lessonIds giờ chỉ là PHẠM VI (Bài nào được phép lấy câu hỏi),
+// KHÔNG còn tự động lấy hết - questionIds mới là danh sách câu hỏi Phụ huynh tick tay từ pool câu
+// hỏi gộp của các Bài đã chọn (xem BlocParentTests.ts's formLessonQuestions/
+// formLessonSelectedQuestionIds). Server vẫn xáo trộn thứ tự trước khi lưu, không đổi.
 export interface QuizTestCreateFromLessonsRequest {
     studentId: number;
     name: string;
     lessonIds: number[];
+    questionIds: number[];
 }
 
 export class QuizTestApi {

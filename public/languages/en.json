@@ -589,6 +589,8 @@
     "quiz-create-mode-lesson": "Pick whole lessons",
     "quiz-select-lessons-count": "{{count}} lessons selected",
     "quiz-no-lessons": "This subject has no lessons yet.",
+    "quiz-select-all": "Select all",
+    "quiz-no-lesson-questions": "The selected lessons have no questions yet.",
     "quiz-lesson-report-title": "Report lessons studied today",
     "quiz-lesson-report-pick": "Pick a lesson studied",
     "quiz-lesson-report-all-done": "Every lesson of this subject has been reported.",

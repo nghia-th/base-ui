@@ -157,6 +157,8 @@ export class BlocParentTests extends IBlocUI {
         this.setStream('formLessonId', '')
         this.setStream('formQuestionIds', [])
         this.setStream('formLessonIds', [])
+        this.setStream('formLessonQuestions', [])
+        this.setStream('formLessonSelectedQuestionIds', [])
         this.setField('createReq', { name: '' })
         this.setStream('create_view', { isShow: true })
     }
@@ -166,6 +168,8 @@ export class BlocParentTests extends IBlocUI {
         this.setStream('formLessonId', '')
         this.setStream('formQuestionIds', [])
         this.setStream('formLessonIds', [])
+        this.setStream('formLessonQuestions', [])
+        this.setStream('formLessonSelectedQuestionIds', [])
     }
 
     closeCreate() {
@@ -183,6 +187,8 @@ export class BlocParentTests extends IBlocUI {
         this.setStream('formLessonId', '')
         this.setStream('formQuestionIds', [])
         this.setStream('formLessonIds', [])
+        this.setStream('formLessonQuestions', [])
+        this.setStream('formLessonSelectedQuestionIds', [])
         const students: QuizStudentLite[] = this.getField('students') ?? []
         const classroomId = value === '' ? undefined : students.find((s) => s.id === value)?.classroomId
         if (classroomId != null) this.loadSubjects(classroomId)
@@ -193,15 +199,60 @@ export class BlocParentTests extends IBlocUI {
         this.setStream('formLessonId', '')
         this.setStream('formQuestionIds', [])
         this.setStream('formLessonIds', [])
+        this.setStream('formLessonQuestions', [])
+        this.setStream('formLessonSelectedQuestionIds', [])
         this.loadLessons(value)
     }
 
     // Chế độ 'lesson' (2026-09-05, mục 3/11) - tick/bỏ tick nhiều Bài học cùng lúc, cùng shape
     // toggle hệt toggleFormQuestion bên dưới.
+    //
+    // 2026-09-06 revision: tick/bỏ tick 1 Bài giờ còn phải cập nhật 'formLessonQuestions' (pool
+    // câu hỏi gộp của MỌI Bài đang được tick, mỗi câu tự gắn thêm lessonId/lessonName để hiện
+    // nhóm theo Bài ở Tests.tsx) - theo đúng quyết định anh chọn "giữ nguyên câu đã tick, chỉ
+    // thêm/bớt theo Bài thay đổi": bỏ tick 1 Bài thì CHỈ loại câu hỏi của bài đó khỏi pool (và bỏ
+    // luôn khỏi 'formLessonSelectedQuestionIds' nếu đang được tick - không còn hợp lệ), câu hỏi
+    // của các Bài khác đã tick trước đó giữ nguyên; tick thêm 1 Bài mới thì tải câu hỏi của bài đó
+    // rồi GỘP vào pool hiện có, KHÔNG tự tick sẵn (Phụ huynh tự chọn tiếp, xem selectAllFormLessonQuestions
+    // cho lối tắt "chọn hết" nếu muốn).
     toggleFormLessonId(id: number) {
         const ids: number[] = this.getField('formLessonIds') ?? []
-        const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
+        const wasSelected = ids.includes(id)
+        const next = wasSelected ? ids.filter((x) => x !== id) : [...ids, id]
         this.setStream('formLessonIds', next)
+
+        if (wasSelected) {
+            const pool: any[] = this.getField('formLessonQuestions') ?? []
+            const nextPool = pool.filter((q) => q.lessonId !== id)
+            this.setStream('formLessonQuestions', nextPool)
+            const selected: number[] = this.getField('formLessonSelectedQuestionIds') ?? []
+            this.setStream('formLessonSelectedQuestionIds', selected.filter((qid) => nextPool.some((q) => q.id === qid)))
+        } else {
+            this.apiRequest(QuizQuestionApi.list(id), (res) => {
+                const lessons: any[] = this.getField('lessons') ?? []
+                const lessonName = lessons.find((l) => l.id === id)?.name ?? ''
+                const newQuestions = (res.data ?? []).map((q: any) => ({ ...q, lessonId: id, lessonName }))
+                const pool: any[] = this.getField('formLessonQuestions') ?? []
+                this.setStream('formLessonQuestions', [...pool, ...newQuestions])
+            })
+        }
+    }
+
+    // Tick/bỏ tick 1 câu hỏi cụ thể trong chế độ 'lesson' (2026-09-06) - cùng shape toggle hệt
+    // toggleFormQuestion, chỉ khác tên field vì đây là pool GỘP nhiều Bài, không phải 1 Bài như
+    // 'formQuestionIds' của chế độ 'question'.
+    toggleFormLessonQuestion(id: number) {
+        const ids: number[] = this.getField('formLessonSelectedQuestionIds') ?? []
+        const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
+        this.setStream('formLessonSelectedQuestionIds', next)
+    }
+
+    // Nút "Chọn tất cả" (2026-09-06, theo lựa chọn anh "Hiện list + có nút Chọn tất cả") - tick
+    // hết mọi câu hỏi đang có trong pool hiện tại (không phục hồi hành vi tự động lấy hết ở
+    // server - đây vẫn là 1 hành động tick tay của Phụ huynh, chỉ làm nhanh hơn).
+    selectAllFormLessonQuestions() {
+        const pool: any[] = this.getField('formLessonQuestions') ?? []
+        this.setStream('formLessonSelectedQuestionIds', pool.map((q) => q.id))
     }
 
     changeFormLesson(value: number) {
@@ -226,12 +277,15 @@ export class BlocParentTests extends IBlocUI {
         }
         if (mode === 'lesson') {
             const lessonIds: number[] = this.getField('formLessonIds') ?? []
-            if (lessonIds.length === 0) {
+            // 2026-09-06: questionIds giờ bắt buộc - Phụ huynh phải tự tick câu hỏi (hoặc bấm
+            // "Chọn tất cả"), không còn server tự lấy hết nữa.
+            const questionIds: number[] = this.getField('formLessonSelectedQuestionIds') ?? []
+            if (lessonIds.length === 0 || questionIds.length === 0) {
                 onError({ messageKey: 'required-field' })
                 return
             }
             this.setStream('submitting', true)
-            const request: QuizTestCreateFromLessonsRequest = { studentId, name, lessonIds }
+            const request: QuizTestCreateFromLessonsRequest = { studentId, name, lessonIds, questionIds }
             this.createFromLessons(request, () => { this.setStream('submitting', false); onComplete() },
                 (error: any) => { this.setStream('submitting', false); onError(error) })
             return

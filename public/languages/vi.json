@@ -589,6 +589,8 @@
     "quiz-create-mode-lesson": "Chọn theo bài học",
     "quiz-select-lessons-count": "Đã chọn {{count}} bài học",
     "quiz-no-lessons": "Môn học này chưa có bài học nào.",
+    "quiz-select-all": "Chọn tất cả",
+    "quiz-no-lesson-questions": "Các bài đã chọn chưa có câu hỏi nào.",
     "quiz-lesson-report-title": "Báo bài đã học hôm nay",
     "quiz-lesson-report-pick": "Chọn bài đã học",
     "quiz-lesson-report-all-done": "Đã báo hết bài của môn này.",
