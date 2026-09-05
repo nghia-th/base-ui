@@ -148,20 +148,34 @@ export default function TakeTest() {
                                                                     const answeredCount = questions.filter((q) => q.questionType === 'SPEAKING'
                                                                         ? (speakingUrls[q.questionId] != null || !!speakingTexts[q.questionId]?.trim())
                                                                         : answers[q.questionId] != null).length;
+                                                                    // Bat buoc tra loi HET moi duoc nop bai (2026-09-05, theo yeu cau
+                                                                    // "cho lam bai cua hoc sinh bat buoc phai tra loi het moi nop bai") -
+                                                                    // ap dung cho MOI cau hoi ke ca SPEAKING, dung y het cach dem
+                                                                    // answeredCount o tren (khop AskUserQuestion da chot). Nut Nop bai
+                                                                    // disable khi con thieu - backend cung tu choi lai lan nua qua
+                                                                    // QUIZ_038 ATTEMPT_NOT_ALL_ANSWERED neu goi thang API (xem
+                                                                    // StudentAttemptService#assertAllQuestionsAnswered), day chi la lop
+                                                                    // chan o frontend cho trai nghiem muot hon.
+                                                                    const allAnswered = answeredCount >= questions.length;
                                                                     return (
                                                                         <Card sx={{ p: 2 }}>
                                                                             <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
-                                                                                <Typography variant="subtitle1" fontWeight={700}>
+                                                                                <Typography variant="subtitle1" fontWeight={700} color={allAnswered ? 'text.primary' : 'error.main'}>
                                                                                     {t('quiz-answered-count', { answered: answeredCount, total: questions.length })}
                                                                                 </Typography>
                                                                                 <UIStream
                                                                                     initialData={false}
                                                                                     stream={bloc.getStream('submitting')}
                                                                                     builder={(submittingSnap) => (
-                                                                                        <Button variant="contained" disabled={submittingSnap.data === true} onClick={askSubmit}>{t('quiz-submit-test')}</Button>
+                                                                                        <Button variant="contained" disabled={submittingSnap.data === true || !allAnswered} onClick={askSubmit}>{t('quiz-submit-test')}</Button>
                                                                                     )}
                                                                                 />
                                                                             </Stack>
+                                                                            {!allAnswered && (
+                                                                                <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 1 }}>
+                                                                                    {t('quiz-answer-all-required')}
+                                                                                </Typography>
+                                                                            )}
                                                                         </Card>
                                                                     );
                                                                 }}

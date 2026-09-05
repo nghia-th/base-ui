@@ -50,7 +50,6 @@ export default function AdminLibrary() {
 
     useEffect(() => {
         bloc.reload();
-        bloc.loadCurricula();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -59,6 +58,14 @@ export default function AdminLibrary() {
     const openNew = () => {
         setFile(null);
         bloc.openNew();
+        // Tai lai danh sach Bo sach MOI LAN mo dialog, thay vi 1 lan luc trang mount o tren -
+        // UIStream cua 'curricula' nam LONG BEN TRONG AppDialog (chi mount khi form_view.isShow
+        // = true), trong khi Subject cua rxjs KHONG replay gia tri da phat cho subscriber den
+        // sau (khac BehaviorSubject) - neu goi luc trang mount, response tra ve truoc khi dialog
+        // duoc mo lan dau se bi mat vinh vien, dropdown "Bo sach" mai mai trong (bug bao cao
+        // 2026-09-05: "ui anh chua lay duoc danh sach bo sach"). Goi lai o day dam bao stream
+        // luon co subscriber (chinh UIStream nay) truoc khi response ve.
+        bloc.loadCurricula();
     };
 
     const closeForm = () => {
