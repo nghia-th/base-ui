@@ -509,16 +509,6 @@
         "QUIZ_030": "Mật khẩu hiện tại không đúng",
         "quiz-import-practice-tests": "Nhập đề ôn từ file",
         "quiz-import-practice-tests-dialog-title": "Nhập đề ôn tập từ file",
-        "quiz-import-practice-tests-hint": "Chọn Lớp và Môn học bên trên, tải file mẫu, điền theo đúng 2 cột (Tên đăng nhập học sinh/Số câu hỏi) rồi chọn file để nhập. Mỗi dòng tạo 1 đề ôn tập cho đúng Môn học đã chọn với bộ câu hỏi ngẫu nhiên mới, giống hệt khi bấm nút \"Tạo đề ôn tập\" thủ công cho từng học sinh. Từng dòng lỗi sẽ được báo riêng, không làm hỏng cả file.",
-        "quiz-admin-admins": "Quản lý Admin",
-        "quiz-admin-admin-new": "Thêm Admin mới",
-        "quiz-admin-admin-created": "Đã thêm tài khoản Admin",
-        "quiz-admin-admin-deleted": "Đã xoá tài khoản Admin",
-        "quiz-admin-delete-admin-confirm": "Bạn có chắc muốn xoá vĩnh viễn tài khoản Admin này không? Hành động này không thể hoàn tác.",
-        "quiz-admin-admin-type": "Loại tài khoản",
-        "quiz-admin-root": "Root",
-        "quiz-admin-admin-regular": "Admin",
-        "QUIZ_031": "Không thể xoá tài khoản root",
-        "COMMON_004": "Bạn không có quyền thực hiện thao tác này"
+        "quiz-import-practice-tests-hint": "Tải file mẫu, điền theo đúng 3 cột (Tên đăng nhập học sinh/Tên môn học/Số câu hỏi) rồi chọn file để nhập. Mỗi dòng tạo 1 đề ôn tập với bộ câu hỏi ngẫu nhiên mới, giống hệt khi bấm nút \"Tạo đề ôn tập\" thủ công cho từng học sinh. Từng dòng lỗi sẽ được báo riêng, không làm hỏng cả file."
     }
 }

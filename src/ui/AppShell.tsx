@@ -10,7 +10,7 @@ import { DRAWER_WIDTH, SLIM_WIDTH, HORIZONTAL_MENU_HEIGHT } from "./layout/layou
 import {
     PARENT_MENU_DATA, PARENT_BREADCRUMB_DATA,
     STUDENT_MENU_DATA, STUDENT_BREADCRUMB_DATA,
-    ADMIN_MENU_DATA, ADMIN_BREADCRUMB_DATA, adminSidebarMenu
+    ADMIN_BREADCRUMB_DATA, adminSidebarMenu
 } from "./AppMenuData";
 import AppTopbar from "./layout/AppTopbar";
 import AppSidebar from "./layout/AppSidebar";

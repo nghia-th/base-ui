@@ -509,16 +509,6 @@
         "QUIZ_030": "Current password is incorrect",
         "quiz-import-practice-tests": "Import from file",
         "quiz-import-practice-tests-dialog-title": "Import practice tests from file",
-        "quiz-import-practice-tests-hint": "Select the Classroom and Subject above, download the template, fill in the 2 columns (Student username/Question count) then choose the file to import. Each row creates one practice test for the selected Subject with a freshly-randomized question set, exactly like manually clicking \"Generate practice test\" for each student. Row errors are reported individually and do not fail the whole file.",
-        "quiz-admin-admins": "Manage Admins",
-        "quiz-admin-admin-new": "Add new Admin",
-        "quiz-admin-admin-created": "Admin account created",
-        "quiz-admin-admin-deleted": "Admin account deleted",
-        "quiz-admin-delete-admin-confirm": "Are you sure you want to permanently delete this Admin account? This action cannot be undone.",
-        "quiz-admin-admin-type": "Account type",
-        "quiz-admin-root": "Root",
-        "quiz-admin-admin-regular": "Admin",
-        "QUIZ_031": "Root admin account cannot be deleted",
-        "COMMON_004": "You do not have permission to perform this action"
+        "quiz-import-practice-tests-hint": "Download the template, fill in the 3 fixed columns (Student username/Subject name/Question count) then choose the file to import. Each row creates one practice test with a freshly-randomized question set, exactly like manually clicking \"Generate practice test\" for that student. Each failed row is reported separately, without breaking the whole file."
     }
 }

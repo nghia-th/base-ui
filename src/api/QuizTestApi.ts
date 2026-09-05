@@ -41,22 +41,26 @@ export class QuizTestApi {
         return QuizRequestBase.delete(`${QUIZ_PARENT_PREFIX}/tests/${id}`);
     }
 
-    // Import hàng loạt đề ôn tập bằng file (2026-09-04) - responseType 'blob' + cách gọi giống hệt
-    // QuizLessonApi.downloadImportTemplate, chỉ khác endpoint. KHÔNG có subjectId param như
-    // Lesson/Question import - mỗi dòng trong file tự nêu Học sinh/Môn học riêng (xem
-    // PracticeImportService.java's javadoc), không có 1 subjectId chung cho cả file.
+    // Import hàng loạt đề ôn tập bằng file - responseType 'blob' + cách gọi giống hệt
+    // QuizLessonApi.downloadImportTemplate, chỉ khác endpoint. Template không phụ thuộc
+    // subjectId (chỉ 2 cột Học sinh/Số câu hỏi, xem PracticeImportService.java's javadoc) nên
+    // hàm tải template này không cần tham số đó - subjectId chỉ cần khi GỌI import thật (xem
+    // quizImportPracticeTests bên dưới).
     static downloadPracticeImportTemplate(format: 'xlsx' | 'csv') {
         return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/tests/practice/import-template`, { params: { format }, responseType: 'blob' });
     }
 }
 
-// Import Excel/CSV đề ôn tập hàng loạt (2026-09-04) - cùng bug FormData->JSON + cách sửa hệt
-// quizImportLessons bên QuizLessonApi.ts (xem comment đầy đủ ở đó), không có param thứ 2 ngoài
-// file - mỗi dòng tự nêu Học sinh (tên đăng nhập) + Môn học (tên) riêng.
-export async function quizImportPracticeTests(file: File) {
+// Import Excel/CSV đề ôn tập hàng loạt - cùng bug FormData->JSON + cách sửa hệt
+// quizImportLessons bên QuizLessonApi.ts (xem comment đầy đủ ở đó). 2026-09-05: thêm tham số
+// subjectId (giống quizImportLessons) - Môn học giờ chọn 1 LẦN cho cả file (per "mỗi lần import
+// một đề ôn theo môn" - anh xác nhận), không còn tự nêu theo từng dòng như thiết kế 2026-09-04
+// ban đầu (xem PracticeImportService.java's javadoc, phần "Row shape" đã sửa lại).
+export async function quizImportPracticeTests(subjectId: number, file: File) {
     const formData = new FormData();
     formData.append('file', file);
     const res = await QUIZ_API.post(`${QUIZ_PARENT_PREFIX}/tests/practice/import`, formData, {
+        params: { subjectId },
         headers: { 'Content-Type': undefined }
     });
     return res.data;

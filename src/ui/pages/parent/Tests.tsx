@@ -432,8 +432,10 @@ export default function Tests() {
                                 }}
                             />
 
-                            {/* Dialog "Nhập đề ôn tập từ file" (2026-09-04) - cùng shape hệt Dialog import bài
-                                học của Subjects.tsx, xem BlocParentTests.ts's openPracticeImport comment. */}
+                            {/* Dialog "Nhập đề ôn tập từ file" - cùng shape hệt Dialog import bài học của
+                                Subjects.tsx, xem BlocParentTests.ts's openPracticeImport comment. 2026-09-05:
+                                thêm 2 Select Lớp/Môn (cascading, giống Dialog "Tạo đề ôn tập" bên dưới) - phải
+                                chọn xong Môn mới được bấm "Chọn file" (per "mỗi lần import một đề ôn theo môn"). */}
                             <UIStream
                                 initialData={{ isShow: false }}
                                 stream={bloc.getStream('practice_import_view')}
@@ -447,17 +449,73 @@ export default function Tests() {
                                                 <Stack spacing={2} sx={{ mt: 1 }} alignItems="flex-start">
                                                     <Typography variant="body2" color="text.secondary">{t('quiz-import-practice-tests-hint')}</Typography>
                                                     <UIStream
-                                                        initialData={false}
-                                                        stream={bloc.getStream('practiceImporting')}
-                                                        builder={(importingSnap) => (
-                                                            <Button
-                                                                variant="outlined"
-                                                                startIcon={importingSnap.data === true ? <CircularProgress size={16} /> : <UploadFileOutlined />}
-                                                                disabled={importingSnap.data === true}
-                                                                onClick={() => practiceFileInputRef.current?.click()}
-                                                            >
-                                                                {t('quiz-import-pick-file')}
-                                                            </Button>
+                                                        initialData={bloc.getField('importClassrooms') ?? []}
+                                                        stream={bloc.getStream('importClassrooms')}
+                                                        builder={(classroomsSnap) => (
+                                                            <UIStream
+                                                                initialData={bloc.getField('importClassroomId') ?? ''}
+                                                                stream={bloc.getStream('importClassroomId')}
+                                                                builder={(classroomIdSnap) => (
+                                                                    <FormControl fullWidth size="small">
+                                                                        <InputLabel>{t('quiz-select-classroom')}</InputLabel>
+                                                                        <Select
+                                                                            label={t('quiz-select-classroom')}
+                                                                            value={classroomIdSnap.data ?? ''}
+                                                                            onChange={(e) => bloc.changeImportClassroom(e.target.value === '' ? '' : Number(e.target.value))}
+                                                                        >
+                                                                            {(classroomsSnap.data ?? []).map((c: any) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+                                                                        </Select>
+                                                                    </FormControl>
+                                                                )}
+                                                            />
+                                                        )}
+                                                    />
+                                                    <UIStream
+                                                        initialData={bloc.getField('importSubjects') ?? []}
+                                                        stream={bloc.getStream('importSubjects')}
+                                                        builder={(subjectsSnap) => (
+                                                            <UIStream
+                                                                initialData={bloc.getField('importClassroomId') ?? ''}
+                                                                stream={bloc.getStream('importClassroomId')}
+                                                                builder={(classroomIdSnap) => (
+                                                                    <UIStream
+                                                                        initialData={bloc.getField('importSubjectId') ?? ''}
+                                                                        stream={bloc.getStream('importSubjectId')}
+                                                                        builder={(subjectIdSnap) => (
+                                                                            <FormControl fullWidth size="small" disabled={(classroomIdSnap.data ?? '') === ''}>
+                                                                                <InputLabel>{t('quiz-select-subject')}</InputLabel>
+                                                                                <Select
+                                                                                    label={t('quiz-select-subject')}
+                                                                                    value={subjectIdSnap.data ?? ''}
+                                                                                    onChange={(e) => bloc.changeImportSubject(Number(e.target.value))}
+                                                                                >
+                                                                                    {(subjectsSnap.data ?? []).map((s: any) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
+                                                                                </Select>
+                                                                            </FormControl>
+                                                                        )}
+                                                                    />
+                                                                )}
+                                                            />
+                                                        )}
+                                                    />
+                                                    <UIStream
+                                                        initialData={bloc.getField('importSubjectId') ?? ''}
+                                                        stream={bloc.getStream('importSubjectId')}
+                                                        builder={(subjectIdSnap) => (
+                                                            <UIStream
+                                                                initialData={false}
+                                                                stream={bloc.getStream('practiceImporting')}
+                                                                builder={(importingSnap) => (
+                                                                    <Button
+                                                                        variant="outlined"
+                                                                        startIcon={importingSnap.data === true ? <CircularProgress size={16} /> : <UploadFileOutlined />}
+                                                                        disabled={importingSnap.data === true || (subjectIdSnap.data ?? '') === ''}
+                                                                        onClick={() => practiceFileInputRef.current?.click()}
+                                                                    >
+                                                                        {t('quiz-import-pick-file')}
+                                                                    </Button>
+                                                                )}
+                                                            />
                                                         )}
                                                     />
                                                     <UIStream

@@ -4,6 +4,7 @@ import { QuizStudentApi } from "../../api/QuizStudentApi";
 import { QuizSubjectApi } from "../../api/QuizSubjectApi";
 import { QuizLessonApi } from "../../api/QuizLessonApi";
 import { QuizQuestionApi } from "../../api/QuizQuestionApi";
+import { QuizClassroomApi } from "../../api/QuizClassroomApi";
 
 // Khớp TestResponse.java (view danh sách - KHÔNG có questions, xem QuizTestDetail cho chi tiết).
 export interface QuizTest {
@@ -25,6 +26,16 @@ export interface QuizStudentLite {
     id: number;
     fullName: string;
     classroomId: number;
+}
+
+// Chỉ lấy 2 field cần cho dropdown Lớp học ở Dialog "Nhập đề ôn tập từ file" (2026-09-05) - Lớp
+// được chọn TRƯỚC Môn học ở dialog đó (khác Dialog "Tạo đề ôn tập" chọn Học sinh trước rồi tự suy
+// ra Lớp, xem QuizStudentLite ở trên) vì import không có 1 Học sinh cố định để suy ra Lớp từ đó -
+// một file có thể nhắm tới nhiều Học sinh khác nhau, miễn cùng 1 Môn học (xem "mỗi lần import một
+// đề ôn theo môn" - anh xác nhận).
+export interface QuizClassroomLite {
+    id: number;
+    name: string;
 }
 
 // Khớp ImportRowError.java / PracticeImportResponse.java (2026-09-04) - cùng shape hệt
@@ -228,21 +239,53 @@ export class BlocParentTests extends IBlocUI {
             (error: any) => { this.setStream('practiceSubmitting', false); onError(error) })
     }
 
-    // --- Dialog "Nhập đề ôn tập từ file" (2026-09-04) - cùng shape hệt Dialog import bài học của
+    // --- Dialog "Nhập đề ôn tập từ file" - cùng shape hệt Dialog import bài học của
     // BlocParentSubjects.ts (openLessonImport/closeLessonImport/downloadLessonImportTemplate/
     // importLessonsFile/runLessonImport) - xem comment ở đó cho lý do responseType:'blob' và vì
-    // sao quizImportPracticeTests đi thẳng QUIZ_API thay vì qua apiRequest. Khác 1 điểm: không
-    // nhận subjectId (mỗi dòng trong file tự nêu Học sinh/Môn học riêng), và reload() đích là
-    // reloadTests() thay vì loadLessons(subjectId).
+    // sao quizImportPracticeTests đi thẳng QUIZ_API thay vì qua apiRequest.
+    //
+    // 2026-09-05 (sửa lại theo "mỗi lần import một đề ôn theo môn" - anh xác nhận): dialog này giờ
+    // bắt Phụ huynh CHỌN LỚP rồi CHỌN MÔN trước khi được bấm nút chọn file - khác Dialog "Tạo đề
+    // ôn tập" (chọn Học sinh trước, tự suy ra Lớp - xem changePracticeStudent), ở đây không có 1
+    // Học sinh cố định nào để suy ra Lớp từ đó (file có thể nhắm nhiều Học sinh khác Lớp... không,
+    // PHẢI cùng 1 Lớp vì cùng 1 Môn - Môn học luôn thuộc đúng 1 Lớp). Dùng 2 stream/field MỚI
+    // (importClassroomId/importSubjectId, và importClassrooms/importSubjects cho 2 dropdown) tách
+    // hẳn khỏi classroomId/subjects của các Dialog khác, để mở/đóng dialog này không ảnh hưởng
+    // state của Dialog "Tạo đề ôn tập" nếu Phụ huynh mở dialog kia trước đó rồi đóng lại.
     openPracticeImport() {
+        this.setStream('importClassroomId', '')
+        this.setStream('importSubjectId', '')
+        this.setStream('importSubjects', [])
         this.setStream('practiceImportResult', null)
         this.setStream('practice_import_view', { isShow: true })
+        this.apiRequest(QuizClassroomApi.list(), (res) => {
+            this.setStream('importClassrooms', res.data as QuizClassroomLite[])
+        })
     }
 
     closePracticeImport() {
         this.setStream('practice_import_view', { isShow: false })
         this.setStream('practiceImporting', false)
         this.setStream('practiceImportResult', null)
+    }
+
+    // Chọn Lớp là bước đầu tiên của dialog import - tải lại Môn học của đúng Lớp đó vào stream
+    // RIÊNG 'importSubjects' (không dùng chung 'subjects' với 2 Dialog kia, xem comment ở
+    // openPracticeImport). Đổi Lớp reset luôn Môn học đã chọn trước đó (không còn hợp lệ).
+    changeImportClassroom(value: number | '') {
+        this.setStream('importClassroomId', value)
+        this.setStream('importSubjectId', '')
+        if (value === '') {
+            this.setStream('importSubjects', [])
+            return
+        }
+        this.apiRequest(QuizSubjectApi.list(value), (res) => {
+            this.setStream('importSubjects', res.data)
+        })
+    }
+
+    changeImportSubject(value: number) {
+        this.setStream('importSubjectId', value)
     }
 
     downloadPracticeImportTemplate(format: 'xlsx' | 'csv', onError: (error: any) => void) {
@@ -260,9 +303,9 @@ export class BlocParentTests extends IBlocUI {
         }, { onError })
     }
 
-    async importPracticeFile(file: File, onComplete: (result: QuizPracticeImportResult) => void, onError: (error: any) => void) {
+    async importPracticeFile(subjectId: number, file: File, onComplete: (result: QuizPracticeImportResult) => void, onError: (error: any) => void) {
         try {
-            const res = await quizImportPracticeTests(file)
+            const res = await quizImportPracticeTests(subjectId, file)
             if (res.code === 100) {
                 onComplete(res.data as QuizPracticeImportResult)
                 this.reloadTests()
@@ -274,9 +317,18 @@ export class BlocParentTests extends IBlocUI {
         }
     }
 
+    // subjectId đọc từ field 'importSubjectId' (bắt buộc phải chọn xong Lớp+Môn trước khi dialog
+    // cho bấm nút chọn file - xem Tests.tsx, nút "Chọn file" bị disable tới khi có subjectId) nên
+    // validate lại 1 lần nữa ở đây cho chắc (phòng trường hợp gọi thẳng runPracticeImport mà bỏ
+    // qua UI, cùng convention "Bloc content tự validate, không tin UI" của mọi submit* khác).
     runPracticeImport(file: File, onError: (error: any) => void) {
+        const subjectId = this.getField('importSubjectId')
+        if (subjectId === '' || subjectId == null) {
+            onError({ messageKey: 'required-field' })
+            return
+        }
         this.setStream('practiceImporting', true)
-        this.importPracticeFile(file, (result) => {
+        this.importPracticeFile(subjectId, file, (result) => {
             this.setStream('practiceImporting', false)
             this.setStream('practiceImportResult', result)
         }, (error) => { this.setStream('practiceImporting', false); onError(error) })
