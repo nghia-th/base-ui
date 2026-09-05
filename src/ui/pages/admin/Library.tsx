@@ -16,6 +16,8 @@ import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
+import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
+import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import { BlocAdminLibrary } from "../../bloc/BlocAdminLibrary";
 import { QuizLibraryDocument } from "../../../api/QuizLibraryApi";
@@ -94,8 +96,12 @@ export default function AdminLibrary() {
         { field: 'volume', headerName: t('quiz-library-volume') as string, width: 120 },
         { field: 'title', headerName: t('quiz-library-title') as string, flex: 1, minWidth: 200 },
         {
-            field: 'actions', type: 'actions', headerName: t('actions') as string, width: 80,
-            getActions: (params) => [<GridActionsCellItem icon={<DeleteOutlined fontSize="small" />} label="delete" onClick={() => askRemove(params.row)} />]
+            field: 'actions', type: 'actions', headerName: t('actions') as string, width: 140,
+            getActions: (params) => [
+                <GridActionsCellItem icon={<VisibilityOutlined fontSize="small" />} label="quiz-library-view" onClick={() => bloc.view(params.row.id, showError)} />,
+                <GridActionsCellItem icon={<DownloadOutlined fontSize="small" />} label="quiz-library-download" onClick={() => bloc.downloadFile(params.row.id, `${params.row.title}.pdf`, showError)} />,
+                <GridActionsCellItem icon={<DeleteOutlined fontSize="small" />} label="delete" onClick={() => askRemove(params.row)} />
+            ]
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     ], [t]);

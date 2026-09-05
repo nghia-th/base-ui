@@ -402,4 +402,15 @@ export class BlocParentSubjects extends IBlocUI {
             URL.revokeObjectURL(url)
         }, { onError })
     }
+
+    // Opens the PDF in a new tab (native PDF viewer) instead of forcing a save-to-disk - same
+    // endpoint as downloadLibraryFile above, see BlocAdminLibrary.view's comment for why the
+    // frontend (not the backend's Content-Disposition header) is what decides view vs download.
+    // Object URL intentionally left un-revoked, same reasoning as BlocAdminLibrary.view.
+    viewLibraryFile(subjectId: number, documentId: number, onError: (error: any) => void) {
+        this.apiRequest(QuizParentLibraryApi.downloadFile(subjectId, documentId), (res: any) => {
+            const blob: Blob = res.data
+            window.open(URL.createObjectURL(blob), '_blank')
+        }, { onError })
+    }
 }

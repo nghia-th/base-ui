@@ -16,6 +16,7 @@ import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
+import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import { BlocStudentLibrary, QuizStudentSubjectLite } from "../../bloc/BlocStudentLibrary";
 import { QuizSubjectLibraryLink } from "../../../api/QuizLibraryApi";
@@ -50,6 +51,11 @@ export default function StudentLibrary() {
     const download = (doc: QuizSubjectLibraryLink['document']) => {
         if (openSubject == null) return;
         bloc.downloadFile(openSubject.id, doc.id, `${doc.title}.pdf`, showError);
+    };
+
+    const view = (doc: QuizSubjectLibraryLink['document']) => {
+        if (openSubject == null) return;
+        bloc.viewFile(openSubject.id, doc.id, showError);
     };
 
     return (
@@ -92,9 +98,14 @@ export default function StudentLibrary() {
                                                     <ListItem
                                                         key={l.id}
                                                         secondaryAction={
-                                                            <IconButton size="small" onClick={() => download(l.document)}>
-                                                                <DownloadOutlined fontSize="small" />
-                                                            </IconButton>
+                                                            <>
+                                                                <IconButton size="small" onClick={() => view(l.document)}>
+                                                                    <VisibilityOutlined fontSize="small" />
+                                                                </IconButton>
+                                                                <IconButton size="small" onClick={() => download(l.document)}>
+                                                                    <DownloadOutlined fontSize="small" />
+                                                                </IconButton>
+                                                            </>
                                                         }
                                                     >
                                                         <ListItemText

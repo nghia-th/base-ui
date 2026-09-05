@@ -44,4 +44,13 @@ export class BlocStudentLibrary extends IBlocUI {
             URL.revokeObjectURL(url)
         }, { onError })
     }
+
+    // Opens the PDF in a new tab instead of forcing a save-to-disk - same endpoint as
+    // downloadFile above, see BlocAdminLibrary.view's comment for why the frontend decides this.
+    viewFile(subjectId: number, documentId: number, onError: (error: any) => void) {
+        this.apiRequest(QuizStudentLibraryApi.downloadFile(subjectId, documentId), (res: any) => {
+            const blob: Blob = res.data
+            window.open(URL.createObjectURL(blob), '_blank')
+        }, { onError })
+    }
 }

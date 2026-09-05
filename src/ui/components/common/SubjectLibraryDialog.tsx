@@ -17,6 +17,7 @@ import ListItemText from "@mui/material/ListItemText";
 import IconButton from "@mui/material/IconButton";
 import Chip from "@mui/material/Chip";
 import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
+import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
 import LinkOutlined from "@mui/icons-material/LinkOutlined";
 import LinkOffOutlined from "@mui/icons-material/LinkOffOutlined";
 import UIStream from "./UIStream";
@@ -92,6 +93,11 @@ export default function SubjectLibraryDialog({ bloc, subjectId, subjectName, ope
         bloc.downloadLibraryFile(subjectId, doc.id, `${doc.title}.pdf`, showError);
     };
 
+    const view = (doc: QuizLibraryDocument) => {
+        if (subjectId == null) return;
+        bloc.viewLibraryFile(subjectId, doc.id, showError);
+    };
+
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
             <DialogTitle>{t('quiz-library-browse')} - {subjectName}</DialogTitle>
@@ -114,6 +120,9 @@ export default function SubjectLibraryDialog({ bloc, subjectId, subjectName, ope
                                             key={l.id}
                                             secondaryAction={
                                                 <Stack direction="row" spacing={0.5}>
+                                                    <IconButton size="small" onClick={() => view(l.document)}>
+                                                        <VisibilityOutlined fontSize="small" />
+                                                    </IconButton>
                                                     <IconButton size="small" onClick={() => download(l.document)}>
                                                         <DownloadOutlined fontSize="small" />
                                                     </IconButton>

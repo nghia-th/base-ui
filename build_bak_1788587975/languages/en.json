@@ -545,7 +545,6 @@
     "quiz-library-unlink-confirm": "Are you sure you want to unlink this document from the subject?",
     "quiz-library-linked": "Linked",
     "quiz-library-download": "Download",
-    "quiz-library-view": "View",
     "quiz-library-no-documents": "No documents yet",
     "quiz-library-linked-success": "Linked successfully",
     "quiz-library-unlinked-success": "Unlinked successfully",
