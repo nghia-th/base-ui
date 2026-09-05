@@ -128,11 +128,16 @@ export const STUDENT_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
     return out
 })()
 
-// Menu khu vực Admin (/app/admin/*, 2026-09-04) - Admin chỉ quản trị tài khoản Phụ huynh trong v1
+// Menu khu vực Admin (/app/admin/*, 2026-09-04) - Admin quản trị tài khoản Phụ huynh
 // (list/create/khoá-mở/xoá, xem AdminParentApi.java) - không có dashboard riêng, giống Học sinh
 // (STUDENT_MENU_DATA ở trên) chỉ xoay quanh đúng 1 việc nên KHÔNG cần trang tổng quan trung gian.
 export const ADMIN_MENU_DATA: MenuItem[] = [
     { label: 'quiz-admin-parents', icon: 'PeopleOutlined', to: '/app/admin/parents', items: null, section: 'menu-section-main' },
+    // 2026-09-05 - "Quản lý Admin" (tạo/xoá tài khoản Admin khác) CHỈ root mới thấy/dùng được -
+    // xem AppShell.tsx's adminSidebarMenu(isRoot) (lọc mục này ra khỏi sidebar cho Admin thường)
+    // và RequireAdminRoot (chặn cả việc gõ tay URL). Vẫn khai báo ở đây (không tách file riêng)
+    // để ADMIN_BREADCRUMB_DATA bên dưới có tiêu đề đúng cho route này dù sidebar có ẩn hay không.
+    { label: 'quiz-admin-admins', icon: 'AdminPanelSettingsOutlined', to: '/app/admin/admins', items: null },
     // 2026-09-04, phần 4/4 - Admin tự sửa chuỗi dịch UI (vi/en) mà không cần deploy lại code, xem
     // BlocAdminTranslations.ts.
     { label: 'quiz-admin-translations', icon: 'TranslateOutlined', to: '/app/admin/translations', items: null }
@@ -143,3 +148,12 @@ export const ADMIN_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
     flatten(ADMIN_MENU_DATA, out)
     return out
 })()
+
+// 2026-09-05 - Sidebar/menu ngang cho khu vực Admin PHẢI lọc theo isRoot (khác breadcrumb ở trên,
+// vẫn dùng nguyên ADMIN_MENU_DATA đầy đủ) - AppShell.tsx gọi hàm này thay vì đọc thẳng
+// ADMIN_MENU_DATA khi build menu hiển thị, để mục "Quản lý Admin" chỉ hiện cho tài khoản root
+// (xem entity/Admin.java's javadoc + AdminManageApi.java bên backend - việc chặn thật nằm ở đó,
+// đây chỉ là hàng rào UX ẩn bớt mục Admin thường không dùng được).
+export function adminSidebarMenu(isRoot: boolean): MenuItem[] {
+    return isRoot ? ADMIN_MENU_DATA : ADMIN_MENU_DATA.filter(item => item.to !== '/app/admin/admins')
+}

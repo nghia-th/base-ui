@@ -506,6 +506,9 @@
         "quiz-admin-parent-password-reset": "Password reset",
         "change-password": "Change password",
         "quiz-change-password-success": "Password changed. Please log in again.",
-        "QUIZ_030": "Current password is incorrect"
+        "QUIZ_030": "Current password is incorrect",
+        "quiz-import-practice-tests": "Import from file",
+        "quiz-import-practice-tests-dialog-title": "Import practice tests from file",
+        "quiz-import-practice-tests-hint": "Download the template, fill in the 3 fixed columns (Student username/Subject name/Question count) then choose the file to import. Each row creates one practice test with a freshly-randomized question set, exactly like manually clicking \"Generate practice test\" for that student. Each failed row is reported separately, without breaking the whole file."
     }
 }

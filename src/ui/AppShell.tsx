@@ -10,7 +10,7 @@ import { DRAWER_WIDTH, SLIM_WIDTH, HORIZONTAL_MENU_HEIGHT } from "./layout/layou
 import {
     PARENT_MENU_DATA, PARENT_BREADCRUMB_DATA,
     STUDENT_MENU_DATA, STUDENT_BREADCRUMB_DATA,
-    ADMIN_MENU_DATA, ADMIN_BREADCRUMB_DATA
+    ADMIN_MENU_DATA, ADMIN_BREADCRUMB_DATA, adminSidebarMenu
 } from "./AppMenuData";
 import AppTopbar from "./layout/AppTopbar";
 import AppSidebar from "./layout/AppSidebar";
@@ -34,6 +34,7 @@ import ParentQuestions from "./pages/parent/Questions";
 import ParentTests from "./pages/parent/Tests";
 import ParentReports from "./pages/parent/Reports";
 import AdminParents from "./pages/admin/Parents";
+import AdminAdmins from "./pages/admin/Admins";
 import AdminTranslations from "./pages/admin/Translations";
 import { QuizLoginRole } from "./bloc/BlocQuizLogin";
 import Dashboard from "./pages/Dashboard";
@@ -80,6 +81,28 @@ function RequireQuizRole({ role, children }: { role: QuizLoginRole; children: Re
         // /app/parent (Admin không có Parent data để xem).
         const homeOf = currentRole === 'admin' ? '/app/admin/parents' : (currentRole === 'student' ? '/app/student/tests' : '/app/parent');
         return <Navigate replace to={homeOf} />;
+    }
+    return children;
+}
+
+// 2026-09-05 - Admin quản lý Admin (tạo/xoá tài khoản Admin khác) CHỈ root mới vào được, xem
+// AppMenuData.ts's adminSidebarMenu (ẩn mục menu) - đây là hàng rào UX thứ 2, chặn cả việc Admin
+// thường gõ tay URL /app/admin/admins. Đọc thẳng quizProfile đã lưu lúc login (xem
+// BlocQuizLogin.ts's handleAuthSuccess) - KHÔNG gọi API riêng chỉ để biết root hay không, cùng lý
+// do quizRole được đọc thẳng từ LocalStorage ở RequireQuizRole trên. Chốt chặn dữ liệu thật vẫn ở
+// AdminManageService#requireRoot bên backend (COMMON_004 FORBIDDEN nếu không phải root).
+function isCurrentAdminRoot(): boolean {
+    try {
+        const raw = LocalStorage.getItem('quizProfile');
+        return raw ? JSON.parse(raw)?.root === true : false;
+    } catch {
+        return false;
+    }
+}
+
+function RequireAdminRoot({ children }: { children: React.ReactElement }) {
+    if (!isCurrentAdminRoot()) {
+        return <Navigate replace to="/app/admin/parents" />;
     }
     return children;
 }
@@ -165,7 +188,7 @@ export default function AppShell() {
             stream={blocApp.getStream('loadInitStream')}
             builder={(snapshot) => {
                 const viewMain = snapshot.data ?? blocApp.getField('viewMain');
-                const menu = isDemoRoute ? viewMain.menu : (isParentArea ? PARENT_MENU_DATA : (isStudentArea ? STUDENT_MENU_DATA : (isAdminArea ? ADMIN_MENU_DATA : PARENT_MENU_DATA)));
+                const menu = isDemoRoute ? viewMain.menu : (isParentArea ? PARENT_MENU_DATA : (isStudentArea ? STUDENT_MENU_DATA : (isAdminArea ? adminSidebarMenu(isCurrentAdminRoot()) : PARENT_MENU_DATA)));
                 const breadcrumb = isDemoRoute ? viewMain.breadcrumb : (isParentArea ? PARENT_BREADCRUMB_DATA : (isStudentArea ? STUDENT_BREADCRUMB_DATA : (isAdminArea ? ADMIN_BREADCRUMB_DATA : PARENT_BREADCRUMB_DATA)));
                 return (
                     <UIStream
@@ -281,6 +304,9 @@ export default function AppShell() {
                                                 } />
                                                 <Route path="app/admin/parents" element={
                                                     <RequireQuizRole role="admin"><AdminParents /></RequireQuizRole>
+                                                } />
+                                                <Route path="app/admin/admins" element={
+                                                    <RequireQuizRole role="admin"><RequireAdminRoot><AdminAdmins /></RequireAdminRoot></RequireQuizRole>
                                                 } />
                                                 <Route path="app/admin/translations" element={
                                                     <RequireQuizRole role="admin"><AdminTranslations /></RequireQuizRole>

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo } from "react";
+import React, { useContext, useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
@@ -24,8 +24,12 @@ import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import AutorenewOutlined from "@mui/icons-material/AutorenewOutlined";
+import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
+import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
+import CircularProgress from "@mui/material/CircularProgress";
+import Alert from "@mui/material/Alert";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
-import { BlocParentTests, QuizTest, QuizStudentLite } from "../../bloc/BlocParentTests";
+import { BlocParentTests, QuizTest, QuizStudentLite, QuizPracticeImportResult } from "../../bloc/BlocParentTests";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
@@ -59,6 +63,9 @@ export default function Tests() {
     const appContext = useContext(AppContext);
     const bloc = reUseBlocContent(appContext, BlocParentTests);
     const showError = (error: any) => enqueueSnackbar(quizErrorMessage(t, error), { variant: error?.variant ?? 'error' });
+    // Import đề ôn tập hàng loạt bằng file (2026-09-04) - cùng shape hệt lessonFileInputRef của
+    // Subjects.tsx (input file ẩn, mở bằng ref.current?.click() từ nút "Nhập đề ôn từ file").
+    const practiceFileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         bloc.initData();
@@ -77,6 +84,15 @@ export default function Tests() {
             enqueueSnackbar(t('quiz-practice-test-created') as string, { variant: 'success' });
             bloc.closePractice();
         }, showError);
+    };
+
+    const downloadPracticeTemplate = (format: 'xlsx' | 'csv') => bloc.downloadPracticeImportTemplate(format, showError);
+
+    const onPracticeImportFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file) return;
+        bloc.runPracticeImport(file, showError);
     };
 
     const askRemove = (row: QuizTest) => {
@@ -152,7 +168,10 @@ export default function Tests() {
                                             </FormControl>
                                         )}
                                     />
-                                    <Stack direction="row" spacing={1}>
+                                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                                        <Button size="small" startIcon={<DownloadOutlined />} onClick={() => downloadPracticeTemplate('xlsx')}>{t('quiz-download-template-xlsx')}</Button>
+                                        <Button size="small" startIcon={<DownloadOutlined />} onClick={() => downloadPracticeTemplate('csv')}>{t('quiz-download-template-csv')}</Button>
+                                        <Button size="small" variant="outlined" startIcon={<UploadFileOutlined />} onClick={() => bloc.openPracticeImport()}>{t('quiz-import-practice-tests')}</Button>
                                         <Button variant="outlined" startIcon={<AutorenewOutlined />} onClick={() => bloc.openPractice()}>{t('quiz-practice-test-new')}</Button>
                                         <Button variant="contained" startIcon={<AddOutlined />} onClick={() => bloc.openCreate()}>{t('quiz-test-new')}</Button>
                                     </Stack>
@@ -407,6 +426,68 @@ export default function Tests() {
                                                         <Button variant="contained" disabled={submittingSnap.data === true} onClick={submitPractice}>{t('quiz-practice-generate')}</Button>
                                                     )}
                                                 />
+                                            </DialogActions>
+                                        </Dialog>
+                                    );
+                                }}
+                            />
+
+                            {/* Dialog "Nhập đề ôn tập từ file" (2026-09-04) - cùng shape hệt Dialog import bài
+                                học của Subjects.tsx, xem BlocParentTests.ts's openPracticeImport comment. */}
+                            <UIStream
+                                initialData={{ isShow: false }}
+                                stream={bloc.getStream('practice_import_view')}
+                                builder={(viewSnap) => {
+                                    const view = viewSnap.data ?? { isShow: false };
+                                    return (
+                                        <Dialog open={view.isShow === true} onClose={() => bloc.closePracticeImport()} maxWidth="xs" fullWidth>
+                                            <DialogTitle>{t('quiz-import-practice-tests-dialog-title')}</DialogTitle>
+                                            <DialogContent>
+                                                <input ref={practiceFileInputRef} type="file" accept=".xlsx,.csv" hidden onChange={onPracticeImportFileChosen} />
+                                                <Stack spacing={2} sx={{ mt: 1 }} alignItems="flex-start">
+                                                    <Typography variant="body2" color="text.secondary">{t('quiz-import-practice-tests-hint')}</Typography>
+                                                    <UIStream
+                                                        initialData={false}
+                                                        stream={bloc.getStream('practiceImporting')}
+                                                        builder={(importingSnap) => (
+                                                            <Button
+                                                                variant="outlined"
+                                                                startIcon={importingSnap.data === true ? <CircularProgress size={16} /> : <UploadFileOutlined />}
+                                                                disabled={importingSnap.data === true}
+                                                                onClick={() => practiceFileInputRef.current?.click()}
+                                                            >
+                                                                {t('quiz-import-pick-file')}
+                                                            </Button>
+                                                        )}
+                                                    />
+                                                    <UIStream
+                                                        initialData={null}
+                                                        stream={bloc.getStream('practiceImportResult')}
+                                                        builder={(resultSnap) => {
+                                                            const importResult: QuizPracticeImportResult | null = resultSnap.data;
+                                                            if (!importResult) return null;
+                                                            return (
+                                                                <Alert severity={importResult.errors.length === 0 ? 'success' : 'warning'} sx={{ width: '100%' }}>
+                                                                    {t('quiz-import-result-summary', { success: importResult.successCount, total: importResult.totalRows })}
+                                                                    {importResult.errors.length > 0 && (
+                                                                        <Box component="ul" sx={{ m: 0, mt: 1, pl: 2 }}>
+                                                                            {importResult.errors.map((err, i) => (
+                                                                                <li key={i}>
+                                                                                    <Typography variant="body2">
+                                                                                        {t('quiz-import-row-error', { row: err.rowNumber, reason: err.reason })}
+                                                                                    </Typography>
+                                                                                </li>
+                                                                            ))}
+                                                                        </Box>
+                                                                    )}
+                                                                </Alert>
+                                                            );
+                                                        }}
+                                                    />
+                                                </Stack>
+                                            </DialogContent>
+                                            <DialogActions>
+                                                <Button onClick={() => bloc.closePracticeImport()}>{t('close')}</Button>
                                             </DialogActions>
                                         </Dialog>
                                     );

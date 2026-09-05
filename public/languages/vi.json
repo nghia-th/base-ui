@@ -506,6 +506,9 @@
         "quiz-admin-parent-password-reset": "Đã đặt lại mật khẩu",
         "change-password": "Đổi mật khẩu",
         "quiz-change-password-success": "Đã đổi mật khẩu. Vui lòng đăng nhập lại.",
-        "QUIZ_030": "Mật khẩu hiện tại không đúng"
+        "QUIZ_030": "Mật khẩu hiện tại không đúng",
+        "quiz-import-practice-tests": "Nhập đề ôn từ file",
+        "quiz-import-practice-tests-dialog-title": "Nhập đề ôn tập từ file",
+        "quiz-import-practice-tests-hint": "Tải file mẫu, điền theo đúng 3 cột (Tên đăng nhập học sinh/Tên môn học/Số câu hỏi) rồi chọn file để nhập. Mỗi dòng tạo 1 đề ôn tập với bộ câu hỏi ngẫu nhiên mới, giống hệt khi bấm nút \"Tạo đề ôn tập\" thủ công cho từng học sinh. Từng dòng lỗi sẽ được báo riêng, không làm hỏng cả file."
     }
 }

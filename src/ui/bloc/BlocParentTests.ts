@@ -1,5 +1,5 @@
 import { IBlocUI } from "../../base/IBlocUI";
-import { QuizTestApi, QuizTestCreateRequest, QuizPracticeGenerateRequest } from "../../api/QuizTestApi";
+import { QuizTestApi, QuizTestCreateRequest, QuizPracticeGenerateRequest, quizImportPracticeTests } from "../../api/QuizTestApi";
 import { QuizStudentApi } from "../../api/QuizStudentApi";
 import { QuizSubjectApi } from "../../api/QuizSubjectApi";
 import { QuizLessonApi } from "../../api/QuizLessonApi";
@@ -25,6 +25,20 @@ export interface QuizStudentLite {
     id: number;
     fullName: string;
     classroomId: number;
+}
+
+// Khớp ImportRowError.java / PracticeImportResponse.java (2026-09-04) - cùng shape hệt
+// BlocParentSubjects.QuizLessonImportRowError/QuizLessonImportResult, tách riêng interface theo
+// đúng convention "mỗi Bloc content tự khai báo shape nó cần" của file này.
+export interface QuizPracticeImportRowError {
+    rowNumber: number;
+    reason: string;
+}
+
+export interface QuizPracticeImportResult {
+    totalRows: number;
+    successCount: number;
+    errors: QuizPracticeImportRowError[];
 }
 
 // Bloc trang "Đề kiểm tra" (khu vực Phụ huynh, /app/parent/tests - Task 5 backend). Tự tải Học
@@ -212,5 +226,59 @@ export class BlocParentTests extends IBlocUI {
         }
         this.generatePractice(request, () => { this.setStream('practiceSubmitting', false); onComplete() },
             (error: any) => { this.setStream('practiceSubmitting', false); onError(error) })
+    }
+
+    // --- Dialog "Nhập đề ôn tập từ file" (2026-09-04) - cùng shape hệt Dialog import bài học của
+    // BlocParentSubjects.ts (openLessonImport/closeLessonImport/downloadLessonImportTemplate/
+    // importLessonsFile/runLessonImport) - xem comment ở đó cho lý do responseType:'blob' và vì
+    // sao quizImportPracticeTests đi thẳng QUIZ_API thay vì qua apiRequest. Khác 1 điểm: không
+    // nhận subjectId (mỗi dòng trong file tự nêu Học sinh/Môn học riêng), và reload() đích là
+    // reloadTests() thay vì loadLessons(subjectId).
+    openPracticeImport() {
+        this.setStream('practiceImportResult', null)
+        this.setStream('practice_import_view', { isShow: true })
+    }
+
+    closePracticeImport() {
+        this.setStream('practice_import_view', { isShow: false })
+        this.setStream('practiceImporting', false)
+        this.setStream('practiceImportResult', null)
+    }
+
+    downloadPracticeImportTemplate(format: 'xlsx' | 'csv', onError: (error: any) => void) {
+        this.apiRequest(QuizTestApi.downloadPracticeImportTemplate(format), (res: any) => {
+            const blob: Blob = res.data
+            const disposition: string | undefined = res.disposition
+            const match = disposition?.match(/filename="?([^"]+)"?/)
+            const filename = match?.[1] ?? `practice-test-import-template.${format}`
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = filename
+            a.click()
+            URL.revokeObjectURL(url)
+        }, { onError })
+    }
+
+    async importPracticeFile(file: File, onComplete: (result: QuizPracticeImportResult) => void, onError: (error: any) => void) {
+        try {
+            const res = await quizImportPracticeTests(file)
+            if (res.code === 100) {
+                onComplete(res.data as QuizPracticeImportResult)
+                this.reloadTests()
+            } else {
+                onError(res)
+            }
+        } catch (e) {
+            onError(e)
+        }
+    }
+
+    runPracticeImport(file: File, onError: (error: any) => void) {
+        this.setStream('practiceImporting', true)
+        this.importPracticeFile(file, (result) => {
+            this.setStream('practiceImporting', false)
+            this.setStream('practiceImportResult', result)
+        }, (error) => { this.setStream('practiceImporting', false); onError(error) })
     }
 }

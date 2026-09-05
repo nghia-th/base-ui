@@ -33,6 +33,7 @@ import PeopleOutlined from "@mui/icons-material/PeopleOutlined";
 import AssignmentOutlined from "@mui/icons-material/AssignmentOutlined";
 import MeetingRoomOutlined from "@mui/icons-material/MeetingRoomOutlined";
 import TranslateOutlined from "@mui/icons-material/TranslateOutlined";
+import AdminPanelSettingsOutlined from "@mui/icons-material/AdminPanelSettingsOutlined";
 import type { SvgIconComponent } from "@mui/icons-material";
 
 // Map tên icon (string, lưu trong AppMenuData.ts) -> component icon MUI thật.
@@ -71,7 +72,8 @@ export const ICON_MAP: Record<string, SvgIconComponent> = {
     PeopleOutlined,
     AssignmentOutlined,
     MeetingRoomOutlined,
-    TranslateOutlined
+    TranslateOutlined,
+    AdminPanelSettingsOutlined
 };
 
 export function getIcon(name?: string | null): SvgIconComponent {
