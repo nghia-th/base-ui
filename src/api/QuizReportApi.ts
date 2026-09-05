@@ -15,8 +15,13 @@ export class QuizReportApi {
         return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/attempts/${attemptId}`);
     }
 
-    static getStudentAttemptHistory(studentId: number) {
-        return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/students/${studentId}/attempts`);
+    // from/to (yyyy-MM-dd, both inclusive) added 2026-09-05 (item 8, "xem lich su hoc tap trong 1
+    // tuan") - omit both (or pass undefined) to get the FULL history exactly as before, same
+    // "undefined params dropped by axios" pattern as QuizParentLibraryApi.browse.
+    static getStudentAttemptHistory(studentId: number, from?: string, to?: string) {
+        return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/students/${studentId}/attempts`, {
+            params: { from, to }
+        });
     }
 
     // Nghe lại câu trả lời con đã ghi âm - responseType:'blob', cùng lý do/cách dùng như

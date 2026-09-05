@@ -16,6 +16,8 @@ import MenuItem from "@mui/material/MenuItem";
 import Checkbox from "@mui/material/Checkbox";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import Chip from "@mui/material/Chip";
+import ToggleButton from "@mui/material/ToggleButton";
+import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
@@ -229,6 +231,22 @@ export default function Tests() {
                                                         fullWidth
                                                     />
                                                     <UIStream
+                                                        initialData={bloc.getField('formMode') ?? 'question'}
+                                                        stream={bloc.getStream('formMode')}
+                                                        builder={(modeSnap) => (
+                                                            <ToggleButtonGroup
+                                                                size="small"
+                                                                exclusive
+                                                                fullWidth
+                                                                value={modeSnap.data ?? 'question'}
+                                                                onChange={(_e, value) => { if (value) bloc.changeFormMode(value); }}
+                                                            >
+                                                                <ToggleButton value="question">{t('quiz-create-mode-question')}</ToggleButton>
+                                                                <ToggleButton value="lesson">{t('quiz-create-mode-lesson')}</ToggleButton>
+                                                            </ToggleButtonGroup>
+                                                        )}
+                                                    />
+                                                    <UIStream
                                                         initialData={bloc.getField('subjects')}
                                                         stream={bloc.getStream('subjects')}
                                                         builder={(subjectsSnap) => (
@@ -257,68 +275,132 @@ export default function Tests() {
                                                         )}
                                                     />
                                                     <UIStream
-                                                        initialData={bloc.getField('lessons')}
-                                                        stream={bloc.getStream('lessons')}
-                                                        builder={(lessonsSnap) => (
-                                                            <UIStream
-                                                                initialData={bloc.getField('formSubjectId') ?? ''}
-                                                                stream={bloc.getStream('formSubjectId')}
-                                                                builder={(subjectIdSnap) => (
+                                                        initialData={bloc.getField('formMode') ?? 'question'}
+                                                        stream={bloc.getStream('formMode')}
+                                                        builder={(modeSnap) => {
+                                                            if ((modeSnap.data ?? 'question') !== 'question') return null;
+                                                            return (
+                                                <>
+                                                                <UIStream
+                                                            initialData={bloc.getField('lessons')}
+                                                            stream={bloc.getStream('lessons')}
+                                                            builder={(lessonsSnap) => (
+                                                                <UIStream
+                                                                    initialData={bloc.getField('formSubjectId') ?? ''}
+                                                                    stream={bloc.getStream('formSubjectId')}
+                                                                    builder={(subjectIdSnap) => (
+                                                                        <UIStream
+                                                                            initialData={bloc.getField('formLessonId') ?? ''}
+                                                                            stream={bloc.getStream('formLessonId')}
+                                                                            builder={(lessonIdSnap) => (
+                                                                                <FormControl fullWidth size="small" disabled={(subjectIdSnap.data ?? '') === ''}>
+                                                                                    <InputLabel>{t('quiz-select-lesson')}</InputLabel>
+                                                                                    <Select
+                                                                                        label={t('quiz-select-lesson')}
+                                                                                        value={lessonIdSnap.data ?? ''}
+                                                                                        onChange={(e) => bloc.changeFormLesson(Number(e.target.value))}
+                                                                                    >
+                                                                                        {(lessonsSnap.data ?? []).map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}
+                                                                                    </Select>
+                                                                                </FormControl>
+                                                                            )}
+                                                                        />
+                                                                    )}
+                                                                />
+                                                            )}
+                                                        />
+                                                        <UIStream
+                                                            initialData={bloc.getField('formLessonId') ?? ''}
+                                                            stream={bloc.getStream('formLessonId')}
+                                                            builder={(lessonIdSnap) => {
+                                                                if ((lessonIdSnap.data ?? '') === '') return null;
+                                                                return (
                                                                     <UIStream
-                                                                        initialData={bloc.getField('formLessonId') ?? ''}
-                                                                        stream={bloc.getStream('formLessonId')}
-                                                                        builder={(lessonIdSnap) => (
-                                                                            <FormControl fullWidth size="small" disabled={(subjectIdSnap.data ?? '') === ''}>
-                                                                                <InputLabel>{t('quiz-select-lesson')}</InputLabel>
-                                                                                <Select
-                                                                                    label={t('quiz-select-lesson')}
-                                                                                    value={lessonIdSnap.data ?? ''}
-                                                                                    onChange={(e) => bloc.changeFormLesson(Number(e.target.value))}
-                                                                                >
-                                                                                    {(lessonsSnap.data ?? []).map((l: any) => <MenuItem key={l.id} value={l.id}>{l.name}</MenuItem>)}
-                                                                                </Select>
-                                                                            </FormControl>
-                                                                        )}
+                                                                        initialData={bloc.getField('questions')}
+                                                                        stream={bloc.getStream('questions')}
+                                                                        builder={(questionsSnap) => {
+                                                                            const questions: any[] = questionsSnap.data ?? [];
+                                                                            return (
+                                                                                <UIStream
+                                                                                    initialData={bloc.getField('formQuestionIds') ?? []}
+                                                                                    stream={bloc.getStream('formQuestionIds')}
+                                                                                    builder={(idsSnap) => {
+                                                                                        const selectedIds: number[] = idsSnap.data ?? [];
+                                                                                        return (
+                                                                                            <Box>
+                                                                                                <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                                                                                                    {t('quiz-select-questions-count', { count: selectedIds.length })}
+                                                                                                </Typography>
+                                                                                                <Stack sx={{ maxHeight: 220, overflowY: 'auto' }}>
+                                                                                                    {questions.map((q) => (
+                                                                                                        <FormControlLabel
+                                                                                                            key={q.id}
+                                                                                                            control={<Checkbox checked={selectedIds.includes(q.id)} onChange={() => bloc.toggleFormQuestion(q.id)} />}
+                                                                                                            label={q.content}
+                                                                                                        />
+                                                                                                    ))}
+                                                                                                    {questions.length === 0 && questionsSnap.data != null && (
+                                                                                                        <Typography variant="body2" color="text.secondary">{t('quiz-no-questions')}</Typography>
+                                                                                                    )}
+                                                                                                </Stack>
+                                                                                            </Box>
+                                                                                        );
+                                                                                    }}
+                                                                                />
+                                                                            );
+                                                                        }}
                                                                     />
-                                                                )}
-                                                            />
-                                                        )}
+                                                                );
+                                                            }}
+                                                        />
+                                                </>
+                                                            );
+                                                        }}
                                                     />
                                                     <UIStream
-                                                        initialData={bloc.getField('formLessonId') ?? ''}
-                                                        stream={bloc.getStream('formLessonId')}
-                                                        builder={(lessonIdSnap) => {
-                                                            if ((lessonIdSnap.data ?? '') === '') return null;
+                                                        initialData={bloc.getField('formMode') ?? 'question'}
+                                                        stream={bloc.getStream('formMode')}
+                                                        builder={(modeSnap) => {
+                                                            if ((modeSnap.data ?? 'question') !== 'lesson') return null;
                                                             return (
                                                                 <UIStream
-                                                                    initialData={bloc.getField('questions')}
-                                                                    stream={bloc.getStream('questions')}
-                                                                    builder={(questionsSnap) => {
-                                                                        const questions: any[] = questionsSnap.data ?? [];
+                                                                    initialData={bloc.getField('lessons')}
+                                                                    stream={bloc.getStream('lessons')}
+                                                                    builder={(lessonsSnap) => {
+                                                                        const lessons: any[] = lessonsSnap.data ?? [];
                                                                         return (
                                                                             <UIStream
-                                                                                initialData={bloc.getField('formQuestionIds') ?? []}
-                                                                                stream={bloc.getStream('formQuestionIds')}
-                                                                                builder={(idsSnap) => {
-                                                                                    const selectedIds: number[] = idsSnap.data ?? [];
+                                                                                initialData={bloc.getField('formSubjectId') ?? ''}
+                                                                                stream={bloc.getStream('formSubjectId')}
+                                                                                builder={(subjectIdSnap) => {
+                                                                                    if ((subjectIdSnap.data ?? '') === '') return null;
                                                                                     return (
-                                                                                        <Box>
-                                                                                            <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-                                                                                                {t('quiz-select-questions-count', { count: selectedIds.length })}
-                                                                                            </Typography>
-                                                                                            <Stack sx={{ maxHeight: 220, overflowY: 'auto' }}>
-                                                                                                {questions.map((q) => (
-                                                                                                    <FormControlLabel
-                                                                                                        key={q.id}
-                                                                                                        control={<Checkbox checked={selectedIds.includes(q.id)} onChange={() => bloc.toggleFormQuestion(q.id)} />}
-                                                                                                        label={q.content}
-                                                                                                    />
-                                                                                                ))}
-                                                                                                {questions.length === 0 && questionsSnap.data != null && (
-                                                                                                    <Typography variant="body2" color="text.secondary">{t('quiz-no-questions')}</Typography>
-                                                                                                )}
-                                                                                            </Stack>
-                                                                                        </Box>
+                                                                                        <UIStream
+                                                                                            initialData={bloc.getField('formLessonIds') ?? []}
+                                                                                            stream={bloc.getStream('formLessonIds')}
+                                                                                            builder={(idsSnap) => {
+                                                                                                const selectedIds: number[] = idsSnap.data ?? [];
+                                                                                                return (
+                                                                                                    <Box>
+                                                                                                        <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                                                                                                            {t('quiz-select-lessons-count', { count: selectedIds.length })}
+                                                                                                        </Typography>
+                                                                                                        <Stack sx={{ maxHeight: 220, overflowY: 'auto' }}>
+                                                                                                            {lessons.map((l) => (
+                                                                                                                <FormControlLabel
+                                                                                                                    key={l.id}
+                                                                                                                    control={<Checkbox checked={selectedIds.includes(l.id)} onChange={() => bloc.toggleFormLessonId(l.id)} />}
+                                                                                                                    label={l.name}
+                                                                                                                />
+                                                                                                            ))}
+                                                                                                            {lessons.length === 0 && lessonsSnap.data != null && (
+                                                                                                                <Typography variant="body2" color="text.secondary">{t('quiz-no-lessons')}</Typography>
+                                                                                                            )}
+                                                                                                        </Stack>
+                                                                                                    </Box>
+                                                                                                );
+                                                                                            }}
+                                                                                        />
                                                                                     );
                                                                                 }}
                                                                             />

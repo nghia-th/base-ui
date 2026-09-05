@@ -31,6 +31,8 @@ import TakeTest from "./pages/student/TakeTest";
 import ParentClassrooms from "./pages/parent/Classrooms";
 import ParentStudents from "./pages/parent/Students";
 import ParentSubjects from "./pages/parent/Subjects";
+import ParentTimetable from "./pages/parent/Timetable";
+import StudentToday from "./pages/student/Today";
 import ParentQuestions from "./pages/parent/Questions";
 import ParentTests from "./pages/parent/Tests";
 import ParentReports from "./pages/parent/Reports";
@@ -292,6 +294,9 @@ export default function AppShell() {
                                                 <Route path="app/parent/subjects" element={
                                                     <RequireQuizRole role="parent"><ParentSubjects /></RequireQuizRole>
                                                 } />
+                                                <Route path="app/parent/timetable" element={
+                                                    <RequireQuizRole role="parent"><ParentTimetable /></RequireQuizRole>
+                                                } />
                                                 <Route path="app/parent/questions" element={
                                                     <RequireQuizRole role="parent"><ParentQuestions /></RequireQuizRole>
                                                 } />
@@ -300,6 +305,9 @@ export default function AppShell() {
                                                 } />
                                                 <Route path="app/parent/reports" element={
                                                     <RequireQuizRole role="parent"><ParentReports /></RequireQuizRole>
+                                                } />
+                                                <Route path="app/student/today" element={
+                                                    <RequireQuizRole role="student"><StudentToday /></RequireQuizRole>
                                                 } />
                                                 <Route path="app/student/tests" element={
                                                     <RequireQuizRole role="student"><StudentTests /></RequireQuizRole>

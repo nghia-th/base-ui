@@ -18,6 +18,15 @@ export interface QuizPracticeGenerateRequest {
     questionCount?: number;
 }
 
+// Khớp TestCreateFromLessonsRequest.java (2026-09-05, mục 3/11 - "khi tao de thi chon nhung bai
+// con da hoc") - chế độ tạo đề SONG SONG với QuizTestCreateRequest ở trên (chọn từng câu hỏi):
+// chọn cả Bài học, server tự lấy TẤT CẢ câu hỏi trong các bài đó rồi xáo trộn thứ tự.
+export interface QuizTestCreateFromLessonsRequest {
+    studentId: number;
+    name: string;
+    lessonIds: number[];
+}
+
 export class QuizTestApi {
     static list(studentId?: number) {
         return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/tests`, { params: studentId ? { studentId } : {} });
@@ -25,6 +34,11 @@ export class QuizTestApi {
 
     static create(request: QuizTestCreateRequest) {
         return QuizRequestBase.post(`${QUIZ_PARENT_PREFIX}/tests`, request);
+    }
+
+    // Chế độ tạo đề theo Bài học (song song với create() ở trên) - xem QuizTestCreateFromLessonsRequest.
+    static createFromLessons(request: QuizTestCreateFromLessonsRequest) {
+        return QuizRequestBase.post(`${QUIZ_PARENT_PREFIX}/tests/from-lessons`, request);
     }
 
     // Gọi lại nhiều lần = tạo lại nhiều lần, mỗi lần server random 1 bộ câu hỏi MỚI (không giới

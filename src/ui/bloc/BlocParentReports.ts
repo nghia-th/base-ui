@@ -1,6 +1,7 @@
 import { IBlocUI } from "../../base/IBlocUI";
 import { QuizReportApi } from "../../api/QuizReportApi";
 import { QuizStudentApi } from "../../api/QuizStudentApi";
+import { QuizTimetableApi, QuizTimetableLessonPreparation } from "../../api/QuizTimetableApi";
 
 // Khớp StudentAttemptHistoryItem.java.
 export interface QuizAttemptHistoryItem {
@@ -67,10 +68,34 @@ export class BlocParentReports extends IBlocUI {
         })
     }
 
-    loadHistory(studentId: number) {
-        this.apiRequest(QuizReportApi.getStudentAttemptHistory(studentId), (res) => {
+    // Item 8 (dot 11 yeu cau, 2026-09-05) - "phu huynh xem duoc lich su hoc tap cua con trong 1
+    // tuan": mac dinh chi hien TUAN NAY (weekOffset=0), co the bam Truoc/Sau de xem tuan khac,
+    // hoac "Xem tat ca" (weekOffset=null) de quay lai xem toan bo lich su nhu truoc day (khong bo
+    // kha nang cu, chi them bo loc). Tuan tinh theo Thu Hai-Chu Nhat, dung quy uoc ISO 1..7 giong
+    // het TimetableEntry/StudentTimetableService ben backend (jsDay===0 -> 7).
+    private weekRange(weekOffset: number): { from: string; to: string } {
+        const now = new Date();
+        now.setDate(now.getDate() + weekOffset * 7);
+        const jsDay = now.getDay();
+        const isoDay = jsDay === 0 ? 7 : jsDay;
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - (isoDay - 1));
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        const fmt = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        return { from: fmt(monday), to: fmt(sunday) };
+    }
+
+    loadHistory(studentId: number, weekOffset: number | null) {
+        const range = weekOffset == null ? undefined : this.weekRange(weekOffset);
+        this.apiRequest(QuizReportApi.getStudentAttemptHistory(studentId, range?.from, range?.to), (res) => {
             this.setStream('history', res.data as QuizAttemptHistoryItem[])
         })
+    }
+
+    changeWeek(studentId: number, weekOffset: number | null) {
+        this.setStream('weekOffset', weekOffset)
+        this.loadHistory(studentId, weekOffset)
     }
 
     loadAttemptReport(attemptId: number, onComplete: (report: QuizAttemptReport) => void, onError: (error: any) => void) {
@@ -82,7 +107,18 @@ export class BlocParentReports extends IBlocUI {
     // State giao diện dời từ useState vào đây (2026-09-01, xem BlocParentStudents.ts's comment).
     changeStudent(value: number) {
         this.setStream('studentId', value)
-        this.loadHistory(value)
+        this.setStream('weekOffset', 0)
+        this.loadHistory(value, 0)
+        this.loadPreparation(value)
+    }
+
+    // Item 10 (dot 11 yeu cau, 2026-09-05) - "phu huynh dua vao ket qua cua 9 de biet con da
+    // chuan bi bai cho ngay mai hay chua va mon nao chua hoc". Doc-only, dung lai chinh
+    // LessonPreparationStatus backend tra ve cho Hoc sinh (xem QuizTimetableApi.ts's comment).
+    loadPreparation(studentId: number) {
+        this.apiRequest(QuizTimetableApi.getStudentTomorrowPreparation(studentId), (res) => {
+            this.setStream('preparation', res.data as QuizTimetableLessonPreparation[])
+        })
     }
 
     openReport(attemptId: number, onError: (error: any) => void) {

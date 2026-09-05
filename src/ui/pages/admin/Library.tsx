@@ -10,6 +10,9 @@ import MenuItem from "@mui/material/MenuItem";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Card from "@mui/material/Card";
+import Chip from "@mui/material/Chip";
+import Alert from "@mui/material/Alert";
+import CircularProgress from "@mui/material/CircularProgress";
 import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
@@ -20,7 +23,7 @@ import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import { BlocAdminLibrary } from "../../bloc/BlocAdminLibrary";
-import { QuizLibraryDocument } from "../../../api/QuizLibraryApi";
+import { QuizLibraryDocument, QuizLibraryImportResult } from "../../../api/QuizLibraryApi";
 import { QuizCurriculum } from "../../../api/QuizCurriculumApi";
 import UIStream from "../../components/common/UIStream";
 import AppDialog from "../../components/dialogs/AppDialog";
@@ -47,6 +50,9 @@ export default function AdminLibrary() {
     const bloc = reUseBlocContent(appContext, BlocAdminLibrary);
     const [file, setFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const importFileInputRef = useRef<HTMLInputElement>(null);
+    const attachFileInputRef = useRef<HTMLInputElement>(null);
+    const [attachTargetId, setAttachTargetId] = useState<number | null>(null);
 
     useEffect(() => {
         bloc.reload();
@@ -90,6 +96,29 @@ export default function AdminLibrary() {
         }, showError);
     };
 
+    const downloadTemplate = (format: 'xlsx' | 'csv') => bloc.downloadImportTemplate(format, showError);
+
+    const onImportFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const picked = e.target.files?.[0];
+        e.target.value = '';
+        if (!picked) return;
+        bloc.runImport(picked, showError);
+    };
+
+    const askAttachFile = (row: QuizLibraryDocument) => {
+        setAttachTargetId(row.id);
+        attachFileInputRef.current?.click();
+    };
+
+    const onAttachFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const picked = e.target.files?.[0];
+        e.target.value = '';
+        if (!picked || attachTargetId == null) return;
+        bloc.attachFile(attachTargetId, picked, () => {
+            enqueueSnackbar(t('quiz-library-file-attached') as string, { variant: 'success' });
+        }, showError);
+    };
+
     const askRemove = (row: QuizLibraryDocument) => {
         bloc.confirm({
             title: 'delete',
@@ -109,12 +138,31 @@ export default function AdminLibrary() {
         { field: 'volume', headerName: t('quiz-library-volume') as string, width: 120 },
         { field: 'title', headerName: t('quiz-library-title') as string, flex: 1, minWidth: 200 },
         {
-            field: 'actions', type: 'actions', headerName: t('actions') as string, width: 140,
-            getActions: (params) => [
-                <GridActionsCellItem icon={<VisibilityOutlined fontSize="small" />} label="quiz-library-view" onClick={() => bloc.view(params.row.id, showError)} />,
-                <GridActionsCellItem icon={<DownloadOutlined fontSize="small" />} label="quiz-library-download" onClick={() => bloc.downloadFile(params.row.id, `${params.row.title}.pdf`, showError)} />,
-                <GridActionsCellItem icon={<DeleteOutlined fontSize="small" />} label="delete" onClick={() => askRemove(params.row)} />
-            ]
+            // 2026-09-05 (item 1) - a row created via bulk import has no PDF yet, see
+            // QuizLibraryDocument.hasFile's comment. Same Chip-status-column shape as
+            // Admins.tsx's 'root' column.
+            field: 'hasFile', headerName: t('quiz-library-file-status') as string, width: 140,
+            renderCell: (params) => (
+                <Chip
+                    size="small"
+                    label={t(params.value ? 'quiz-library-has-file' : 'quiz-library-no-file-yet')}
+                    color={params.value ? 'success' : 'warning'}
+                    variant={params.value ? 'filled' : 'outlined'}
+                />
+            )
+        },
+        {
+            field: 'actions', type: 'actions', headerName: t('actions') as string, width: 180,
+            getActions: (params) => params.row.hasFile
+                ? [
+                    <GridActionsCellItem icon={<VisibilityOutlined fontSize="small" />} label="quiz-library-view" onClick={() => bloc.view(params.row.id, showError)} />,
+                    <GridActionsCellItem icon={<DownloadOutlined fontSize="small" />} label="quiz-library-download" onClick={() => bloc.downloadFile(params.row.id, `${params.row.title}.pdf`, showError)} />,
+                    <GridActionsCellItem icon={<DeleteOutlined fontSize="small" />} label="delete" onClick={() => askRemove(params.row)} />
+                ]
+                : [
+                    <GridActionsCellItem icon={<UploadFileOutlined fontSize="small" />} label="quiz-library-attach-file" onClick={() => askAttachFile(params.row)} />,
+                    <GridActionsCellItem icon={<DeleteOutlined fontSize="small" />} label="delete" onClick={() => askRemove(params.row)} />
+                ]
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     ], [t]);
@@ -130,7 +178,10 @@ export default function AdminLibrary() {
                         <Card sx={{ p: { xs: 2, sm: 3 } }}>
                             <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
                                 <Typography variant="h6" fontWeight={700}>{t('quiz-admin-library')}</Typography>
-                                <Button variant="contained" startIcon={<AddOutlined />} onClick={openNew}>{t('new')}</Button>
+                                <Stack direction="row" spacing={1}>
+                                    <Button variant="outlined" startIcon={<UploadFileOutlined />} onClick={() => bloc.openImport()}>{t('quiz-library-import')}</Button>
+                                    <Button variant="contained" startIcon={<AddOutlined />} onClick={openNew}>{t('new')}</Button>
+                                </Stack>
                             </Stack>
                             <Box sx={{ height: 480 }}>
                                 <DataGrid
@@ -140,6 +191,7 @@ export default function AdminLibrary() {
                                     disableRowSelectionOnClick
                                 />
                             </Box>
+                            <input ref={attachFileInputRef} type="file" accept="application/pdf" hidden onChange={onAttachFileChosen} />
                         </Card>
 
                         <UIStream
@@ -213,6 +265,69 @@ export default function AdminLibrary() {
                                                     </Button>
                                                 )}
                                             />
+                                        </DialogActions>
+                                    </AppDialog>
+                                );
+                            }}
+                        />
+
+                        <UIStream
+                            initialData={{ isShow: false }}
+                            stream={bloc.getStream('import_view')}
+                            builder={(viewSnap) => {
+                                const view = viewSnap.data ?? { isShow: false };
+                                return (
+                                    <AppDialog open={view.isShow === true} onClose={() => bloc.closeImport()} maxWidth="xs" title={t('quiz-library-import-dialog-title')} icon={UploadFileOutlined}>
+                                        <DialogContent>
+                                            <input ref={importFileInputRef} type="file" accept=".xlsx,.csv" hidden onChange={onImportFileChosen} />
+                                            <Stack spacing={2} sx={{ mt: 1 }} alignItems="flex-start">
+                                                <Typography variant="body2" color="text.secondary">{t('quiz-library-import-hint')}</Typography>
+                                                <Stack direction="row" spacing={1}>
+                                                    <Button size="small" startIcon={<DownloadOutlined />} onClick={() => downloadTemplate('xlsx')}>{t('quiz-download-template-xlsx')}</Button>
+                                                    <Button size="small" startIcon={<DownloadOutlined />} onClick={() => downloadTemplate('csv')}>{t('quiz-download-template-csv')}</Button>
+                                                </Stack>
+                                                <UIStream
+                                                    initialData={false}
+                                                    stream={bloc.getStream('importing')}
+                                                    builder={(importingSnap) => (
+                                                        <Button
+                                                            variant="outlined"
+                                                            startIcon={importingSnap.data === true ? <CircularProgress size={16} /> : <UploadFileOutlined />}
+                                                            disabled={importingSnap.data === true}
+                                                            onClick={() => importFileInputRef.current?.click()}
+                                                        >
+                                                            {t('quiz-import-pick-file')}
+                                                        </Button>
+                                                    )}
+                                                />
+                                                <UIStream
+                                                    initialData={null}
+                                                    stream={bloc.getStream('importResult')}
+                                                    builder={(resultSnap) => {
+                                                        const importResult: QuizLibraryImportResult | null = resultSnap.data;
+                                                        if (!importResult) return null;
+                                                        return (
+                                                            <Alert severity={importResult.errors.length === 0 ? 'success' : 'warning'} sx={{ width: '100%' }}>
+                                                                {t('quiz-import-result-summary', { success: importResult.successCount, total: importResult.totalRows })}
+                                                                {importResult.errors.length > 0 && (
+                                                                    <Box component="ul" sx={{ m: 0, mt: 1, pl: 2 }}>
+                                                                        {importResult.errors.map((err, i) => (
+                                                                            <li key={i}>
+                                                                                <Typography variant="body2">
+                                                                                    {t('quiz-import-row-error', { row: err.rowNumber, reason: err.reason })}
+                                                                                </Typography>
+                                                                            </li>
+                                                                        ))}
+                                                                    </Box>
+                                                                )}
+                                                            </Alert>
+                                                        );
+                                                    }}
+                                                />
+                                            </Stack>
+                                        </DialogContent>
+                                        <DialogActions>
+                                            <Button onClick={() => bloc.closeImport()} variant="contained" color="primary" startIcon={<CloseOutlined />} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('close')}</Button>
                                         </DialogActions>
                                     </AppDialog>
                                 );

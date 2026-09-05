@@ -102,6 +102,7 @@ export const PARENT_MENU_DATA: MenuItem[] = [
     { label: 'quiz-classrooms', icon: 'MeetingRoomOutlined', to: '/app/parent/classrooms', items: null },
     { label: 'quiz-students', icon: 'PeopleOutlined', to: '/app/parent/students', items: null },
     { label: 'quiz-subjects', icon: 'MenuBookOutlined', to: '/app/parent/subjects', items: null },
+    { label: 'quiz-timetable', icon: 'CalendarMonthOutlined', to: '/app/parent/timetable', items: null },
     { label: 'quiz-questions', icon: 'HelpOutlineOutlined', to: '/app/parent/questions', items: null },
     { label: 'quiz-tests', icon: 'AssignmentOutlined', to: '/app/parent/tests', items: null },
     { label: 'quiz-reports', icon: 'BarChartOutlined', to: '/app/parent/reports', items: null }
@@ -119,7 +120,10 @@ export const PARENT_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
 // nhất (làm bài được giao), nên /app/student/tests LÀ trang chủ, không cần trang tổng quan trung
 // gian trỏ sang nó (khác Phụ huynh, có nhiều mục nên giữ dashboard riêng - xem PARENT_MENU_DATA).
 export const STUDENT_MENU_DATA: MenuItem[] = [
-    { label: 'quiz-tests', icon: 'AssignmentOutlined', to: '/app/student/tests', items: null, section: 'menu-section-main' },
+    // 2026-09-05 - item 5 trong dot 11 yeu cau ("hom nay hoc mon gi, bai gi") - dat dau tien vi
+    // day la man hinh hoc sinh se xem MOI NGAY, truoc ca "De cua toi".
+    { label: 'quiz-today', icon: 'TodayOutlined', to: '/app/student/today', items: null, section: 'menu-section-main' },
+    { label: 'quiz-tests', icon: 'AssignmentOutlined', to: '/app/student/tests', items: null },
     // 2026-09-05 - textbook PDF library, read-only (view/download documents linked to a subject in
     // the student's own classroom), see StudentLibraryApi.java.
     { label: 'quiz-admin-library', icon: 'MenuBookOutlined', to: '/app/student/library', items: null }

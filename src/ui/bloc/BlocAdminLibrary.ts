@@ -1,5 +1,12 @@
 import { IBlocUI } from "../../base/IBlocUI";
-import { QuizLibraryApi, QuizLibraryDocument, quizUploadLibraryDocument } from "../../api/QuizLibraryApi";
+import {
+    QuizLibraryApi,
+    QuizLibraryDocument,
+    QuizLibraryImportResult,
+    quizUploadLibraryDocument,
+    quizImportLibraryDocuments,
+    quizAttachLibraryFile
+} from "../../api/QuizLibraryApi";
 import { QuizCurriculumApi, QuizCurriculum } from "../../api/QuizCurriculumApi";
 
 // Bloc for the Admin "Textbook library" page (/app/admin/library, 2026-09-05) - list/upload/
@@ -95,5 +102,77 @@ export class BlocAdminLibrary extends IBlocUI {
             a.click()
             URL.revokeObjectURL(url)
         }, { onError })
+    }
+
+    // --- Bulk import dialog (2026-09-05, item 1 of the 11-item batch request) - same
+    // open/close/download/run shape as BlocParentQuestions.ts's import dialog methods.
+
+    downloadImportTemplate(format: 'xlsx' | 'csv', onError: (error: any) => void) {
+        this.apiRequest(QuizLibraryApi.importTemplate(format), (res: any) => {
+            const blob: Blob = res.data
+            const disposition: string | undefined = res.disposition
+            const match = disposition?.match(/filename="?([^"]+)"?/)
+            const filename = match?.[1] ?? `library-import-template.${format}`
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = filename
+            a.click()
+            URL.revokeObjectURL(url)
+        }, { onError })
+    }
+
+    openImport() {
+        this.setStream('importResult', null)
+        this.setStream('import_view', { isShow: true })
+    }
+
+    closeImport() {
+        this.setStream('import_view', { isShow: false })
+        this.setStream('importing', false)
+        this.setStream('importResult', null)
+    }
+
+    // Not routed through apiRequest (multipart, see quizImportLibraryDocuments's own comment) -
+    // manual code===100 check, same shape as upload() above.
+    async importFile(file: File, onComplete: (result: QuizLibraryImportResult) => void, onError: (error: any) => void) {
+        try {
+            const res = await quizImportLibraryDocuments(file)
+            if (res.code === 100) {
+                onComplete(res.data as QuizLibraryImportResult)
+                this.reload()
+            } else {
+                onError(res)
+            }
+        } catch (e) {
+            onError(e)
+        }
+    }
+
+    runImport(file: File, onError: (error: any) => void) {
+        this.setStream('importing', true)
+        this.importFile(file, (result) => {
+            this.setStream('importing', false)
+            this.setStream('importResult', result)
+        }, (error) => { this.setStream('importing', false); onError(error) })
+    }
+
+    // --- Attach PDF to a metadata-only row created via import (row.hasFile === false) - also
+    // usable as a general "replace the PDF" action, see LibraryService#attachFile's javadoc.
+    async attachFile(id: number, file: File, onComplete: () => void, onError: (error: any) => void) {
+        this.setStream('attaching', id)
+        try {
+            const res = await quizAttachLibraryFile(id, file)
+            this.setStream('attaching', null)
+            if (res.code === 100) {
+                onComplete()
+                this.reload()
+            } else {
+                onError(res)
+            }
+        } catch (e) {
+            this.setStream('attaching', null)
+            onError(e)
+        }
     }
 }

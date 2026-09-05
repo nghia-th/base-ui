@@ -26,12 +26,18 @@ import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import CancelOutlined from "@mui/icons-material/CancelOutlined";
 import BarChartOutlined from "@mui/icons-material/BarChartOutlined";
 import RecordVoiceOverOutlined from "@mui/icons-material/RecordVoiceOverOutlined";
+import NavigateBeforeOutlined from "@mui/icons-material/NavigateBeforeOutlined";
+import NavigateNextOutlined from "@mui/icons-material/NavigateNextOutlined";
+import IconButton from "@mui/material/IconButton";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import AppDialog from "../../components/dialogs/AppDialog";
 import { DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import { BlocParentReports, QuizAttemptHistoryItem, QuizAttemptReport } from "../../bloc/BlocParentReports";
+import { QuizTimetableLessonPreparation } from "../../../api/QuizTimetableApi";
+import EventOutlined from "@mui/icons-material/EventOutlined";
+import RadioButtonUncheckedOutlined from "@mui/icons-material/RadioButtonUncheckedOutlined";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
@@ -39,6 +45,26 @@ import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 // sinh -> xem lịch sử các bài đã nộp -> bấm vào 1 dòng để xem báo cáo chi tiết: điểm, phân tích
 // theo TỪNG CHỦ ĐỀ KIẾN THỨC (byKnowledgeTag - tính năng cốt lõi của Hiểu Bài, không chỉ là điểm
 // số) và chi tiết từng câu (chọn gì so với đáp án đúng).
+//
+// 2026-09-05 (item 8, dot 11 yeu cau) - "phu huynh xem duoc lich su hoc tap cua con trong 1 tuan":
+// them thanh dieu huong Tuan truoc/Tuan nay/Tuan sau (mac dinh Tuan nay) ngay tren bang lich su, +
+// nut "Xem tat ca" de quay lai xem toan bo lich su nhu truoc (khong bo tinh nang cu).
+
+// Nhan hien thi 1 khoang Thu Hai-Chu Nhat cho weekOffset (0 = tuan nay, am/duong = tuan
+// truoc/sau) - CHI de hien thi (BlocParentReports.weekRange tinh lai y het de goi API, khong
+// import cheo giua UI va Bloc cho 1 phep tinh don gian).
+function formatWeekLabel(weekOffset: number): string {
+    const now = new Date();
+    now.setDate(now.getDate() + weekOffset * 7);
+    const jsDay = now.getDay();
+    const isoDay = jsDay === 0 ? 7 : jsDay;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (isoDay - 1));
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    const fmt = (d: Date) => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+    return `${fmt(monday)} - ${fmt(sunday)}`;
+}
 export default function Reports() {
     const { t } = useTranslation();
     const { enqueueSnackbar } = useSnackbar();
@@ -94,6 +120,49 @@ export default function Reports() {
                     <Typography variant="body1">{t('quiz-select-student-report-hint')}</Typography>
                 </Card>
             ) : (
+                <Stack spacing={2}>
+                {/* Item 10 (dot 11 yeu cau, 2026-09-05) - "phu huynh xem duoc con da chuan bi bai
+                    cho ngay mai hay chua va mon nao chua hoc". Doc-only - Hoc sinh moi la nguoi
+                    danh dau/bo danh dau duoc (xem Today.tsx ben khu vuc Hoc sinh). */}
+                <UIStream
+                    initialData={null}
+                    stream={bloc.getStream('preparation')}
+                    builder={(prepSnap) => {
+                        const preparation: QuizTimetableLessonPreparation[] = prepSnap.data ?? [];
+                        const notPrepared = preparation.filter((p) => !p.prepared);
+                        return prepSnap.data == null ? null : (
+                            <Card sx={{ p: { xs: 2, sm: 3 } }}>
+                                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: preparation.length > 0 ? 2 : 0 }}>
+                                    <EventOutlined color="primary" />
+                                    <Typography variant="h6" fontWeight={700}>{t('quiz-preparation-tomorrow')}</Typography>
+                                    {preparation.length > 0 && (
+                                        <Chip
+                                            size="small"
+                                            color={notPrepared.length === 0 ? 'success' : 'warning'}
+                                            label={t('quiz-preparation-progress', { done: preparation.length - notPrepared.length, total: preparation.length })}
+                                        />
+                                    )}
+                                </Stack>
+                                {preparation.length === 0 ? (
+                                    <Typography variant="body2" color="text.secondary">{t('quiz-tomorrow-empty')}</Typography>
+                                ) : (
+                                    <Stack direction="row" flexWrap="wrap" gap={1}>
+                                        {preparation.map((p) => (
+                                            <Chip
+                                                key={p.lessonId}
+                                                size="small"
+                                                icon={p.prepared ? <CheckCircleOutlined /> : <RadioButtonUncheckedOutlined />}
+                                                color={p.prepared ? 'success' : 'default'}
+                                                variant={p.prepared ? 'filled' : 'outlined'}
+                                                label={p.subjectName}
+                                            />
+                                        ))}
+                                    </Stack>
+                                )}
+                            </Card>
+                        );
+                    }}
+                />
                 <UIStream
                     initialData={null}
                     stream={bloc.getStream('history')}
@@ -101,7 +170,41 @@ export default function Reports() {
                         const history: QuizAttemptHistoryItem[] = snapshot.data ?? [];
                         return (
                             <Card sx={{ p: { xs: 2, sm: 3 } }}>
-                                <Typography variant="h6" fontWeight={700} sx={{ mb: 2 }}>{t('quiz-attempt-history')}</Typography>
+                                <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
+                                    <Typography variant="h6" fontWeight={700}>{t('quiz-attempt-history')}</Typography>
+                                    <UIStream
+                                        initialData={bloc.getField('weekOffset') ?? 0}
+                                        stream={bloc.getStream('weekOffset')}
+                                        builder={(weekSnap) => {
+                                            const weekOffset: number | null = weekSnap.data === undefined ? 0 : weekSnap.data;
+                                            return (
+                                                <Stack direction="row" alignItems="center" spacing={0.5}>
+                                                    {weekOffset != null && (
+                                                        <>
+                                                            <IconButton size="small" onClick={() => bloc.changeWeek(studentId, weekOffset - 1)}>
+                                                                <NavigateBeforeOutlined fontSize="small" />
+                                                            </IconButton>
+                                                            <Chip
+                                                                size="small"
+                                                                label={weekOffset === 0 ? `${t('quiz-this-week')} (${formatWeekLabel(0)})` : formatWeekLabel(weekOffset)}
+                                                            />
+                                                            <IconButton size="small" onClick={() => bloc.changeWeek(studentId, weekOffset + 1)}>
+                                                                <NavigateNextOutlined fontSize="small" />
+                                                            </IconButton>
+                                                        </>
+                                                    )}
+                                                    <Button
+                                                        size="small"
+                                                        variant={weekOffset == null ? 'contained' : 'outlined'}
+                                                        onClick={() => bloc.changeWeek(studentId, weekOffset == null ? 0 : null)}
+                                                    >
+                                                        {weekOffset == null ? t('quiz-back-to-week-view') : t('quiz-view-all-history')}
+                                                    </Button>
+                                                </Stack>
+                                            );
+                                        }}
+                                    />
+                                </Stack>
                                 {history.length === 0 && snapshot.data != null && (
                                     <Typography variant="body2" color="text.secondary">{t('quiz-no-attempt-history')}</Typography>
                                 )}
@@ -139,6 +242,7 @@ export default function Reports() {
                         );
                     }}
                 />
+                </Stack>
             );
                 }}
             />

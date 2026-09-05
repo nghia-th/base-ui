@@ -1,5 +1,5 @@
 import { IBlocUI } from "../../base/IBlocUI";
-import { QuizSubjectApi, QuizSubjectRequest } from "../../api/QuizSubjectApi";
+import { QuizSubjectApi, QuizSubjectRequest, quizImportSubjects } from "../../api/QuizSubjectApi";
 import { QuizLessonApi, QuizLessonCreateRequest, QuizLessonUpdateRequest, quizUploadLessonImage, quizImportLessons } from "../../api/QuizLessonApi";
 import { QuizClassroomApi } from "../../api/QuizClassroomApi";
 import { QuizParentLibraryApi } from "../../api/QuizParentLibraryApi";
@@ -46,6 +46,19 @@ export interface QuizLessonImportResult {
     totalRows: number;
     successCount: number;
     errors: QuizLessonImportRowError[];
+}
+
+// Khớp ImportRowError.java / SubjectImportResponse.java (2026-09-05, mục 2/11) - cùng shape hệt
+// QuizLessonImportResult ở trên, tách riêng interface theo đúng convention của file này.
+export interface QuizSubjectImportRowError {
+    rowNumber: number;
+    reason: string;
+}
+
+export interface QuizSubjectImportResult {
+    totalRows: number;
+    successCount: number;
+    errors: QuizSubjectImportRowError[];
 }
 
 // Bloc trang "Môn học/Bài học" (khu vực Phụ huynh, /app/parent/subjects - Task 3 backend). Quản lý
@@ -353,6 +366,59 @@ export class BlocParentSubjects extends IBlocUI {
             this.setStream('lessonImporting', false)
             this.setStream('lessonImportResult', result)
         }, (error) => { this.setStream('lessonImporting', false); onError(error) })
+    }
+
+    // --- Dialog "Nhap mon hoc tu file" (2026-09-05, muc 2/11 - "Phu huynh bulk-tao Mon hoc qua
+    // import file") - cung shape het Dialog "Nhap bai hoc tu file" o tren, chi khac tham so co
+    // dinh la classroomId thay vi subjectId (Subject la con cua Classroom).
+    openSubjectImport() {
+        const filterClassroomId = this.getField('filterClassroomId') ?? ''
+        this.setStream('subjectImportClassroomId', filterClassroomId)
+        this.setStream('subjectImportResult', null)
+        this.setStream('subject_import_view', { isShow: true })
+    }
+
+    closeSubjectImport() {
+        this.setStream('subject_import_view', { isShow: false })
+        this.setStream('subjectImporting', false)
+        this.setStream('subjectImportResult', null)
+    }
+
+    downloadSubjectImportTemplate(format: 'xlsx' | 'csv', onError: (error: any) => void) {
+        this.apiRequest(QuizSubjectApi.downloadImportTemplate(format), (res: any) => {
+            const blob: Blob = res.data
+            const disposition: string | undefined = res.disposition
+            const match = disposition?.match(/filename="?([^"]+)"?/)
+            const filename = match?.[1] ?? `subject-import-template.${format}`
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = filename
+            a.click()
+            URL.revokeObjectURL(url)
+        }, { onError })
+    }
+
+    async importSubjectsFile(classroomId: number, file: File, onComplete: (result: QuizSubjectImportResult) => void, onError: (error: any) => void) {
+        try {
+            const res = await quizImportSubjects(classroomId, file)
+            if (res.code === 100) {
+                onComplete(res.data as QuizSubjectImportResult)
+                this.reloadSubjects()
+            } else {
+                onError(res)
+            }
+        } catch (e) {
+            onError(e)
+        }
+    }
+
+    runSubjectImport(classroomId: number, file: File, onError: (error: any) => void) {
+        this.setStream('subjectImporting', true)
+        this.importSubjectsFile(classroomId, file, (result) => {
+            this.setStream('subjectImporting', false)
+            this.setStream('subjectImportResult', result)
+        }, (error) => { this.setStream('subjectImporting', false); onError(error) })
     }
 
     // Textbook library linking (2026-09-05, "thu vien sach giao khoa" feature) - kept as plain

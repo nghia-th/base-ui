@@ -1,5 +1,5 @@
 import { IBlocUI } from "../../base/IBlocUI";
-import { QuizTestApi, QuizTestCreateRequest, QuizPracticeGenerateRequest, quizImportPracticeTests } from "../../api/QuizTestApi";
+import { QuizTestApi, QuizTestCreateRequest, QuizTestCreateFromLessonsRequest, QuizPracticeGenerateRequest, quizImportPracticeTests } from "../../api/QuizTestApi";
 import { QuizStudentApi } from "../../api/QuizStudentApi";
 import { QuizSubjectApi } from "../../api/QuizSubjectApi";
 import { QuizLessonApi } from "../../api/QuizLessonApi";
@@ -97,6 +97,14 @@ export class BlocParentTests extends IBlocUI {
         }, { onError })
     }
 
+    // Chế độ tạo đề theo Bài học (2026-09-05, mục 3/11) - song song với create() ở trên.
+    createFromLessons(request: QuizTestCreateFromLessonsRequest, onComplete: () => void, onError: (error: any) => void) {
+        this.apiRequest(QuizTestApi.createFromLessons(request), () => {
+            onComplete()
+            this.reloadTests()
+        }, { onError })
+    }
+
     // "Ôn tập kiến thức" (2026-09-01) - gọi lại nhiều lần vẫn OK, mỗi lần tạo 1 Test PRACTICE mới
     // với bộ câu hỏi random khác (xem QuizTestApi.generatePractice's comment).
     generatePractice(request: QuizPracticeGenerateRequest, onComplete: () => void, onError: (error: any) => void) {
@@ -139,13 +147,25 @@ export class BlocParentTests extends IBlocUI {
     }
 
     // --- Dialog "Tạo đề kiểm tra" ---
+    // 'formMode' (2026-09-05, mục 3/11) - 'question' (mặc định, hành vi cũ: chọn 1 Bài rồi tick
+    // từng Câu hỏi) hoặc 'lesson' (MỚI, song song - AskUserQuestion "them lua chon song song":
+    // tick nhiều Bài học cùng lúc, server tự lấy TẤT CẢ câu hỏi trong các bài đó rồi xáo trộn).
     openCreate() {
+        this.setStream('formMode', 'question')
         this.setStream('formStudentId', '')
         this.setStream('formSubjectId', '')
         this.setStream('formLessonId', '')
         this.setStream('formQuestionIds', [])
+        this.setStream('formLessonIds', [])
         this.setField('createReq', { name: '' })
         this.setStream('create_view', { isShow: true })
+    }
+
+    changeFormMode(mode: 'question' | 'lesson') {
+        this.setStream('formMode', mode)
+        this.setStream('formLessonId', '')
+        this.setStream('formQuestionIds', [])
+        this.setStream('formLessonIds', [])
     }
 
     closeCreate() {
@@ -162,6 +182,7 @@ export class BlocParentTests extends IBlocUI {
         this.setStream('formSubjectId', '')
         this.setStream('formLessonId', '')
         this.setStream('formQuestionIds', [])
+        this.setStream('formLessonIds', [])
         const students: QuizStudentLite[] = this.getField('students') ?? []
         const classroomId = value === '' ? undefined : students.find((s) => s.id === value)?.classroomId
         if (classroomId != null) this.loadSubjects(classroomId)
@@ -171,7 +192,16 @@ export class BlocParentTests extends IBlocUI {
         this.setStream('formSubjectId', value)
         this.setStream('formLessonId', '')
         this.setStream('formQuestionIds', [])
+        this.setStream('formLessonIds', [])
         this.loadLessons(value)
+    }
+
+    // Chế độ 'lesson' (2026-09-05, mục 3/11) - tick/bỏ tick nhiều Bài học cùng lúc, cùng shape
+    // toggle hệt toggleFormQuestion bên dưới.
+    toggleFormLessonId(id: number) {
+        const ids: number[] = this.getField('formLessonIds') ?? []
+        const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
+        this.setStream('formLessonIds', next)
     }
 
     changeFormLesson(value: number) {
@@ -189,8 +219,25 @@ export class BlocParentTests extends IBlocUI {
     submitCreate(onComplete: () => void, onError: (error: any) => void) {
         const studentId = this.getField('formStudentId')
         const name = this.getField('name', 'createReq') ?? ''
+        const mode = this.getField('formMode') ?? 'question'
+        if (studentId === '' || studentId == null || !name.trim()) {
+            onError({ messageKey: 'required-field' })
+            return
+        }
+        if (mode === 'lesson') {
+            const lessonIds: number[] = this.getField('formLessonIds') ?? []
+            if (lessonIds.length === 0) {
+                onError({ messageKey: 'required-field' })
+                return
+            }
+            this.setStream('submitting', true)
+            const request: QuizTestCreateFromLessonsRequest = { studentId, name, lessonIds }
+            this.createFromLessons(request, () => { this.setStream('submitting', false); onComplete() },
+                (error: any) => { this.setStream('submitting', false); onError(error) })
+            return
+        }
         const questionIds: number[] = this.getField('formQuestionIds') ?? []
-        if (studentId === '' || studentId == null || !name.trim() || questionIds.length === 0) {
+        if (questionIds.length === 0) {
             onError({ messageKey: 'required-field' })
             return
         }
