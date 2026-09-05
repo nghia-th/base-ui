@@ -1,7 +1,24 @@
 import { IBlocUI } from "../../base/IBlocUI";
 import { QuizReportApi } from "../../api/QuizReportApi";
 import { QuizStudentApi } from "../../api/QuizStudentApi";
+import { QuizSubjectApi } from "../../api/QuizSubjectApi";
 import { QuizTimetableApi, QuizTimetableLessonPreparation } from "../../api/QuizTimetableApi";
+import { QuizLessonReportApi, QuizLessonReportHistoryItem } from "../../api/QuizLessonReportApi";
+
+// Chi lay 2 field can cho dropdown loc Mon hoc o phan "Bao bai" (2026-09-06) - moi Bloc "content"
+// tu khai bao shape rieng, khong import cheo interface Bloc khac (cung ly do QuizSubjectLite o
+// BlocParentTimetable.ts).
+export interface QuizReportSubjectLite {
+    id: number;
+    name: string;
+}
+
+// Chi lay field can cho viec suy ra classroomId tu Hoc sinh dang chon (de tai danh sach Mon hoc
+// cho bo loc "Bao bai") - cung ly do QuizStudentLite o BlocParentTimetable.ts.
+export interface QuizReportStudentLite {
+    id: number;
+    classroomId: number;
+}
 
 // Khớp StudentAttemptHistoryItem.java.
 export interface QuizAttemptHistoryItem {
@@ -110,6 +127,47 @@ export class BlocParentReports extends IBlocUI {
         this.setStream('weekOffset', 0)
         this.loadHistory(value, 0)
         this.loadPreparation(value)
+
+        // "Bao bai" (2026-09-06) - mac dinh xem HOM NAY, khong loc theo Mon (subjectId undefined).
+        const todayIso = this.todayIsoDate()
+        this.setStream('lessonReportDate', todayIso)
+        this.setStream('lessonReportSubjectId', '')
+        this.loadLessonReportHistory(value, todayIso, '')
+
+        const students: QuizReportStudentLite[] = this.getField('students') ?? []
+        const classroomId = students.find((s) => s.id === value)?.classroomId
+        if (classroomId != null) {
+            this.apiRequest(QuizSubjectApi.list(classroomId), (res) => {
+                this.setStream('lessonReportSubjects', res.data as QuizReportSubjectLite[])
+            })
+        } else {
+            this.setStream('lessonReportSubjects', [])
+        }
+    }
+
+    private todayIsoDate(): string {
+        const d = new Date()
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+
+    // "Bao bai" (2026-09-06, "ben phu huynh co the xem duoc hom nay con hoc gi va cung co the xem
+    // lai nhung ngay truoc con da chon"): 1 ngay (mac dinh hom nay) + loc theo Mon hoc (optional).
+    loadLessonReportHistory(studentId: number, date: string, subjectId: number | '') {
+        this.apiRequest(QuizLessonReportApi.getStudentHistory(studentId, date, subjectId === '' ? undefined : subjectId), (res) => {
+            this.setStream('lessonReportHistory', res.data as QuizLessonReportHistoryItem[])
+        })
+    }
+
+    changeLessonReportDate(studentId: number, date: string) {
+        this.setStream('lessonReportDate', date)
+        const subjectId = this.getField('lessonReportSubjectId') ?? ''
+        this.loadLessonReportHistory(studentId, date, subjectId)
+    }
+
+    changeLessonReportSubject(studentId: number, subjectId: number | '') {
+        this.setStream('lessonReportSubjectId', subjectId)
+        const date = this.getField('lessonReportDate') ?? this.todayIsoDate()
+        this.loadLessonReportHistory(studentId, date, subjectId)
     }
 
     // Item 10 (dot 11 yeu cau, 2026-09-05) - "phu huynh dua vao ket qua cua 9 de biet con da

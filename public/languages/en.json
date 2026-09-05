@@ -588,6 +588,15 @@
     "quiz-create-mode-question": "Pick individual questions",
     "quiz-create-mode-lesson": "Pick whole lessons",
     "quiz-select-lessons-count": "{{count}} lessons selected",
-    "quiz-no-lessons": "This subject has no lessons yet."
+    "quiz-no-lessons": "This subject has no lessons yet.",
+    "quiz-lesson-report-title": "Report lessons studied today",
+    "quiz-lesson-report-pick": "Pick a lesson studied",
+    "quiz-lesson-report-all-done": "Every lesson of this subject has been reported.",
+    "quiz-lesson-report-history": "Lesson report history",
+    "quiz-lesson-report-date": "Date",
+    "quiz-lesson-report-history-empty": "No lesson was reported on this date.",
+    "QUIZ_040": "This lesson's subject is not on today's timetable.",
+    "QUIZ_041": "This lesson has already been reported as studied.",
+    "QUIZ_042": "Only a lesson reported today can be undone."
   }
 }

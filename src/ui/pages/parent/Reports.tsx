@@ -34,10 +34,13 @@ import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import AppDialog from "../../components/dialogs/AppDialog";
 import { DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
-import { BlocParentReports, QuizAttemptHistoryItem, QuizAttemptReport } from "../../bloc/BlocParentReports";
+import { BlocParentReports, QuizAttemptHistoryItem, QuizAttemptReport, QuizReportSubjectLite } from "../../bloc/BlocParentReports";
 import { QuizTimetableLessonPreparation } from "../../../api/QuizTimetableApi";
+import { QuizLessonReportHistoryItem } from "../../../api/QuizLessonReportApi";
 import EventOutlined from "@mui/icons-material/EventOutlined";
 import RadioButtonUncheckedOutlined from "@mui/icons-material/RadioButtonUncheckedOutlined";
+import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
+import TextField from "@mui/material/TextField";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
@@ -149,7 +152,7 @@ export default function Reports() {
                                     <Stack direction="row" flexWrap="wrap" gap={1}>
                                         {preparation.map((p) => (
                                             <Chip
-                                                key={p.lessonId}
+                                                key={p.subjectId}
                                                 size="small"
                                                 icon={p.prepared ? <CheckCircleOutlined /> : <RadioButtonUncheckedOutlined />}
                                                 color={p.prepared ? 'success' : 'default'}
@@ -162,6 +165,71 @@ export default function Reports() {
                             </Card>
                         );
                     }}
+                />
+                {/* "Bao bai" (2026-09-06) - "ben phu huynh co the xem duoc hom nay con hoc gi va cung co
+                    the xem lai nhung ngay truoc con da chon", loc duoc theo Mon hoc. Mac dinh ngay hom nay
+                    (dat trong changeStudent). */}
+                <UIStream
+                    initialData={bloc.getField('lessonReportDate') ?? ''}
+                    stream={bloc.getStream('lessonReportDate')}
+                    builder={(dateSnap) => (
+                        <UIStream
+                            initialData={bloc.getField('lessonReportSubjectId') ?? ''}
+                            stream={bloc.getStream('lessonReportSubjectId')}
+                            builder={(subjectIdSnap) => (
+                                <UIStream
+                                    initialData={bloc.getField('lessonReportSubjects') ?? []}
+                                    stream={bloc.getStream('lessonReportSubjects')}
+                                    builder={(subjectsSnap) => (
+                                        <UIStream
+                                            initialData={null}
+                                            stream={bloc.getStream('lessonReportHistory')}
+                                            builder={(historySnap) => {
+                                                const items: QuizLessonReportHistoryItem[] = historySnap.data ?? [];
+                                                const reportSubjects: QuizReportSubjectLite[] = subjectsSnap.data ?? [];
+                                                return (
+                                                    <Card sx={{ p: { xs: 2, sm: 3 } }}>
+                                                        <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
+                                                            <MenuBookOutlined color="primary" />
+                                                            <Typography variant="h6" fontWeight={700} sx={{ mr: 'auto' }}>{t('quiz-lesson-report-history')}</Typography>
+                                                            <TextField
+                                                                type="date"
+                                                                size="small"
+                                                                label={t('quiz-lesson-report-date')}
+                                                                value={dateSnap.data ?? ''}
+                                                                onChange={(e) => bloc.changeLessonReportDate(studentId, e.target.value)}
+                                                                InputLabelProps={{ shrink: true }}
+                                                            />
+                                                            <FormControl size="small" sx={{ minWidth: 180 }}>
+                                                                <InputLabel>{t('quiz-select-subject')}</InputLabel>
+                                                                <Select
+                                                                    label={t('quiz-select-subject')}
+                                                                    value={subjectIdSnap.data ?? ''}
+                                                                    onChange={(e) => bloc.changeLessonReportSubject(studentId, e.target.value === '' ? '' : Number(e.target.value))}
+                                                                >
+                                                                    <MenuItem value="">{t('all')}</MenuItem>
+                                                                    {reportSubjects.map((s) => <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>)}
+                                                                </Select>
+                                                            </FormControl>
+                                                        </Stack>
+                                                        {items.length === 0 ? (
+                                                            <Typography variant="body2" color="text.secondary">{t('quiz-lesson-report-history-empty')}</Typography>
+                                                        ) : (
+                                                            <Stack direction="row" flexWrap="wrap" gap={1}>
+                                                                {items.map((item) => (
+                                                                    <Chip key={item.lessonId} size="small" label={`${item.subjectName} - ${item.lessonName}`} />
+                                                                ))}
+                                                            </Stack>
+                                                        )}
+                                                    </Card>
+                                                );
+                                            }}
+                                        />
+                                    )}
+                                />
+                            )}
+                        />
+                    )}
                 />
                 <UIStream
                     initialData={null}

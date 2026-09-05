@@ -588,6 +588,15 @@
     "quiz-create-mode-question": "Chọn từng câu hỏi",
     "quiz-create-mode-lesson": "Chọn theo bài học",
     "quiz-select-lessons-count": "Đã chọn {{count}} bài học",
-    "quiz-no-lessons": "Môn học này chưa có bài học nào."
+    "quiz-no-lessons": "Môn học này chưa có bài học nào.",
+    "quiz-lesson-report-title": "Báo bài đã học hôm nay",
+    "quiz-lesson-report-pick": "Chọn bài đã học",
+    "quiz-lesson-report-all-done": "Đã báo hết bài của môn này.",
+    "quiz-lesson-report-history": "Lịch sử báo bài",
+    "quiz-lesson-report-date": "Ngày xem",
+    "quiz-lesson-report-history-empty": "Không có bài nào được báo vào ngày này.",
+    "QUIZ_040": "Bài này thuộc môn không có trong thời khoá biểu hôm nay.",
+    "QUIZ_041": "Bài này đã được báo là đã học rồi.",
+    "QUIZ_042": "Chỉ có thể bỏ báo bài trong đúng ngày đã báo."
   }
 }
