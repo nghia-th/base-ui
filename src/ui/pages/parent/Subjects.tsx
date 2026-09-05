@@ -3,8 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
@@ -30,8 +28,12 @@ import CircularProgress from "@mui/material/CircularProgress";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
+import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
+import AppDialog from "../../components/dialogs/AppDialog";
+import { DIALOG_CANCEL_BUTTON_SX, DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import SubjectLibraryDialog from "../../components/common/SubjectLibraryDialog";
 import { BlocParentSubjects, QuizSubject, QuizLesson, QuizClassroomLite, QuizLessonImportResult } from "../../bloc/BlocParentSubjects";
 import UIStream from "../../components/common/UIStream";
@@ -239,8 +241,7 @@ export default function Subjects() {
                                                     const view = viewSnap.data ?? { isShow: false, id: 0 };
                                                     const isEditing = (view.id ?? 0) > 0;
                                                     return (
-                                                        <Dialog open={view.isShow === true} onClose={() => bloc.closeSubjectForm()} maxWidth="xs" fullWidth>
-                                                            <DialogTitle>{isEditing ? t('quiz-subject-edit') : t('quiz-subject-new')}</DialogTitle>
+                                                        <AppDialog open={view.isShow === true} onClose={() => bloc.closeSubjectForm()} maxWidth="xs" title={isEditing ? t('quiz-subject-edit') : t('quiz-subject-new')} icon={isEditing ? EditOutlined : AddOutlined}>
                                                             <DialogContent>
                                                                 <Stack spacing={2} sx={{ mt: 1 }}>
                                                                     <UIStream
@@ -275,16 +276,16 @@ export default function Subjects() {
                                                                 </Stack>
                                                             </DialogContent>
                                                             <DialogActions>
-                                                                <Button onClick={() => bloc.closeSubjectForm()}>{t('cancel')}</Button>
+                                                                <Button onClick={() => bloc.closeSubjectForm()} variant="contained" startIcon={<CloseOutlined />} sx={DIALOG_CANCEL_BUTTON_SX}>{t('cancel')}</Button>
                                                                 <UIStream
                                                                     initialData={false}
                                                                     stream={bloc.getStream('submitting')}
                                                                     builder={(submittingSnap) => (
-                                                                        <Button variant="contained" disabled={submittingSnap.data === true} onClick={saveSubject}>{t('save')}</Button>
+                                                                        <Button variant="contained" color="primary" startIcon={<CheckOutlined />} disabled={submittingSnap.data === true} onClick={saveSubject} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('save')}</Button>
                                                                     )}
                                                                 />
                                                             </DialogActions>
-                                                        </Dialog>
+                                                        </AppDialog>
                                                     );
                                                 }}
                                             />
@@ -340,8 +341,7 @@ export default function Subjects() {
                                                         const view = viewSnap.data ?? { isShow: false, id: 0 };
                                                         const isEditing = (view.id ?? 0) > 0;
                                                         return (
-                                                            <Dialog open={view.isShow === true} onClose={() => bloc.closeLessonForm()} maxWidth="sm" fullWidth>
-                                                                <DialogTitle>{isEditing ? t('quiz-lesson-edit') : t('quiz-lesson-new')}</DialogTitle>
+                                                            <AppDialog open={view.isShow === true} onClose={() => bloc.closeLessonForm()} maxWidth="sm" title={isEditing ? t('quiz-lesson-edit') : t('quiz-lesson-new')} icon={isEditing ? EditOutlined : AddOutlined}>
                                                                 <DialogContent>
                                                                     <Stack spacing={2} sx={{ mt: 1 }}>
                                                                         <TextField
@@ -451,16 +451,16 @@ export default function Subjects() {
                                                                     </Stack>
                                                                 </DialogContent>
                                                                 <DialogActions>
-                                                                    <Button onClick={() => bloc.closeLessonForm()}>{t('cancel')}</Button>
+                                                                    <Button onClick={() => bloc.closeLessonForm()} variant="contained" startIcon={<CloseOutlined />} sx={DIALOG_CANCEL_BUTTON_SX}>{t('cancel')}</Button>
                                                                     <UIStream
                                                                         initialData={false}
                                                                         stream={bloc.getStream('submitting')}
                                                                         builder={(submittingSnap) => (
-                                                                            <Button variant="contained" disabled={submittingSnap.data === true} onClick={() => saveLesson(selectedSubject.id)}>{t('save')}</Button>
+                                                                            <Button variant="contained" color="primary" startIcon={<CheckOutlined />} disabled={submittingSnap.data === true} onClick={() => saveLesson(selectedSubject.id)} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('save')}</Button>
                                                                         )}
                                                                     />
                                                                 </DialogActions>
-                                                            </Dialog>
+                                                            </AppDialog>
                                                         );
                                                     }}
                                                 />
@@ -471,8 +471,7 @@ export default function Subjects() {
                                                     builder={(viewSnap) => {
                                                         const view = viewSnap.data ?? { isShow: false };
                                                         return (
-                                                            <Dialog open={view.isShow === true} onClose={() => bloc.closeLessonImport()} maxWidth="xs" fullWidth>
-                                                                <DialogTitle>{t('quiz-import-lessons-dialog-title')}</DialogTitle>
+                                                            <AppDialog open={view.isShow === true} onClose={() => bloc.closeLessonImport()} maxWidth="xs" title={t('quiz-import-lessons-dialog-title')} icon={UploadFileOutlined}>
                                                                 <DialogContent>
                                                                     <input ref={lessonFileInputRef} type="file" accept=".xlsx,.csv" hidden onChange={onLessonImportFileChosen(selectedSubject.id)} />
                                                                     <Stack spacing={2} sx={{ mt: 1 }} alignItems="flex-start">
@@ -518,9 +517,9 @@ export default function Subjects() {
                                                                     </Stack>
                                                                 </DialogContent>
                                                                 <DialogActions>
-                                                                    <Button onClick={() => bloc.closeLessonImport()}>{t('close')}</Button>
+                                                                    <Button onClick={() => bloc.closeLessonImport()} variant="contained" color="primary" startIcon={<CloseOutlined />} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('close')}</Button>
                                                                 </DialogActions>
-                                                            </Dialog>
+                                                            </AppDialog>
                                                         );
                                                     }}
                                                 />

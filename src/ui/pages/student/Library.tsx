@@ -10,14 +10,15 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import IconButton from "@mui/material/IconButton";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
+import AppDialog from "../../components/dialogs/AppDialog";
+import { DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import { BlocStudentLibrary, QuizStudentSubjectLite } from "../../bloc/BlocStudentLibrary";
 import { QuizSubjectLibraryLink } from "../../../api/QuizLibraryApi";
 import UIStream from "../../components/common/UIStream";
@@ -84,8 +85,7 @@ export default function StudentLibrary() {
                             </List>
                         </Card>
 
-                        <Dialog open={openSubject != null} onClose={() => setOpenSubject(null)} maxWidth="xs" fullWidth>
-                            <DialogTitle>{openSubject?.name}</DialogTitle>
+                        <AppDialog open={openSubject != null} onClose={() => setOpenSubject(null)} maxWidth="xs" title={openSubject?.name} icon={MenuBookOutlined}>
                             <DialogContent>
                                 <UIStream
                                     initialData={null}
@@ -123,9 +123,9 @@ export default function StudentLibrary() {
                                 />
                             </DialogContent>
                             <DialogActions>
-                                <Button onClick={() => setOpenSubject(null)}>{t('close')}</Button>
+                                <Button onClick={() => setOpenSubject(null)} variant="contained" color="primary" startIcon={<CloseOutlined />} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('close')}</Button>
                             </DialogActions>
-                        </Dialog>
+                        </AppDialog>
                     </>
                 );
             }}

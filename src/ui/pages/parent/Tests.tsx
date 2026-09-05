@@ -3,8 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
@@ -26,9 +24,13 @@ import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import AutorenewOutlined from "@mui/icons-material/AutorenewOutlined";
 import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
+import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import CircularProgress from "@mui/material/CircularProgress";
 import Alert from "@mui/material/Alert";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
+import AppDialog from "../../components/dialogs/AppDialog";
+import { DIALOG_CANCEL_BUTTON_SX, DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import { BlocParentTests, QuizTest, QuizStudentLite, QuizPracticeImportResult } from "../../bloc/BlocParentTests";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
@@ -201,8 +203,7 @@ export default function Tests() {
                                 builder={(viewSnap) => {
                                     const view = viewSnap.data ?? { isShow: false };
                                     return (
-                                        <Dialog open={view.isShow === true} onClose={() => bloc.closeCreate()} maxWidth="sm" fullWidth>
-                                            <DialogTitle>{t('quiz-test-new')}</DialogTitle>
+                                        <AppDialog open={view.isShow === true} onClose={() => bloc.closeCreate()} maxWidth="sm" title={t('quiz-test-new')} icon={AddOutlined}>
                                             <DialogContent>
                                                 <Stack spacing={2} sx={{ mt: 1 }}>
                                                     <UIStream
@@ -330,16 +331,16 @@ export default function Tests() {
                                                 </Stack>
                                             </DialogContent>
                                             <DialogActions>
-                                                <Button onClick={() => bloc.closeCreate()}>{t('cancel')}</Button>
+                                                <Button onClick={() => bloc.closeCreate()} variant="contained" startIcon={<CloseOutlined />} sx={DIALOG_CANCEL_BUTTON_SX}>{t('cancel')}</Button>
                                                 <UIStream
                                                     initialData={false}
                                                     stream={bloc.getStream('submitting')}
                                                     builder={(submittingSnap) => (
-                                                        <Button variant="contained" disabled={submittingSnap.data === true} onClick={submitCreate}>{t('quiz-assign-test')}</Button>
+                                                        <Button variant="contained" color="primary" startIcon={<CheckOutlined />} disabled={submittingSnap.data === true} onClick={submitCreate} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('quiz-assign-test')}</Button>
                                                     )}
                                                 />
                                             </DialogActions>
-                                        </Dialog>
+                                        </AppDialog>
                                     );
                                 }}
                             />
@@ -353,8 +354,7 @@ export default function Tests() {
                                 builder={(viewSnap) => {
                                     const view = viewSnap.data ?? { isShow: false };
                                     return (
-                                        <Dialog open={view.isShow === true} onClose={() => bloc.closePractice()} maxWidth="sm" fullWidth>
-                                            <DialogTitle>{t('quiz-practice-test-new')}</DialogTitle>
+                                        <AppDialog open={view.isShow === true} onClose={() => bloc.closePractice()} maxWidth="sm" title={t('quiz-practice-test-new')} icon={AutorenewOutlined}>
                                             <DialogContent>
                                                 <Stack spacing={2} sx={{ mt: 1 }}>
                                                     <Typography variant="body2" color="text.secondary">{t('quiz-practice-test-hint')}</Typography>
@@ -418,16 +418,16 @@ export default function Tests() {
                                                 </Stack>
                                             </DialogContent>
                                             <DialogActions>
-                                                <Button onClick={() => bloc.closePractice()}>{t('cancel')}</Button>
+                                                <Button onClick={() => bloc.closePractice()} variant="contained" startIcon={<CloseOutlined />} sx={DIALOG_CANCEL_BUTTON_SX}>{t('cancel')}</Button>
                                                 <UIStream
                                                     initialData={false}
                                                     stream={bloc.getStream('practiceSubmitting')}
                                                     builder={(submittingSnap) => (
-                                                        <Button variant="contained" disabled={submittingSnap.data === true} onClick={submitPractice}>{t('quiz-practice-generate')}</Button>
+                                                        <Button variant="contained" color="primary" startIcon={<CheckOutlined />} disabled={submittingSnap.data === true} onClick={submitPractice} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('quiz-practice-generate')}</Button>
                                                     )}
                                                 />
                                             </DialogActions>
-                                        </Dialog>
+                                        </AppDialog>
                                     );
                                 }}
                             />
@@ -442,8 +442,7 @@ export default function Tests() {
                                 builder={(viewSnap) => {
                                     const view = viewSnap.data ?? { isShow: false };
                                     return (
-                                        <Dialog open={view.isShow === true} onClose={() => bloc.closePracticeImport()} maxWidth="xs" fullWidth>
-                                            <DialogTitle>{t('quiz-import-practice-tests-dialog-title')}</DialogTitle>
+                                        <AppDialog open={view.isShow === true} onClose={() => bloc.closePracticeImport()} maxWidth="xs" title={t('quiz-import-practice-tests-dialog-title')} icon={UploadFileOutlined}>
                                             <DialogContent>
                                                 <input ref={practiceFileInputRef} type="file" accept=".xlsx,.csv" hidden onChange={onPracticeImportFileChosen} />
                                                 <Stack spacing={2} sx={{ mt: 1 }} alignItems="flex-start">
@@ -545,9 +544,9 @@ export default function Tests() {
                                                 </Stack>
                                             </DialogContent>
                                             <DialogActions>
-                                                <Button onClick={() => bloc.closePracticeImport()}>{t('close')}</Button>
+                                                <Button onClick={() => bloc.closePracticeImport()} variant="contained" color="primary" startIcon={<CloseOutlined />} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('close')}</Button>
                                             </DialogActions>
-                                        </Dialog>
+                                        </AppDialog>
                                     );
                                 }}
                             />
@@ -558,8 +557,7 @@ export default function Tests() {
                                 builder={(detailSnap) => {
                                     const detail: any = detailSnap.data;
                                     return (
-                                        <Dialog open={detail != null} onClose={() => bloc.closeDetail()} maxWidth="sm" fullWidth>
-                                            <DialogTitle>{detail?.name}</DialogTitle>
+                                        <AppDialog open={detail != null} onClose={() => bloc.closeDetail()} maxWidth="sm" title={detail?.name} icon={VisibilityOutlined}>
                                             <DialogContent>
                                                 <Stack spacing={1.5}>
                                                     {(detail?.questions ?? []).map((q: any, i: number) => (
@@ -578,9 +576,9 @@ export default function Tests() {
                                                 </Stack>
                                             </DialogContent>
                                             <DialogActions>
-                                                <Button onClick={() => bloc.closeDetail()}>{t('close')}</Button>
+                                                <Button onClick={() => bloc.closeDetail()} variant="contained" color="primary" startIcon={<CloseOutlined />} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('close')}</Button>
                                             </DialogActions>
-                                        </Dialog>
+                                        </AppDialog>
                                     );
                                 }}
                             />

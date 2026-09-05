@@ -3,8 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
@@ -33,6 +31,7 @@ import AddOutlined from "@mui/icons-material/AddOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import EditOutlined from "@mui/icons-material/EditOutlined";
 import CloseOutlined from "@mui/icons-material/CloseOutlined";
+import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
@@ -41,6 +40,8 @@ import VolumeUpOutlined from "@mui/icons-material/VolumeUpOutlined";
 import VideocamOutlined from "@mui/icons-material/VideocamOutlined";
 import RecordVoiceOverOutlined from "@mui/icons-material/RecordVoiceOverOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
+import AppDialog from "../../components/dialogs/AppDialog";
+import { DIALOG_CANCEL_BUTTON_SX, DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import { BlocParentQuestions, QuizQuestion, QuizImportResult } from "../../bloc/BlocParentQuestions";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
@@ -293,8 +294,7 @@ export default function Questions() {
                                                 const view = viewSnap.data ?? { isShow: false, id: 0 };
                                                 const isEditing = (view.id ?? 0) > 0;
                                                 return (
-                                                    <Dialog open={view.isShow === true} onClose={() => bloc.closeQuestionForm()} maxWidth="sm" fullWidth>
-                                                        <DialogTitle>{isEditing ? t('quiz-question-edit') : t('quiz-question-new')}</DialogTitle>
+                                                    <AppDialog open={view.isShow === true} onClose={() => bloc.closeQuestionForm()} maxWidth="sm" title={isEditing ? t('quiz-question-edit') : t('quiz-question-new')} icon={isEditing ? EditOutlined : AddOutlined}>
                                                         <DialogContent>
                                                             <Stack spacing={2} sx={{ mt: 1 }}>
                                                                 <TextField
@@ -552,16 +552,16 @@ export default function Questions() {
                                                             </Stack>
                                                         </DialogContent>
                                                         <DialogActions>
-                                                            <Button onClick={() => bloc.closeQuestionForm()}>{t('cancel')}</Button>
+                                                            <Button onClick={() => bloc.closeQuestionForm()} variant="contained" startIcon={<CloseOutlined />} sx={DIALOG_CANCEL_BUTTON_SX}>{t('cancel')}</Button>
                                                             <UIStream
                                                                 initialData={false}
                                                                 stream={bloc.getStream('submitting')}
                                                                 builder={(submittingSnap) => (
-                                                                    <Button variant="contained" disabled={submittingSnap.data === true} onClick={save}>{t('save')}</Button>
+                                                                    <Button variant="contained" color="primary" startIcon={<CheckOutlined />} disabled={submittingSnap.data === true} onClick={save} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('save')}</Button>
                                                                 )}
                                                             />
                                                         </DialogActions>
-                                                    </Dialog>
+                                                    </AppDialog>
                                                 );
                                             }}
                                         />
@@ -572,8 +572,7 @@ export default function Questions() {
                                             builder={(viewSnap) => {
                                                 const view = viewSnap.data ?? { isShow: false };
                                                 return (
-                                                    <Dialog open={view.isShow === true} onClose={() => bloc.closeImport()} maxWidth="xs" fullWidth>
-                                                        <DialogTitle>{t('quiz-import-dialog-title')}</DialogTitle>
+                                                    <AppDialog open={view.isShow === true} onClose={() => bloc.closeImport()} maxWidth="xs" title={t('quiz-import-dialog-title')} icon={UploadFileOutlined}>
                                                         <DialogContent>
                                                             <input ref={fileInputRef} type="file" accept=".xlsx,.csv" hidden onChange={onImportFileChosen} />
                                                             <Stack spacing={2} sx={{ mt: 1 }} alignItems="flex-start">
@@ -619,9 +618,9 @@ export default function Questions() {
                                                             </Stack>
                                                         </DialogContent>
                                                         <DialogActions>
-                                                            <Button onClick={() => bloc.closeImport()}>{t('close')}</Button>
+                                                            <Button onClick={() => bloc.closeImport()} variant="contained" color="primary" startIcon={<CloseOutlined />} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('close')}</Button>
                                                         </DialogActions>
-                                                    </Dialog>
+                                                    </AppDialog>
                                                 );
                                             }}
                                         />

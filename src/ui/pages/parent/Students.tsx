@@ -3,8 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
@@ -19,7 +17,11 @@ import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import EditOutlined from "@mui/icons-material/EditOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
+import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
+import AppDialog from "../../components/dialogs/AppDialog";
+import { DIALOG_CANCEL_BUTTON_SX, DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import { BlocParentStudents, QuizStudent, QuizClassroomLite } from "../../bloc/BlocParentStudents";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
@@ -125,8 +127,7 @@ export default function Students() {
                                 const view = viewSnap.data ?? { isShow: false, id: 0 };
                                 const isEditing = (view.id ?? 0) > 0;
                                 return (
-                                    <Dialog open={view.isShow === true} onClose={() => bloc.closeForm()} maxWidth="xs" fullWidth>
-                                        <DialogTitle>{isEditing ? t('quiz-student-edit') : t('quiz-student-new')}</DialogTitle>
+                                    <AppDialog open={view.isShow === true} onClose={() => bloc.closeForm()} maxWidth="xs" title={isEditing ? t('quiz-student-edit') : t('quiz-student-new')} icon={isEditing ? EditOutlined : AddOutlined}>
                                         <DialogContent>
                                             <Stack spacing={2} sx={{ mt: 1 }}>
                                                 <TextField
@@ -175,18 +176,18 @@ export default function Students() {
                                             </Stack>
                                         </DialogContent>
                                         <DialogActions>
-                                            <Button onClick={() => bloc.closeForm()}>{t('cancel')}</Button>
+                                            <Button onClick={() => bloc.closeForm()} variant="contained" startIcon={<CloseOutlined />} sx={DIALOG_CANCEL_BUTTON_SX}>{t('cancel')}</Button>
                                             <UIStream
                                                 initialData={false}
                                                 stream={bloc.getStream('submitting')}
                                                 builder={(submittingSnap) => (
-                                                    <Button variant="contained" disabled={submittingSnap.data === true} onClick={save}>
+                                                    <Button variant="contained" color="primary" startIcon={<CheckOutlined />} disabled={submittingSnap.data === true} onClick={save} sx={DIALOG_PRIMARY_BUTTON_SX}>
                                                         {t('save')}
                                                     </Button>
                                                 )}
                                             />
                                         </DialogActions>
-                                    </Dialog>
+                                    </AppDialog>
                                 );
                             }}
                         />

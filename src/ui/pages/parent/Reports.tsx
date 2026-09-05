@@ -16,19 +16,21 @@ import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
 import Chip from "@mui/material/Chip";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import Button from "@mui/material/Button";
 import LinearProgress from "@mui/material/LinearProgress";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
+import AssessmentOutlined from "@mui/icons-material/AssessmentOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import CancelOutlined from "@mui/icons-material/CancelOutlined";
 import BarChartOutlined from "@mui/icons-material/BarChartOutlined";
 import RecordVoiceOverOutlined from "@mui/icons-material/RecordVoiceOverOutlined";
 import ToggleButton from "@mui/material/ToggleButton";
 import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
+import AppDialog from "../../components/dialogs/AppDialog";
+import { DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import { BlocParentReports, QuizAttemptHistoryItem, QuizAttemptReport } from "../../bloc/BlocParentReports";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
@@ -147,8 +149,7 @@ export default function Reports() {
                 builder={(reportSnap) => {
                     const report: QuizAttemptReport | null = reportSnap.data;
                     return (
-            <Dialog open={report != null} onClose={() => bloc.closeReport()} maxWidth="sm" fullWidth>
-                <DialogTitle>{report?.testName}</DialogTitle>
+            <AppDialog open={report != null} onClose={() => bloc.closeReport()} maxWidth="sm" title={report?.testName} icon={AssessmentOutlined}>
                 <DialogContent>
                     {report && (
                         <Stack spacing={2}>
@@ -274,9 +275,9 @@ export default function Reports() {
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={() => bloc.closeReport()}>{t('close')}</Button>
+                    <Button onClick={() => bloc.closeReport()} variant="contained" color="primary" startIcon={<CloseOutlined />} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('close')}</Button>
                 </DialogActions>
-            </Dialog>
+            </AppDialog>
                     );
                 }}
             />

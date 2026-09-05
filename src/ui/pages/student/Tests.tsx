@@ -11,8 +11,6 @@ import Chip from "@mui/material/Chip";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemText from "@mui/material/ListItemText";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
@@ -26,8 +24,12 @@ import FactCheckOutlined from "@mui/icons-material/FactCheckOutlined";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import CancelOutlined from "@mui/icons-material/CancelOutlined";
 import RecordVoiceOverOutlined from "@mui/icons-material/RecordVoiceOverOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
+import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import LinearProgress from "@mui/material/LinearProgress";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
+import AppDialog from "../../components/dialogs/AppDialog";
+import { DIALOG_CANCEL_BUTTON_SX, DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import { BlocStudentTests, QuizStudentTestSummary, QuizStudentSubjectLite, QuizStudentAttemptReport } from "../../bloc/BlocStudentTests";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
@@ -137,8 +139,7 @@ export default function Tests() {
                 builder={(viewSnap) => {
                     const view = viewSnap.data ?? { isShow: false };
                     return (
-                        <Dialog open={view.isShow === true} onClose={() => bloc.closePractice()} maxWidth="sm" fullWidth>
-                            <DialogTitle>{t('quiz-practice-test-new')}</DialogTitle>
+                        <AppDialog open={view.isShow === true} onClose={() => bloc.closePractice()} maxWidth="sm" title={t('quiz-practice-test-new')} icon={AutorenewOutlined}>
                             <DialogContent>
                                 <Stack spacing={2} sx={{ mt: 1 }}>
                                     <UIStream
@@ -182,16 +183,16 @@ export default function Tests() {
                                 </Stack>
                             </DialogContent>
                             <DialogActions>
-                                <Button onClick={() => bloc.closePractice()}>{t('cancel')}</Button>
+                                <Button onClick={() => bloc.closePractice()} variant="contained" startIcon={<CloseOutlined />} sx={DIALOG_CANCEL_BUTTON_SX}>{t('cancel')}</Button>
                                 <UIStream
                                     initialData={false}
                                     stream={bloc.getStream('practiceSubmitting')}
                                     builder={(submittingSnap) => (
-                                        <Button variant="contained" disabled={submittingSnap.data === true} onClick={submitPractice}>{t('quiz-practice-generate')}</Button>
+                                        <Button variant="contained" color="primary" startIcon={<CheckOutlined />} disabled={submittingSnap.data === true} onClick={submitPractice} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('quiz-practice-generate')}</Button>
                                     )}
                                 />
                             </DialogActions>
-                        </Dialog>
+                        </AppDialog>
                     );
                 }}
             />
@@ -202,8 +203,7 @@ export default function Tests() {
                 builder={(reviewSnap) => {
                     const review: QuizStudentAttemptReport | null = reviewSnap.data;
                     return (
-                        <Dialog open={review != null} onClose={() => bloc.closeAnswerReview()} maxWidth="sm" fullWidth>
-                            <DialogTitle>{review?.testName}</DialogTitle>
+                        <AppDialog open={review != null} onClose={() => bloc.closeAnswerReview()} maxWidth="sm" title={review?.testName} icon={FactCheckOutlined}>
                             <DialogContent>
                                 {review && (
                                     <Stack spacing={2}>
@@ -315,9 +315,9 @@ export default function Tests() {
                                 )}
                             </DialogContent>
                             <DialogActions>
-                                <Button onClick={() => bloc.closeAnswerReview()}>{t('close')}</Button>
+                                <Button onClick={() => bloc.closeAnswerReview()} variant="contained" color="primary" startIcon={<CloseOutlined />} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('close')}</Button>
                             </DialogActions>
-                        </Dialog>
+                        </AppDialog>
                     );
                 }}
             />

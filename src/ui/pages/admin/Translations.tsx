@@ -3,8 +3,6 @@ import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import TextField from "@mui/material/TextField";
@@ -17,7 +15,11 @@ import AddOutlined from "@mui/icons-material/AddOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import EditOutlined from "@mui/icons-material/EditOutlined";
 import SearchOutlined from "@mui/icons-material/SearchOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
+import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
+import AppDialog from "../../components/dialogs/AppDialog";
+import { DIALOG_CANCEL_BUTTON_SX, DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import { BlocAdminTranslations, ADMIN_TRANSLATION_LANGS } from "../../bloc/BlocAdminTranslations";
 import { QuizAdminTranslationRow } from "../../../api/QuizLanguageApi";
 import UIStream from "../../components/common/UIStream";
@@ -122,22 +124,19 @@ export default function AdminTranslations() {
                             builder={(viewSnap) => {
                                 const view = viewSnap.data ?? { isShow: false };
                                 return (
-                                    <Dialog open={view.isShow === true} onClose={() => bloc.closeForm()} maxWidth="sm" fullWidth>
-                                        <UIStream
-                                            initialData={false}
-                                            stream={bloc.getStream('isEditingKey')}
-                                            builder={(editingSnap) => (
-                                                <DialogTitle>
-                                                    {t(editingSnap.data === true ? 'quiz-admin-translation-edit' : 'quiz-admin-translation-new')}
-                                                </DialogTitle>
-                                            )}
-                                        />
-                                        <DialogContent>
-                                            <Stack spacing={2} sx={{ mt: 1 }}>
-                                                <UIStream
-                                                    initialData={false}
-                                                    stream={bloc.getStream('isEditingKey')}
-                                                    builder={(editingSnap) => (
+                                    <UIStream
+                                        initialData={false}
+                                        stream={bloc.getStream('isEditingKey')}
+                                        builder={(editingSnap) => (
+                                            <AppDialog
+                                                open={view.isShow === true}
+                                                onClose={() => bloc.closeForm()}
+                                                maxWidth="sm"
+                                                title={t(editingSnap.data === true ? 'quiz-admin-translation-edit' : 'quiz-admin-translation-new')}
+                                                icon={editingSnap.data === true ? EditOutlined : AddOutlined}
+                                            >
+                                                <DialogContent>
+                                                    <Stack spacing={2} sx={{ mt: 1 }}>
                                                         <TextField
                                                             label={t('quiz-admin-translation-key')}
                                                             defaultValue={bloc.getField('req')?.langKey ?? ''}
@@ -146,35 +145,35 @@ export default function AdminTranslations() {
                                                             autoFocus={editingSnap.data !== true}
                                                             fullWidth
                                                         />
-                                                    )}
-                                                />
-                                                {ADMIN_TRANSLATION_LANGS.map((lang) => (
-                                                    <TextField
-                                                        key={lang}
-                                                        label={lang.toUpperCase()}
-                                                        defaultValue={bloc.getField('req')?.values?.[lang] ?? ''}
-                                                        onChange={(e) => bloc.setValue(lang, e.target.value)}
-                                                        multiline
-                                                        minRows={1}
-                                                        maxRows={4}
-                                                        fullWidth
+                                                        {ADMIN_TRANSLATION_LANGS.map((lang) => (
+                                                            <TextField
+                                                                key={lang}
+                                                                label={lang.toUpperCase()}
+                                                                defaultValue={bloc.getField('req')?.values?.[lang] ?? ''}
+                                                                onChange={(e) => bloc.setValue(lang, e.target.value)}
+                                                                multiline
+                                                                minRows={1}
+                                                                maxRows={4}
+                                                                fullWidth
+                                                            />
+                                                        ))}
+                                                    </Stack>
+                                                </DialogContent>
+                                                <DialogActions>
+                                                    <Button onClick={() => bloc.closeForm()} variant="contained" startIcon={<CloseOutlined />} sx={DIALOG_CANCEL_BUTTON_SX}>{t('cancel')}</Button>
+                                                    <UIStream
+                                                        initialData={false}
+                                                        stream={bloc.getStream('submitting')}
+                                                        builder={(submittingSnap) => (
+                                                            <Button variant="contained" color="primary" startIcon={<CheckOutlined />} disabled={submittingSnap.data === true} onClick={save} sx={DIALOG_PRIMARY_BUTTON_SX}>
+                                                                {t('save')}
+                                                            </Button>
+                                                        )}
                                                     />
-                                                ))}
-                                            </Stack>
-                                        </DialogContent>
-                                        <DialogActions>
-                                            <Button onClick={() => bloc.closeForm()}>{t('cancel')}</Button>
-                                            <UIStream
-                                                initialData={false}
-                                                stream={bloc.getStream('submitting')}
-                                                builder={(submittingSnap) => (
-                                                    <Button variant="contained" disabled={submittingSnap.data === true} onClick={save}>
-                                                        {t('save')}
-                                                    </Button>
-                                                )}
-                                            />
-                                        </DialogActions>
-                                    </Dialog>
+                                                </DialogActions>
+                                            </AppDialog>
+                                        )}
+                                    />
                                 );
                             }}
                         />

@@ -12,18 +12,19 @@ import RadioGroup from "@mui/material/RadioGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
 import CircularProgress from "@mui/material/CircularProgress";
 import TextField from "@mui/material/TextField";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import VolumeUpOutlined from "@mui/icons-material/VolumeUpOutlined";
 import VideocamOutlined from "@mui/icons-material/VideocamOutlined";
 import MicOutlined from "@mui/icons-material/MicOutlined";
 import StopCircleOutlined from "@mui/icons-material/StopCircleOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
+import AppDialog from "../../components/dialogs/AppDialog";
+import { DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import { BlocStudentAttempt, QuizStudentQuestion } from "../../bloc/BlocStudentAttempt";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
@@ -394,14 +395,19 @@ export default function TakeTest() {
                             builder={(viewSnap) => {
                                 const view = viewSnap.data ?? { isShow: false };
                                 return (
-                                    <Dialog open={view.isShow === true} onClose={() => bloc.closeLessonDialog()} maxWidth="sm" fullWidth>
-                                        <UIStream
-                                            initialData={null}
-                                            stream={bloc.getStream('lessonData')}
-                                            builder={(lessonSnap) => (
-                                                <DialogTitle>{lessonSnap.data?.name ?? t('quiz-view-lesson')}</DialogTitle>
-                                            )}
-                                        />
+                                    <AppDialog
+                                        open={view.isShow === true}
+                                        onClose={() => bloc.closeLessonDialog()}
+                                        maxWidth="sm"
+                                        icon={MenuBookOutlined}
+                                        title={
+                                            <UIStream
+                                                initialData={null}
+                                                stream={bloc.getStream('lessonData')}
+                                                builder={(lessonSnap) => <>{lessonSnap.data?.name ?? t('quiz-view-lesson')}</>}
+                                            />
+                                        }
+                                    >
                                         <DialogContent>
                                             <UIStream
                                                 initialData={false}
@@ -469,9 +475,9 @@ export default function TakeTest() {
                                             />
                                         </DialogContent>
                                         <DialogActions>
-                                            <Button onClick={() => bloc.closeLessonDialog()}>{t('close')}</Button>
+                                            <Button onClick={() => bloc.closeLessonDialog()} variant="contained" color="primary" startIcon={<CloseOutlined />} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('close')}</Button>
                                         </DialogActions>
-                                    </Dialog>
+                                    </AppDialog>
                                 );
                             }}
                         />
