@@ -21,6 +21,17 @@ export interface QuizLessonUpdateRequest {
     textbookPage?: number;
 }
 
+// Khớp LessonAttachmentResponse.java - 1 file bài giảng (PDF/PowerPoint) đính kèm 1 Lesson. Nhiều
+// Lesson có thể có nhiều file cùng lúc (2026-09-06, "cho phep upload len 1 hoac nhieu file bai
+// giang co the la powerpoint hoac PDF").
+export interface QuizLessonAttachment {
+    id: number;
+    originalName: string;
+    fileSize: number;
+    contentType: string;
+    createdAt: string;
+}
+
 export class QuizLessonApi {
     static list(subjectId: number) {
         return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/lessons`, { params: { subjectId } });
@@ -61,6 +72,20 @@ export class QuizLessonApi {
     static downloadImportTemplate(format: 'xlsx' | 'csv') {
         return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/lessons/import-template`, { params: { format }, responseType: 'blob' });
     }
+
+    // File bài giảng đính kèm (2026-09-06) - danh sách, xoá 1 file, tải 1 file về dạng blob (cùng
+    // lý do responseType 'blob' như getImage ở trên - endpoint cần header Authorization).
+    static listAttachments(lessonId: number) {
+        return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/lessons/${lessonId}/attachments`);
+    }
+
+    static removeAttachment(lessonId: number, attachmentId: number) {
+        return QuizRequestBase.delete(`${QUIZ_PARENT_PREFIX}/lessons/${lessonId}/attachments/${attachmentId}`);
+    }
+
+    static getAttachmentFile(lessonId: number, attachmentId: number) {
+        return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/lessons/${lessonId}/attachments/${attachmentId}/file`, { responseType: 'blob' });
+    }
 }
 
 // Upload ảnh minh hoạ (multipart/form-data) - gọi thẳng QUIZ_API thay vì qua QuizRequestBase/
@@ -73,6 +98,18 @@ export async function quizUploadLessonImage(lessonId: number, file: File) {
     const formData = new FormData();
     formData.append('file', file);
     const res = await QUIZ_API.post(`${QUIZ_PARENT_PREFIX}/lessons/${lessonId}/image`, formData, {
+        headers: { 'Content-Type': undefined }
+    });
+    return res.data;
+}
+
+// Upload 1 file bài giảng (PDF/PowerPoint) cho 1 Lesson (2026-09-06) - không thay thế file cũ,
+// 1 Lesson có thể có nhiều file. Cùng bug FormData->JSON + cách sửa hệt quizUploadLessonImage ở
+// trên (xem comment đầy đủ ở đó).
+export async function quizUploadLessonAttachment(lessonId: number, file: File) {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await QUIZ_API.post(`${QUIZ_PARENT_PREFIX}/lessons/${lessonId}/attachments`, formData, {
         headers: { 'Content-Type': undefined }
     });
     return res.data;

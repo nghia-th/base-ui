@@ -1,6 +1,7 @@
 import { IBlocUI } from "../../base/IBlocUI";
 import { QuizStudentAttemptApi, quizUploadSpeakingAnswer } from "../../api/QuizStudentAttemptApi";
 import { QuizStudentLessonApi } from "../../api/QuizStudentLessonApi";
+import { QuizLessonAttachment } from "../../api/QuizLessonApi";
 
 // Khớp StudentChoiceResponse.java - CỐ Ý không có field "correct" (khác ChoiceResponse.java bên
 // Phụ huynh, task 4) - học sinh không được biết đáp án đúng trước khi nộp bài.
@@ -165,6 +166,7 @@ export class BlocStudentAttempt extends IBlocUI {
         this.setStream('lesson_dialog_view', { isShow: true })
         this.setStream('lessonLoading', true)
         this.setStream('lessonData', null)
+        this.setStream('lessonAttachments', null)
         this.loadLesson(lessonId, (lesson) => {
             this.setStream('lessonLoading', false)
             this.setStream('lessonData', lesson)
@@ -180,14 +182,48 @@ export class BlocStudentAttempt extends IBlocUI {
             this.setStream('lesson_dialog_view', { isShow: false })
             onError(error)
         })
+        // File bai giang dinh kem (2026-09-06) - tai song song voi noi dung Lesson, khong phu
+        // thuoc lesson.hasImage nhu anh minh hoa o tren.
+        this.loadLessonAttachments(lessonId)
     }
 
     closeLessonDialog() {
         this.setStream('lesson_dialog_view', { isShow: false })
         this.setStream('lessonData', null)
+        this.setStream('lessonAttachments', null)
         const old = this.getField('lessonImageUrl')
         if (old) URL.revokeObjectURL(old)
         this.setStream('lessonImageUrl', null)
+    }
+
+    loadLessonAttachments(lessonId: number) {
+        this.apiRequest(QuizStudentLessonApi.listAttachments(lessonId), (res) => {
+            this.setStream('lessonAttachments', res.data as QuizLessonAttachment[])
+        })
+    }
+
+    // Opens the file in a new tab instead of forcing a save-to-disk - same reasoning as
+    // BlocAdminLibrary.view.
+    viewLessonAttachmentFile(lessonId: number, attachmentId: number, onError: (error: any) => void) {
+        this.apiRequest(QuizStudentLessonApi.getAttachmentFile(lessonId, attachmentId), (res: any) => {
+            const blob: Blob = res.data
+            window.open(URL.createObjectURL(blob), '_blank')
+        }, { onError })
+    }
+
+    downloadLessonAttachmentFile(lessonId: number, attachmentId: number, defaultFilename: string, onError: (error: any) => void) {
+        this.apiRequest(QuizStudentLessonApi.getAttachmentFile(lessonId, attachmentId), (res: any) => {
+            const blob: Blob = res.data
+            const disposition: string | undefined = res.disposition
+            const match = disposition?.match(/filename="?([^"]+)"?/)
+            const filename = match?.[1] ?? defaultFilename
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = filename
+            a.click()
+            URL.revokeObjectURL(url)
+        }, { onError })
     }
 
     // Nghe audio câu hỏi (2026-09-01, "Câu hỏi dạng âm thanh") - cache theo questionId trong 1 map

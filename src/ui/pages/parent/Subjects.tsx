@@ -25,6 +25,7 @@ import EditOutlined from "@mui/icons-material/EditOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import DeleteSweepOutlined from "@mui/icons-material/DeleteSweepOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
+import DescriptionOutlined from "@mui/icons-material/DescriptionOutlined";
 import ImageOutlined from "@mui/icons-material/ImageOutlined";
 import CircularProgress from "@mui/material/CircularProgress";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
@@ -37,6 +38,7 @@ import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import AppDialog from "../../components/dialogs/AppDialog";
 import { DIALOG_CANCEL_BUTTON_SX, DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import SubjectLibraryDialog from "../../components/common/SubjectLibraryDialog";
+import LessonAttachmentsDialog from "../../components/common/LessonAttachmentsDialog";
 import { BlocParentSubjects, QuizSubject, QuizLesson, QuizClassroomLite, QuizLessonImportResult, QuizSubjectImportResult } from "../../bloc/BlocParentSubjects";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
@@ -120,6 +122,11 @@ export default function Subjects() {
     // "which subject is the dialog currently for" is pure UI state local to this page.
     const [libraryDialogSubject, setLibraryDialogSubject] = useState<QuizSubject | null>(null);
 
+    // Lesson nao dang mo dialog "File bai giang" (2026-09-06) - cung plain local state nhu
+    // libraryDialogSubject o tren, cung ly do (LessonAttachmentsDialog.tsx dung chung bloc voi
+    // trang nay, "dialog dang mo cho Lesson nao" la UI state rieng cua trang).
+    const [attachmentsDialogLesson, setAttachmentsDialogLesson] = useState<QuizLesson | null>(null);
+
     const downloadLessonTemplate = (format: 'xlsx' | 'csv') => bloc.downloadLessonImportTemplate(format, showError);
 
     const onLessonImportFileChosen = (subjectId: number) => (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -179,8 +186,9 @@ export default function Subjects() {
                 : null
         },
         {
-            field: 'actions', type: 'actions', headerName: t('actions') as string, width: 100,
+            field: 'actions', type: 'actions', headerName: t('actions') as string, width: 130,
             getActions: (params) => [
+                <GridActionsCellItem icon={<DescriptionOutlined fontSize="small" />} label="quiz-lesson-attachments" onClick={() => setAttachmentsDialogLesson(params.row)} />,
                 <GridActionsCellItem icon={<EditOutlined fontSize="small" />} label="edit" onClick={() => bloc.openEditLesson(params.row)} />,
                 <GridActionsCellItem icon={<DeleteOutlined fontSize="small" />} label="delete" onClick={() => askRemoveLesson(params.row, subjectId)} />
             ]
@@ -744,6 +752,13 @@ export default function Subjects() {
                         subjectName={libraryDialogSubject?.name ?? ''}
                         open={libraryDialogSubject != null}
                         onClose={() => setLibraryDialogSubject(null)}
+                    />
+                    <LessonAttachmentsDialog
+                        bloc={bloc}
+                        lessonId={attachmentsDialogLesson?.id ?? null}
+                        lessonName={attachmentsDialogLesson?.name ?? ''}
+                        open={attachmentsDialogLesson != null}
+                        onClose={() => setAttachmentsDialogLesson(null)}
                     />
                     </>
                 );

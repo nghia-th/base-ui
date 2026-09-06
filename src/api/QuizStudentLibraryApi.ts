@@ -8,8 +8,9 @@ export class QuizStudentLibraryApi {
         return QuizRequestBase.get(`${QUIZ_STUDENT_PREFIX}/subjects/${subjectId}/library-links`);
     }
 
-    // responseType 'blob' - same reasoning as QuizStudentLessonApi.getImage.
-    static downloadFile(subjectId: number, documentId: number) {
-        return QuizRequestBase.get(`${QUIZ_STUDENT_PREFIX}/subjects/${subjectId}/library-links/${documentId}/file`, { responseType: 'blob' });
+    // responseType 'blob' - same reasoning as QuizStudentLessonApi.getImage. fileId (2026-09-06
+    // revision) - a document can now hold more than one file.
+    static downloadFile(subjectId: number, documentId: number, fileId: number) {
+        return QuizRequestBase.get(`${QUIZ_STUDENT_PREFIX}/subjects/${subjectId}/library-links/${documentId}/files/${fileId}`, { responseType: 'blob' });
     }
 }

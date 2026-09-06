@@ -1,6 +1,6 @@
 import { IBlocUI } from "../../base/IBlocUI";
 import { QuizSubjectApi, QuizSubjectRequest, quizImportSubjects } from "../../api/QuizSubjectApi";
-import { QuizLessonApi, QuizLessonCreateRequest, QuizLessonUpdateRequest, quizUploadLessonImage, quizImportLessons } from "../../api/QuizLessonApi";
+import { QuizLessonApi, QuizLessonCreateRequest, QuizLessonUpdateRequest, QuizLessonAttachment, quizUploadLessonImage, quizUploadLessonAttachment, quizImportLessons } from "../../api/QuizLessonApi";
 import { QuizClassroomApi } from "../../api/QuizClassroomApi";
 import { QuizParentLibraryApi } from "../../api/QuizParentLibraryApi";
 import { QuizParentCurriculumApi } from "../../api/QuizParentCurriculumApi";
@@ -524,8 +524,9 @@ export class BlocParentSubjects extends IBlocUI {
     // res (the apiRequest onData param, from CallApi.ts's blob branch) has shape {data: Blob,
     // disposition: string}, same as BlocParentQuestions.downloadTemplate - see that method's
     // comment for why.
-    downloadLibraryFile(subjectId: number, documentId: number, defaultFilename: string, onError: (error: any) => void) {
-        this.apiRequest(QuizParentLibraryApi.downloadFile(subjectId, documentId), (res: any) => {
+    // fileId (2026-09-06 revision) - a linked document can now hold more than one file.
+    downloadLibraryFile(subjectId: number, documentId: number, fileId: number, defaultFilename: string, onError: (error: any) => void) {
+        this.apiRequest(QuizParentLibraryApi.downloadFile(subjectId, documentId, fileId), (res: any) => {
             const blob: Blob = res.data
             const disposition: string | undefined = res.disposition
             const match = disposition?.match(/filename="?([^"]+)"?/)
@@ -539,12 +540,74 @@ export class BlocParentSubjects extends IBlocUI {
         }, { onError })
     }
 
-    // Opens the PDF in a new tab (native PDF viewer) instead of forcing a save-to-disk - same
+    // Opens the file in a new tab (native viewer) instead of forcing a save-to-disk - same
     // endpoint as downloadLibraryFile above, see BlocAdminLibrary.view's comment for why the
     // frontend (not the backend's Content-Disposition header) is what decides view vs download.
     // Object URL intentionally left un-revoked, same reasoning as BlocAdminLibrary.view.
-    viewLibraryFile(subjectId: number, documentId: number, onError: (error: any) => void) {
-        this.apiRequest(QuizParentLibraryApi.downloadFile(subjectId, documentId), (res: any) => {
+    viewLibraryFile(subjectId: number, documentId: number, fileId: number, onError: (error: any) => void) {
+        this.apiRequest(QuizParentLibraryApi.downloadFile(subjectId, documentId, fileId), (res: any) => {
+            const blob: Blob = res.data
+            window.open(URL.createObjectURL(blob), '_blank')
+        }, { onError })
+    }
+
+    // ================= Lesson attachments (2026-09-06, "phan bai cua muon hoc cho phep upload
+    // len 1 hoac nhieu file bai giang co the la powerpoint hoac PDF") =================
+    // Cung 1 "content" bloc voi phan Subject/Lesson master-detail o tren - LessonAttachmentsDialog.
+    // tsx nhan bloc nay lam prop tu Subjects.tsx (giong SubjectLibraryDialog.tsx), stream
+    // 'lesson_attachments' doc lap voi 'subjects'/'lessons'/'library_*' o tren.
+    loadLessonAttachments(lessonId: number) {
+        this.apiRequest(QuizLessonApi.listAttachments(lessonId), (res) => {
+            this.setStream('lesson_attachments', res.data as QuizLessonAttachment[])
+        })
+    }
+
+    // Khong qua apiRequest (khong phai QuizRequestBase call) vi quizUploadLessonAttachment goi
+    // thang QUIZ_API (xem comment trong QuizLessonApi.ts) - tu check res.code===100 giong het
+    // uploadLessonImage o tren.
+    async addLessonAttachment(lessonId: number, file: File, onComplete: () => void, onError: (error: any) => void) {
+        this.setStream('lessonAttachmentUploading', true)
+        try {
+            const res = await quizUploadLessonAttachment(lessonId, file)
+            this.setStream('lessonAttachmentUploading', false)
+            if (res.code === 100) {
+                onComplete()
+                this.loadLessonAttachments(lessonId)
+            } else {
+                onError(res)
+            }
+        } catch (e) {
+            this.setStream('lessonAttachmentUploading', false)
+            onError(e)
+        }
+    }
+
+    removeLessonAttachment(lessonId: number, attachmentId: number, onComplete: () => void, onError: (error: any) => void) {
+        this.apiRequest(QuizLessonApi.removeAttachment(lessonId, attachmentId), () => {
+            onComplete()
+            this.loadLessonAttachments(lessonId)
+        }, { onError })
+    }
+
+    downloadLessonAttachmentFile(lessonId: number, attachmentId: number, defaultFilename: string, onError: (error: any) => void) {
+        this.apiRequest(QuizLessonApi.getAttachmentFile(lessonId, attachmentId), (res: any) => {
+            const blob: Blob = res.data
+            const disposition: string | undefined = res.disposition
+            const match = disposition?.match(/filename="?([^"]+)"?/)
+            const filename = match?.[1] ?? defaultFilename
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = filename
+            a.click()
+            URL.revokeObjectURL(url)
+        }, { onError })
+    }
+
+    // Opens the file in a new tab instead of forcing a save-to-disk - same endpoint as
+    // downloadLessonAttachmentFile above, same reasoning as viewLibraryFile.
+    viewLessonAttachmentFile(lessonId: number, attachmentId: number, onError: (error: any) => void) {
+        this.apiRequest(QuizLessonApi.getAttachmentFile(lessonId, attachmentId), (res: any) => {
             const blob: Blob = res.data
             window.open(URL.createObjectURL(blob), '_blank')
         }, { onError })

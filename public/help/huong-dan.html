@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sổ Tay Hiểu Bài</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+  :root{
+    --ink:#1c2541; --ink-soft:#4d5678; --muted:#6b7390;
+    --paper:#f4f6fb; --surface:#ffffff; --surface-2:#eef1fb;
+    --line:#dde2f2; --line-soft:#e8ebf7;
+    --accent:#3652d9; --accent-ink:#2440c4; --accent-soft:#e8ecfd;
+    --accent2:#dd7a2c; --accent2-ink:#c2650f; --accent2-soft:#fcecdd;
+    --success:#1f8f5f; --success-soft:#e3f5ec;
+    --warn:#c23b1f; --warn-soft:#fbe7e1;
+    --radius:16px; --radius-sm:10px;
+    --shadow:0 1px 2px rgba(28,37,65,.05), 0 8px 24px -12px rgba(28,37,65,.15);
+  }
+  :root:not([data-theme="light"]){
+    @media (prefers-color-scheme: dark){
+      --ink:#e9ecfb; --ink-soft:#c1c7e6; --muted:#909ac2;
+      --paper:#0d1020; --surface:#151a30; --surface-2:#1b2140;
+      --line:#2a3157; --line-soft:#232a4d;
+      --accent:#8fa0ff; --accent-ink:#c1cbff; --accent-soft:#212a52;
+      --accent2:#f2a05e; --accent2-ink:#ffc796; --accent2-soft:#3a2a1a;
+      --success:#5cd9a0; --success-soft:#123527;
+      --warn:#ff8f70; --warn-soft:#3a1a14;
+      --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+    }
+  }
+  :root[data-theme="dark"]{
+    --ink:#e9ecfb; --ink-soft:#c1c7e6; --muted:#909ac2;
+    --paper:#0d1020; --surface:#151a30; --surface-2:#1b2140;
+    --line:#2a3157; --line-soft:#232a4d;
+    --accent:#8fa0ff; --accent-ink:#c1cbff; --accent-soft:#212a52;
+    --accent2:#f2a05e; --accent2-ink:#ffc796; --accent2-soft:#3a2a1a;
+    --success:#5cd9a0; --success-soft:#123527;
+    --warn:#ff8f70; --warn-soft:#3a1a14;
+    --shadow:0 1px 2px rgba(0,0,0,.3), 0 8px 24px -12px rgba(0,0,0,.5);
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:'Be Vietnam Pro', 'Segoe UI', sans-serif;
+    line-height:1.6; font-size:15.5px;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{ text-wrap:balance; font-weight:800; margin:0; }
+  p{ margin:0 0 .9em; max-width:68ch; }
+  code, .kbd{ font-family:'JetBrains Mono', monospace; font-size:.86em; }
+  .kbd{
+    background:var(--surface-2); border:1px solid var(--line);
+    border-radius:6px; padding:.1em .5em; color:var(--ink-soft); white-space:nowrap;
+  }
+  a{ color:var(--accent); }
+  ::selection{ background:var(--accent-soft); }
+
+  /* ---------- Header ---------- */
+  .topbar{
+    position:sticky; top:0; z-index:40;
+    background:color-mix(in srgb, var(--paper) 88%, transparent);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--line);
+  }
+  .topbar-inner{
+    max-width:1180px; margin:0 auto; padding:14px 20px;
+    display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+  }
+  .brand{ display:flex; align-items:center; gap:10px; margin-right:auto; }
+  .brand-mark{
+    width:34px; height:34px; border-radius:9px; flex:none;
+    background:linear-gradient(155deg, var(--accent), var(--accent2));
+    display:flex; align-items:center; justify-content:center;
+    color:#fff; font-weight:800; font-size:15px;
+    box-shadow:var(--shadow);
+  }
+  .brand-text{ display:flex; flex-direction:column; line-height:1.15; }
+  .brand-text b{ font-size:15px; font-weight:800; }
+  .brand-text span{ font-size:11.5px; color:var(--muted); letter-spacing:.02em; }
+
+  .role-switch{
+    display:flex; gap:4px; background:var(--surface-2);
+    border:1px solid var(--line); border-radius:999px; padding:4px;
+  }
+  .role-btn{
+    appearance:none; border:none; background:transparent; cursor:pointer;
+    font-family:inherit; font-weight:700; font-size:13.5px;
+    padding:8px 16px; border-radius:999px; color:var(--muted);
+    display:flex; align-items:center; gap:7px; transition:background .15s, color .15s;
+  }
+  .role-btn .dot{ width:7px; height:7px; border-radius:50%; background:currentColor; opacity:.55; }
+  .role-btn[aria-pressed="true"]{ background:var(--surface); color:var(--ink); box-shadow:var(--shadow); }
+  .role-btn[aria-pressed="true"].for-parent{ color:var(--accent-ink); }
+  .role-btn[aria-pressed="true"].for-student{ color:var(--accent2-ink); }
+
+  .nav-toggle{
+    display:none; appearance:none; border:1px solid var(--line); background:var(--surface);
+    border-radius:10px; padding:8px 12px; font-family:inherit; font-weight:600; font-size:13px;
+    color:var(--ink); cursor:pointer;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{ max-width:1180px; margin:0 auto; padding:34px 20px 6px; }
+  .hero-eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-size:12px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+    padding:5px 12px; border-radius:999px; margin-bottom:14px;
+  }
+  [data-role-panel="parent"] .hero-eyebrow{ background:var(--accent-soft); color:var(--accent-ink); }
+  [data-role-panel="student"] .hero-eyebrow{ background:var(--accent2-soft); color:var(--accent2-ink); }
+  .hero h1{ font-size:clamp(26px,4vw,38px); margin-bottom:10px; }
+  .hero p.lead{ font-size:16px; color:var(--ink-soft); max-width:62ch; }
+  .hero-meta{ display:flex; gap:18px; flex-wrap:wrap; margin-top:16px; font-size:13px; color:var(--muted); }
+  .hero-meta span{ display:flex; align-items:center; gap:6px; }
+
+  /* ---------- Layout ---------- */
+  .layout{
+    max-width:1180px; margin:0 auto; padding:22px 20px 80px;
+    display:grid; grid-template-columns:230px 1fr; gap:34px; align-items:start;
+  }
+  .toc{
+    position:sticky; top:74px;
+    max-height:calc(100vh - 96px); overflow-y:auto;
+    display:flex; flex-direction:column; gap:2px;
+    padding-right:6px;
+  }
+  .toc-label{ font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin:4px 0 8px 12px; }
+  .toc a{
+    text-decoration:none; color:var(--ink-soft); font-size:13.8px; font-weight:600;
+    padding:8px 12px; border-radius:9px; border-left:2px solid transparent;
+    display:block; transition:background .12s, color .12s;
+  }
+  .toc a:hover{ background:var(--surface-2); color:var(--ink); }
+  .toc a.active{
+    background:var(--surface); box-shadow:var(--shadow); color:var(--ink);
+  }
+  [data-role-panel="parent"] .toc a.active{ border-left-color:var(--accent); color:var(--accent-ink); }
+  [data-role-panel="student"] .toc a.active{ border-left-color:var(--accent2); color:var(--accent2-ink); }
+
+  main.content{ min-width:0; display:flex; flex-direction:column; gap:44px; }
+
+  section.feature{ scroll-margin-top:70px; }
+  .feature-head{ display:flex; align-items:flex-start; gap:14px; margin-bottom:16px; }
+  .feature-icon{
+    flex:none; width:40px; height:40px; border-radius:11px;
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px; box-shadow:var(--shadow);
+  }
+  [data-role-panel="parent"] .feature-icon{ background:var(--accent-soft); color:var(--accent-ink); }
+  [data-role-panel="student"] .feature-icon{ background:var(--accent2-soft); color:var(--accent2-ink); }
+  .feature-head h2{ font-size:21px; margin-bottom:3px; }
+  .feature-head .sub{ color:var(--muted); font-size:13.5px; }
+
+  .card{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius);
+    padding:20px 22px; box-shadow:var(--shadow);
+  }
+  .card + .card{ margin-top:14px; }
+  .card h3{ font-size:15.5px; margin-bottom:8px; }
+  .card h3 .path{ font-weight:600; color:var(--muted); font-size:12.5px; margin-left:8px; }
+
+  .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  @media (max-width:720px){ .grid-2{ grid-template-columns:1fr; } }
+
+  ol.steps{ margin:10px 0 0; padding:0; list-style:none; counter-reset:step; display:flex; flex-direction:column; gap:10px; }
+  ol.steps li{
+    counter-increment:step; display:flex; gap:12px; align-items:flex-start;
+    font-size:14.3px; color:var(--ink-soft);
+  }
+  ol.steps li::before{
+    content:counter(step); flex:none; width:22px; height:22px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    font-size:12px; font-weight:800; margin-top:1px;
+    background:var(--surface-2); color:var(--ink);
+  }
+  [data-role-panel="parent"] ol.steps li::before{ background:var(--accent-soft); color:var(--accent-ink); }
+  [data-role-panel="student"] ol.steps li::before{ background:var(--accent2-soft); color:var(--accent2-ink); }
+  ol.steps b{ color:var(--ink); }
+
+  ul.plain{ margin:8px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:7px; }
+  ul.plain li{ padding-left:18px; position:relative; font-size:14.3px; color:var(--ink-soft); }
+  ul.plain li::before{ content:"–"; position:absolute; left:0; color:var(--muted); }
+
+  .callout{
+    border-radius:var(--radius-sm); padding:13px 16px; font-size:13.7px;
+    display:flex; gap:10px; align-items:flex-start; margin-top:12px;
+  }
+  .callout .ic{ flex:none; font-size:15px; line-height:1.4; }
+  .callout.tip{ background:var(--accent-soft); color:var(--accent-ink); }
+  .callout.warn{ background:var(--warn-soft); color:var(--warn); }
+  .callout.note{ background:var(--surface-2); color:var(--ink-soft); }
+  .callout b{ color:inherit; }
+
+  .chips{ display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+  .chip{
+    font-size:12px; font-weight:700; padding:4px 11px; border-radius:999px;
+    background:var(--surface-2); color:var(--ink-soft); border:1px solid var(--line);
+  }
+
+  table.mini{ width:100%; border-collapse:collapse; margin-top:10px; font-size:13.6px; }
+  table.mini th, table.mini td{ text-align:left; padding:7px 10px; border-bottom:1px solid var(--line-soft); }
+  table.mini th{ color:var(--muted); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.03em; }
+  .scroller{ overflow-x:auto; }
+
+  /* index cards */
+  .index-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-top:18px; }
+  @media (max-width:860px){ .index-grid{ grid-template-columns:repeat(2,1fr); } }
+  @media (max-width:560px){ .index-grid{ grid-template-columns:1fr; } }
+  .index-card{
+    background:var(--surface); border:1px solid var(--line); border-radius:var(--radius-sm);
+    padding:14px 16px; text-decoration:none; color:var(--ink); display:flex; gap:11px; align-items:flex-start;
+    transition:transform .12s, box-shadow .12s; box-shadow:var(--shadow);
+  }
+  .index-card:hover{ transform:translateY(-2px); }
+  .index-card .n{ font-size:17px; flex:none; }
+  .index-card b{ font-size:13.6px; display:block; margin-bottom:2px; }
+  .index-card span{ font-size:12px; color:var(--muted); }
+
+  footer.page-footer{
+    max-width:1180px; margin:0 auto; padding:26px 20px 46px; color:var(--muted); font-size:12.5px;
+    border-top:1px solid var(--line);
+  }
+
+  [hidden]{ display:none !important; }
+
+  @media (max-width:860px){
+    .layout{ grid-template-columns:1fr; }
+    .nav-toggle{ display:inline-flex; align-items:center; gap:6px; }
+    .toc{
+      position:fixed; top:0; right:0; bottom:0; width:82%; max-width:320px;
+      background:var(--surface); border-left:1px solid var(--line);
+      padding:70px 14px 20px; z-index:60; transform:translateX(100%);
+      transition:transform .2s ease; box-shadow:-12px 0 30px rgba(0,0,0,.15);
+    }
+    .toc.open{ transform:translateX(0); }
+    .toc-backdrop{
+      position:fixed; inset:0; background:rgba(10,14,30,.4); z-index:50; opacity:0;
+      pointer-events:none; transition:opacity .2s ease;
+    }
+    .toc-backdrop.open{ opacity:1; pointer-events:auto; }
+  }
+</style>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark">HB</div>
+      <div class="brand-text"><b>Hiểu Bài</b><span>Sổ tay sử dụng</span></div>
+    </div>
+    <div class="role-switch" role="tablist" aria-label="Chọn vai trò">
+      <button class="role-btn for-parent" role="tab" data-role="parent" aria-pressed="true"><span class="dot"></span>Phụ huynh</button>
+      <button class="role-btn for-student" role="tab" data-role="student" aria-pressed="false"><span class="dot"></span>Học sinh</button>
+    </div>
+    <button class="nav-toggle" id="navToggle" aria-expanded="false">☰ Mục lục</button>
+  </div>
+</div>
+
+<div class="toc-backdrop" id="tocBackdrop"></div>
+
+<!-- ======================= PARENT PANEL ======================= -->
+<div data-role-panel="parent">
+
+  <div class="hero">
+    <span class="hero-eyebrow">Dành cho phụ huynh</span>
+    <h1>Quản lý việc học của con, gọn trong một chỗ</h1>
+    <p class="lead">Hiểu Bài giúp anh/chị tạo lớp học, biên soạn bài học và ngân hàng câu hỏi, giao đề kiểm tra, xếp thời khoá biểu và theo dõi tiến độ học tập của từng con — không cần rời khỏi ứng dụng.</p>
+    <div class="hero-meta">
+      <span>🔗 Địa chỉ đăng nhập phụ huynh: <span class="kbd">/parent-login</span></span>
+      <span>📅 Cập nhật lần cuối: tháng 9/2026</span>
+    </div>
+  </div>
+
+  <div class="layout">
+    <nav class="toc" id="tocParent" aria-label="Mục lục phụ huynh">
+      <div class="toc-label">Nội dung</div>
+      <a href="#p-login">Đăng nhập &amp; tài khoản</a>
+      <a href="#p-classroom">Lớp học</a>
+      <a href="#p-student">Học sinh (con)</a>
+      <a href="#p-subject">Môn học</a>
+      <a href="#p-lesson">Bài học</a>
+      <a href="#p-question">Ngân hàng câu hỏi</a>
+      <a href="#p-test">Đề kiểm tra &amp; đề ôn tập</a>
+      <a href="#p-timetable">Thời khoá biểu</a>
+      <a href="#p-report">Báo cáo &amp; theo dõi</a>
+      <a href="#p-library">Thư viện sách giáo khoa</a>
+      <a href="#p-delete">Xoá dữ liệu</a>
+    </nav>
+
+    <main class="content">
+
+      <section class="feature" id="p-login">
+        <div class="feature-head">
+          <div class="feature-icon">🔑</div>
+          <div><h2>Đăng nhập &amp; tài khoản</h2><div class="sub">Vào ứng dụng và giữ tài khoản an toàn</div></div>
+        </div>
+
+        <div class="card">
+          <h3>Đăng ký &amp; đăng nhập</h3>
+          <ol class="steps">
+            <li>Mở trang đăng nhập chung, bấm ô <b>Phụ huynh</b> để sang trang đăng nhập riêng.</li>
+            <li>Người dùng mới bấm <b>Đăng ký</b>: điền họ tên, email, số điện thoại (không bắt buộc), tên đăng nhập (không bắt buộc) và mật khẩu.</li>
+            <li>Từ lần sau, đăng nhập bằng <b>email, tên đăng nhập hoặc số điện thoại</b> — ô nào cũng dùng được, không cần nhớ chính xác đã đăng ký bằng gì.</li>
+          </ol>
+          <div class="callout tip"><span class="ic">💡</span><div>Quên mật khẩu có sẵn đường dẫn <b>Quên mật khẩu</b> ngay trên trang đăng nhập.</div></div>
+        </div>
+
+        <div class="card">
+          <h3>Đổi mật khẩu &amp; đặt tên đăng nhập</h3>
+          <p>Vào biểu tượng người dùng ở góc trên bên phải sau khi đăng nhập:</p>
+          <ul class="plain">
+            <li><b>Đổi mật khẩu</b> — cần nhập mật khẩu hiện tại + mật khẩu mới. Sau khi đổi xong, hệ thống tự đăng xuất để anh/chị đăng nhập lại bằng mật khẩu mới, trên mọi thiết bị.</li>
+            <li><b>Đặt tên đăng nhập</b> — nếu tài khoản tạo trước đây chưa có tên đăng nhập, có thể tự đặt thêm ở đây để lần sau đăng nhập nhanh hơn. Thao tác này không đăng xuất tài khoản.</li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="feature" id="p-classroom">
+        <div class="feature-head">
+          <div class="feature-icon">🏫</div>
+          <div><h2>Lớp học</h2><div class="sub">Nhóm các con học cùng một chương trình</div></div>
+        </div>
+        <div class="card">
+          <p>Lớp học là tầng cao nhất trong 4 tầng dữ liệu của Hiểu Bài — mỗi <b>Học sinh</b> thuộc đúng một Lớp, và Lớp là nơi chứa các <b>Môn học</b>:</p>
+          <svg viewBox="0 0 640 108" role="img" aria-label="Sơ đồ: Lớp học chứa Môn học, Môn học chứa Bài học, Bài học chứa Câu hỏi và Đề kiểm tra" style="width:100%;height:auto;margin-top:6px;font-family:'Be Vietnam Pro',sans-serif">
+            <g font-size="12.5" font-weight="700">
+              <rect x="4" y="30" width="118" height="48" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.3"/>
+              <text x="63" y="59" text-anchor="middle" fill="var(--accent-ink)">Lớp học</text>
+              <rect x="168" y="30" width="118" height="48" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.3"/>
+              <text x="227" y="59" text-anchor="middle" fill="var(--accent-ink)">Môn học</text>
+              <rect x="332" y="30" width="118" height="48" rx="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.3"/>
+              <text x="391" y="59" text-anchor="middle" fill="var(--accent-ink)">Bài học</text>
+              <rect x="496" y="14" width="140" height="34" rx="9" fill="var(--surface-2)" stroke="var(--line)" stroke-width="1.3"/>
+              <text x="566" y="35.5" text-anchor="middle" fill="var(--ink-soft)" font-size="11.5">Câu hỏi</text>
+              <rect x="496" y="60" width="140" height="34" rx="9" fill="var(--surface-2)" stroke="var(--line)" stroke-width="1.3"/>
+              <text x="566" y="81.5" text-anchor="middle" fill="var(--ink-soft)" font-size="11.5">Đề kiểm tra / đề ôn</text>
+            </g>
+            <g stroke="var(--muted)" stroke-width="1.6" fill="none" marker-end="url(#arrHier)">
+              <path d="M122 54 H166"/>
+              <path d="M286 54 H330"/>
+              <path d="M450 54 L494 31"/>
+              <path d="M450 54 L494 77"/>
+            </g>
+            <defs>
+              <marker id="arrHier" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--muted)"/></marker>
+            </defs>
+          </svg>
+          <p style="margin-top:8px;">Vào mục <b>Lớp học</b> trên menu để thêm/sửa/xoá.</p>
+          <div class="callout warn"><span class="ic">⚠️</span><div><b>Xoá một Lớp sẽ xoá theo TOÀN BỘ những gì bên dưới nó</b> — mọi Học sinh (cùng dữ liệu của từng con), Môn học, Bài học, Câu hỏi và Đề kiểm tra/đề ôn thuộc Lớp đó. Xem chi tiết ở mục <a href="#p-delete">Xoá dữ liệu</a> bên dưới.</div></div>
+        </div>
+      </section>
+
+      <section class="feature" id="p-student">
+        <div class="feature-head">
+          <div class="feature-icon">🎒</div>
+          <div><h2>Học sinh (con)</h2><div class="sub">Hồ sơ và tài khoản đăng nhập riêng cho từng con</div></div>
+        </div>
+        <div class="card">
+          <p>Mỗi con có một tài khoản riêng (tên đăng nhập + mật khẩu do phụ huynh đặt lúc tạo) để tự đăng nhập và học. Khi tạo hoặc sửa hồ sơ, chọn đúng Lớp mà con đang theo học.</p>
+          <div class="callout warn">
+            <span class="ic">⚠️</span>
+            <div><b>Xoá một Học sinh sẽ xoá vĩnh viễn toàn bộ dữ liệu của con đó</b> — đề đã giao, điểm/kết quả đã làm, lịch sử báo bài và thời khoá biểu riêng. Hệ thống sẽ hiện hộp thoại cảnh báo đầy đủ trước khi xoá; hành động này không thể hoàn tác.</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="feature" id="p-subject">
+        <div class="feature-head">
+          <div class="feature-icon">📘</div>
+          <div><h2>Môn học</h2><div class="sub">Toán, Tiếng Việt, Tiếng Anh… và cả môn dùng chung nhiều lớp</div></div>
+        </div>
+        <div class="card">
+          <h3>Tạo Môn học</h3>
+          <p>Khi tạo/sửa một Môn, chọn một Lớp cụ thể — hoặc chọn <b>“Dùng chung mọi lớp”</b> ngay trong danh sách chọn Lớp. Môn dùng chung sẽ tự xuất hiện cho <i>mọi</i> Học sinh của anh/chị, bất kể con đang học Lớp nào (ví dụ: một môn năng khiếu như “Lập trình Python” mà các con học chung).</p>
+          <div class="callout tip"><span class="ic">💡</span><div>Khi tạo đề kiểm tra cho một Môn dùng chung, màn hình sẽ cho phép chọn thêm nhiều Học sinh cùng lúc để giao chung một đề, thay vì phải lặp lại thao tác cho từng con.</div></div>
+        </div>
+        <div class="card">
+          <h3>Nhập nhiều Môn học cùng lúc <span class="path">Nhập từ file</span></h3>
+          <ol class="steps">
+            <li>Vào trang <b>Môn học</b>, bấm biểu tượng <b>Nhập từ file</b> cạnh nút thêm mới.</li>
+            <li>Chọn Lớp học sẽ nhận các Môn này, tải file mẫu Excel/CSV về.</li>
+            <li>Điền tên từng Môn học (mỗi dòng một môn), lưu lại rồi chọn đúng file vừa điền để nhập.</li>
+          </ol>
+          <p>Dòng nào trùng tên với một Môn đã có trong Lớp sẽ được báo lỗi riêng và bỏ qua, các dòng còn lại vẫn được tạo bình thường.</p>
+        </div>
+      </section>
+
+      <section class="feature" id="p-lesson">
+        <div class="feature-head">
+          <div class="feature-icon">📖</div>
+          <div><h2>Bài học</h2><div class="sub">Nội dung chi tiết bên trong mỗi Môn học</div></div>
+        </div>
+        <div class="card">
+          <p>Trong trang <b>Môn học</b>, chọn một Môn ở danh sách bên trái để quản lý các Bài học bên phải. Mỗi Bài học có thể có:</p>
+          <ul class="plain">
+            <li><b>Tóm tắt</b> — vài dòng ý chính của bài.</li>
+            <li><b>Nội dung chi tiết</b> — phần giảng giải đầy đủ.</li>
+            <li><b>Số trang sách giáo khoa</b> — để con dễ đối chiếu lại sách in.</li>
+            <li><b>Ảnh minh hoạ</b> — tải lên sau khi đã lưu bài học (bài mới tạo cần lưu trước mới tải ảnh được).</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Nhập nhiều Bài học cùng lúc <span class="path">Nhập từ file</span></h3>
+          <p>Cùng cách làm như nhập Môn học: tải mẫu Excel/CSV (cột Tên bài/Tóm tắt/Nội dung/Trang SGK), điền thông tin rồi nhập lên — áp dụng cho đúng Môn học đang chọn.</p>
+        </div>
+      </section>
+
+      <section class="feature" id="p-question">
+        <div class="feature-head">
+          <div class="feature-icon">❓</div>
+          <div><h2>Ngân hàng câu hỏi</h2><div class="sub">Trắc nghiệm, câu hỏi có âm thanh/video, và câu hỏi tự luận cho con luyện nói</div></div>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Câu hỏi trắc nghiệm</h3>
+            <p>Vào <b>Ngân hàng câu hỏi</b>, chọn Lớp → Môn học → Bài học, rồi thêm câu hỏi với ít nhất 2 lựa chọn, đánh dấu đúng 1 đáp án đúng.</p>
+          </div>
+          <div class="card">
+            <h3>Câu hỏi tự luận / thu âm</h3>
+            <p>Chọn loại <b>“Tự luận (ghi âm)”</b> khi tạo câu hỏi. Con có thể trả lời bằng cách <b>nói</b>, <b>gõ chữ</b>, hoặc cả hai — anh/chị chọn kiểu trả lời cho phù hợp. Loại câu hỏi này <b>không tự chấm điểm</b> — mục đích là để con mạnh dạn diễn đạt bằng lời, phụ huynh nghe/đọc lại và tự đánh dấu Đúng/Sai mang tính tham khảo trong phần Báo cáo.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Đính kèm âm thanh / video cho câu hỏi</h3>
+          <p>Bất kỳ câu hỏi nào (kể cả trắc nghiệm) cũng có thể gắn thêm một đoạn <b>âm thanh</b> hoặc <b>video</b> — hữu ích cho môn Tiếng Anh (nghe rồi chọn đáp án) hoặc bài giảng có hình ảnh minh hoạ. Câu hỏi phải được lưu trước, sau đó mới tải audio/video lên trong hộp thoại sửa câu hỏi.</p>
+          <div class="callout tip"><span class="ic">💡</span><div>Có thể bật <b>“Ẩn nội dung chữ khi học sinh làm bài”</b> để bắt buộc con phải nghe/xem thay vì đọc chữ — hữu ích khi luyện nghe.</div></div>
+        </div>
+
+        <div class="card">
+          <h3>Nhập câu hỏi từ file</h3>
+          <p>Tải mẫu Excel/CSV, điền nội dung câu hỏi + các lựa chọn theo đúng cột, rồi nhập lên cho một Bài học cụ thể. Cách này hiện chỉ tạo câu hỏi trắc nghiệm; audio/video/tự luận vẫn cần thêm tay sau khi nhập.</p>
+        </div>
+      </section>
+
+      <section class="feature" id="p-test">
+        <div class="feature-head">
+          <div class="feature-icon">📝</div>
+          <div><h2>Đề kiểm tra &amp; đề ôn tập</h2><div class="sub">Giao bài cho con làm, hoặc để hệ thống tự ra đề ôn luyện</div></div>
+        </div>
+
+        <div class="card">
+          <h3>Tạo đề kiểm tra — 2 cách chọn câu hỏi</h3>
+          <div class="grid-2">
+            <div>
+              <b>Chọn từng câu hỏi</b>
+              <p>Chọn Học sinh → đặt tên đề → chọn Môn học → chọn Bài học → tick từng câu hỏi muốn đưa vào đề.</p>
+            </div>
+            <div>
+              <b>Chọn theo Bài đã học</b>
+              <p>Tick nhiều Bài học con đã học xong trong một Môn, hệ thống gộp toàn bộ câu hỏi của các Bài đó lại để tick chọn tiếp (có nút <b>Chọn tất cả</b> nếu muốn lấy hết), rồi xáo trộn thứ tự khi giao đề.</p>
+            </div>
+          </div>
+          <div class="callout note"><span class="ic">ℹ️</span><div>Với Môn học <b>dùng chung mọi lớp</b>, màn hình tạo đề cho phép tick thêm nhiều Học sinh khác để giao cùng một đề một lần, không cần lặp lại thao tác.</div></div>
+        </div>
+
+        <div class="card">
+          <h3>Đề ôn tập — tự động, làm lại không giới hạn</h3>
+          <p>Bấm <b>Tạo đề ôn tập</b>, chọn Học sinh và Môn học — hệ thống tự chọn ngẫu nhiên các câu hỏi trắc nghiệm của Môn đó (không lấy câu tự luận/ghi âm). Có thể tạo lại nhiều lần, mỗi lần là một bộ câu hỏi mới. Đề ôn tập <b>không tính vào</b> số liệu “Đề đã giao/Đề đã hoàn thành” ở Tổng quan, nhưng vẫn hiện trong lịch sử làm bài với nhãn riêng.</p>
+        </div>
+
+        <div class="card">
+          <h3>Nhập đề ôn tập hàng loạt <span class="path">Nhập từ file</span></h3>
+          <p>Chọn Lớp → Môn học, tải mẫu Excel/CSV (cột: Tên đăng nhập học sinh, Số câu hỏi), điền một dòng cho mỗi Học sinh cần tạo đề ôn rồi nhập lên — tạo cùng lúc nhiều đề ôn cho nhiều con.</p>
+        </div>
+      </section>
+
+      <section class="feature" id="p-timetable">
+        <div class="feature-head">
+          <div class="feature-icon">🗓️</div>
+          <div><h2>Thời khoá biểu</h2><div class="sub">Xếp lịch học theo tuần cho từng con</div></div>
+        </div>
+        <div class="card">
+          <p>Thời khoá biểu được xếp <b>riêng cho từng Học sinh</b> (không dùng chung cho cả Lớp) — hai anh chị em học cùng lớp vẫn có thể có lịch khác nhau. Chọn con ở đầu trang, mỗi ngày trong tuần bấm <b>Sửa</b> để thêm/bớt/đổi thứ tự các Môn học trong ngày đó. Ngày hôm nay được tô nổi bật để dễ nhận ra.</p>
+          <div class="callout note"><span class="ic">ℹ️</span><div>Con cũng có thể tự <b>thêm</b> môn vào thời khoá biểu của chính mình, nhưng không xoá/sửa được — việc xoá hoặc sắp xếp lại vẫn do phụ huynh thực hiện ở đây.</div></div>
+        </div>
+      </section>
+
+      <section class="feature" id="p-report">
+        <div class="feature-head">
+          <div class="feature-icon">📊</div>
+          <div><h2>Báo cáo &amp; theo dõi</h2><div class="sub">Xem con đã học gì, làm bài ra sao, và chấm câu tự luận</div></div>
+        </div>
+
+        <div class="card">
+          <h3>Lịch sử làm bài</h3>
+          <p>Chọn một Học sinh để xem danh sách các đề đã làm, mặc định lọc theo <b>tuần này</b> (có nút chuyển tuần trước/sau, hoặc bấm <b>Xem tất cả</b> để bỏ lọc). Bấm vào một dòng để xem chi tiết: điểm số, phân tích theo từng chủ đề kiến thức, và từng câu trả lời.</p>
+        </div>
+
+        <div class="card">
+          <h3>Chấm câu hỏi tự luận / ghi âm</h3>
+          <p>Trong chi tiết báo cáo, mỗi câu tự luận hiện nút nghe lại bản ghi âm của con (nếu có), nội dung con đã gõ (nếu có), và đáp án tham khảo anh/chị đã nhập khi tạo câu hỏi (nếu có). Bấm <b>Đúng/Sai</b> để tự đánh dấu — chỉ mang tính ghi chú tham khảo, không ảnh hưởng tới điểm số tự động.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Chuẩn bị bài cho ngày mai</h3>
+            <p>Xem con đã tick xác nhận chuẩn bị những Môn nào trong thời khoá biểu ngày mai — Môn nào chưa tick sẽ hiện rõ để nhắc con.</p>
+          </div>
+          <div class="card">
+            <h3>Lịch sử báo bài</h3>
+            <p>Xem lại từng Bài học con đã báo là “đã học” theo từng ngày, có thể lọc theo Môn học và chọn xem ngày bất kỳ trong quá khứ.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="feature" id="p-library">
+        <div class="feature-head">
+          <div class="feature-icon">📚</div>
+          <div><h2>Thư viện sách giáo khoa</h2><div class="sub">Liên kết sách PDF do quản trị viên cung cấp với Môn học của con</div></div>
+        </div>
+        <div class="card">
+          <p>Trên trang <b>Môn học</b>, bấm biểu tượng quyển sách cạnh mỗi Môn để mở thư viện: duyệt tài liệu theo Lớp/Bộ sách/tên môn, rồi bấm <b>Liên kết</b> để gắn tài liệu đó vào Môn học của mình (có thể liên kết nhiều tài liệu cùng lúc). Sau khi liên kết, cả anh/chị lẫn con đều <b>xem trực tuyến</b> hoặc <b>tải xuống</b> được file PDF đó; bấm <b>Gỡ liên kết</b> khi không cần nữa.</p>
+        </div>
+      </section>
+
+      <section class="feature" id="p-delete">
+        <div class="feature-head">
+          <div class="feature-icon">🗑️</div>
+          <div><h2>Xoá dữ liệu</h2><div class="sub">Xoá từng mục, xoá nhiều mục cùng lúc, và những gì sẽ mất theo</div></div>
+        </div>
+        <div class="card">
+          <p>Để đơn giản hoá việc dọn dẹp, hệ thống cho phép xoá một Lớp/Môn học/Bài học/Câu hỏi/Đề <b>ngay cả khi</b> bên trong nó đã có dữ liệu con đã làm — nhưng sẽ xoá kèm theo mọi thứ phụ thuộc:</p>
+          <table class="mini">
+            <thead><tr><th>Xoá</th><th>Sẽ kéo theo</th></tr></thead>
+            <tbody>
+              <tr><td>Đề kiểm tra / đề ôn</td><td>Toàn bộ lượt làm bài &amp; đáp án đã lưu của đề đó</td></tr>
+              <tr><td>Câu hỏi</td><td>Mọi Đề có chứa câu hỏi đó (theo quy tắc ở trên), cùng các lựa chọn/âm thanh/video của câu hỏi</td></tr>
+              <tr><td>Bài học</td><td>Câu hỏi của bài (theo quy tắc ở trên), lịch sử báo bài của bài đó, ảnh minh hoạ</td></tr>
+              <tr><td>Môn học</td><td>Bài học của môn (theo quy tắc ở trên), thời khoá biểu, chuẩn bị bài, liên kết thư viện liên quan tới môn đó</td></tr>
+              <tr><td>Lớp học</td><td>Mọi Học sinh trong lớp (cùng toàn bộ dữ liệu riêng của từng con — đề đã giao, điểm, báo bài, thời khoá biểu), và mọi Môn học của lớp (theo quy tắc ở trên)</td></tr>
+            </tbody>
+          </table>
+          <div class="callout warn"><span class="ic">⚠️</span><div>Mỗi thao tác xoá đều có hộp thoại xác nhận nói rõ những gì sẽ mất — hãy đọc kỹ trước khi bấm <b>Đồng ý</b>, vì <b>không thể hoàn tác</b>.</div></div>
+        </div>
+
+        <div class="card">
+          <h3>Xoá nhiều mục cùng lúc</h3>
+          <p>Ở 4 danh sách <b>Lớp học</b>, <b>Môn học</b> (cột trái trang Môn học), <b>Bài học</b> (cột phải trang Môn học) và <b>Câu hỏi</b> (trong một Bài học), mỗi dòng có thêm ô tick để chọn nhiều mục:</p>
+          <svg viewBox="0 0 640 168" role="img" aria-label="Sơ đồ minh hoạ: danh sách có ô tick từng dòng, phía trên có nút Xoá đã chọn và Xoá tất cả" style="width:100%;max-width:460px;height:auto;margin-top:6px;font-family:'Be Vietnam Pro',sans-serif">
+            <rect x="1" y="1" width="398" height="166" rx="14" fill="var(--surface)" stroke="var(--line)" stroke-width="1.3"/>
+            <g font-size="12" font-weight="700">
+              <text x="16" y="24" fill="var(--muted)" font-size="10.5" letter-spacing=".02em">ĐÃ CHỌN 2</text>
+              <rect x="118" y="10" width="98" height="26" rx="13" fill="var(--warn-soft)"/>
+              <text x="167" y="27" text-anchor="middle" fill="var(--warn)" font-size="11">Xoá đã chọn</text>
+              <rect x="224" y="10" width="86" height="26" rx="13" fill="none" stroke="var(--warn)" stroke-width="1.3"/>
+              <text x="267" y="27" text-anchor="middle" fill="var(--warn)" font-size="11">Xoá tất cả</text>
+            </g>
+            <g font-size="12.5" fill="var(--ink)">
+              <g>
+                <rect x="16" y="52" width="16" height="16" rx="4" fill="var(--accent)"/>
+                <path d="M19.5 60 L23 63.5 L29 55.5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <text x="42" y="64">Bài 1 — Phép cộng có nhớ</text>
+              </g>
+              <g>
+                <rect x="16" y="84" width="16" height="16" rx="4" fill="var(--accent)"/>
+                <path d="M19.5 92 L23 95.5 L29 87.5" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <text x="42" y="96">Bài 2 — Phép trừ có nhớ</text>
+              </g>
+              <g>
+                <rect x="16" y="116" width="16" height="16" rx="4" fill="none" stroke="var(--line)" stroke-width="1.5"/>
+                <text x="42" y="128" fill="var(--ink-soft)">Bài 3 — Hình học cơ bản</text>
+              </g>
+              <line x1="16" y1="146" x2="382" y2="146" stroke="var(--line-soft)"/>
+            </g>
+            <g stroke="var(--muted)" stroke-width="1.6" fill="none" marker-end="url(#arrBulk)">
+              <path d="M414 84 H636"/>
+            </g>
+            <defs>
+              <marker id="arrBulk" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="var(--muted)"/></marker>
+            </defs>
+            <rect x="418" y="30" width="222" height="108" rx="12" fill="var(--surface-2)" stroke="var(--line)" stroke-width="1.3"/>
+            <g font-size="11.5" fill="var(--ink-soft)">
+              <text x="432" y="50" font-weight="700" fill="var(--ink)">Xoá kèm theo:</text>
+              <text x="432" y="70">– Câu hỏi của các bài</text>
+              <text x="432" y="88">– Đề có chứa câu hỏi đó</text>
+              <text x="432" y="106">– Lịch sử báo bài, ảnh</text>
+              <text x="432" y="124">minh hoạ liên quan</text>
+            </g>
+          </svg>
+          <ul class="plain" style="margin-top:10px;">
+            <li><b>Xoá đã chọn</b> — chỉ xoá đúng những dòng đang được tick.</li>
+            <li><b>Xoá tất cả</b> — xoá toàn bộ danh sách đang hiện, không cần tick từng dòng.</li>
+          </ul>
+          <div class="callout note"><span class="ic">ℹ️</span><div>Xoá nhiều mục vẫn là <b>thao tác tốt nhất có thể</b> (best-effort): nếu một dòng nào đó lỡ đã bị xoá từ trước hoặc gặp lỗi, các dòng còn lại vẫn được xoá bình thường — thông báo sau khi xoá xong sẽ nói rõ đã xoá được bao nhiêu trên tổng số đã chọn.</div></div>
+        </div>
+      </section>
+
+      <footer style="padding-top:8px;">
+        <p style="color:var(--muted); font-size:13px;">Cần thêm trợ giúp? Liên hệ người quản trị hệ thống của trường/nhóm học để được hỗ trợ thêm.</p>
+      </footer>
+
+    </main>
+  </div>
+</div>
+
+<!-- ======================= STUDENT PANEL ======================= -->
+<div data-role-panel="student" hidden>
+
+  <div class="hero">
+    <span class="hero-eyebrow">Dành cho học sinh</span>
+    <h1>Học mỗi ngày, làm bài dễ dàng</h1>
+    <p class="lead">Mở Hiểu Bài mỗi ngày để xem hôm nay học môn gì, báo lại bài đã học, làm bài kiểm tra bố/mẹ giao, và tự ôn luyện thêm bất cứ lúc nào.</p>
+    <div class="hero-meta">
+      <span>🔗 Địa chỉ đăng nhập: chọn <span class="kbd">Học sinh</span> ở trang đăng nhập chung</span>
+    </div>
+  </div>
+
+  <div class="layout">
+    <nav class="toc" id="tocStudent" aria-label="Mục lục học sinh">
+      <div class="toc-label">Nội dung</div>
+      <a href="#s-login">Đăng nhập</a>
+      <a href="#s-today">Hôm nay học gì</a>
+      <a href="#s-timetable">Thời khoá biểu của em</a>
+      <a href="#s-take">Làm bài kiểm tra</a>
+      <a href="#s-practice">Tự ôn tập</a>
+      <a href="#s-result">Xem lại kết quả</a>
+      <a href="#s-library">Thư viện sách giáo khoa</a>
+      <a href="#s-account">Tài khoản</a>
+    </nav>
+
+    <main class="content">
+
+      <section class="feature" id="s-login">
+        <div class="feature-head">
+          <div class="feature-icon">🔑</div>
+          <div><h2>Đăng nhập</h2><div class="sub">Chọn đúng tên mình, không cần nhớ tài khoản bố/mẹ</div></div>
+        </div>
+        <div class="card">
+          <ol class="steps">
+            <li>Ở trang đăng nhập chung, bấm ô <b>Học sinh</b>.</li>
+            <li><b>Lần đầu tiên</b>: nhập email/số điện thoại/tên đăng nhập của bố hoặc mẹ để hệ thống tìm đúng gia đình.</li>
+            <li>Chọn đúng tên của em trong danh sách các con hiện ra, rồi nhập mật khẩu riêng của em.</li>
+          </ol>
+          <div class="callout tip"><span class="ic">💡</span><div>Từ lần đăng nhập thành công tiếp theo, thiết bị sẽ tự nhớ gia đình — chỉ cần chọn tên và nhập mật khẩu, không phải gõ lại thông tin bố/mẹ. Nếu thiết bị nhớ nhầm gia đình, bấm <b>“Không phải gia đình này?”</b> để chọn lại.</div></div>
+        </div>
+      </section>
+
+      <section class="feature" id="s-today">
+        <div class="feature-head">
+          <div class="feature-icon">🌤️</div>
+          <div><h2>Hôm nay học gì</h2><div class="sub">Trang mở ra đầu tiên mỗi ngày</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <h3>Hôm nay &amp; Ngày mai</h3>
+            <p>Hai thẻ hiện đúng các Môn học đã được xếp trong thời khoá biểu cho hôm nay và ngày mai, theo đúng thứ tự.</p>
+          </div>
+          <div class="card">
+            <h3>Chuẩn bị bài cho ngày mai</h3>
+            <p>Tick vào từng Môn ngày mai khi em đã chuẩn bị xong bài — bố/mẹ sẽ thấy được trong phần Báo cáo của họ. Tick lại lần nữa để bỏ đánh dấu nếu tick nhầm.</p>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Báo bài đã học hôm nay</h3>
+          <p>Với mỗi Môn có trong thời khoá biểu hôm nay, chọn đúng <b>Bài học</b> em vừa học xong rồi bấm <b>Thêm</b> — bài đã báo sẽ hiện thành thẻ và tự biến mất khỏi danh sách chọn (không báo trùng một bài hai lần). Có thể bỏ báo trong chính ngày hôm đó nếu bấm nhầm; sang ngày hôm sau thì không sửa được nữa.</p>
+        </div>
+      </section>
+
+      <section class="feature" id="s-timetable">
+        <div class="feature-head">
+          <div class="feature-icon">🗓️</div>
+          <div><h2>Thời khoá biểu của em</h2><div class="sub">Xem cả tuần và tự thêm môn học thêm</div></div>
+        </div>
+        <div class="card">
+          <p>Xem đủ 7 ngày trong tuần. Em có thể bấm dấu <b>+</b> ở một ngày để tự thêm một Môn học vào lịch của mình (ví dụ lớp học thêm riêng). Việc <b>xoá hoặc sắp xếp lại</b> thời khoá biểu do bố/mẹ thực hiện.</p>
+        </div>
+      </section>
+
+      <section class="feature" id="s-take">
+        <div class="feature-head">
+          <div class="feature-icon">✍️</div>
+          <div><h2>Làm bài kiểm tra</h2><div class="sub">Từng câu một, không phải cuộn trang dài</div></div>
+        </div>
+
+        <div class="card">
+          <h3>Di chuyển giữa các câu</h3>
+          <p>Màn hình làm bài chỉ hiện <b>đúng một câu hỏi</b> tại một thời điểm. Phía trên có một hàng số thứ tự để nhảy nhanh tới bất kỳ câu nào:</p>
+          <svg viewBox="0 0 460 78" role="img" aria-label="Minh hoạ thanh điều hướng câu hỏi" style="width:100%; max-width:420px; height:auto; margin:14px 0;">
+            <g font-family="inherit">
+              <circle cx="38" cy="26" r="20" fill="var(--success-soft)" stroke="var(--success)" stroke-width="2"/>
+              <path d="M29 26 l6 6 l12 -13" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+              <circle cx="106" cy="26" r="20" fill="var(--success-soft)" stroke="var(--success)" stroke-width="2"/>
+              <path d="M97 26 l6 6 l12 -13" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+              <circle cx="176" cy="26" r="21" fill="var(--accent-soft)" stroke="var(--accent-ink)" stroke-width="3"/>
+              <text x="176" y="32" text-anchor="middle" font-size="16" font-weight="700" fill="var(--accent-ink)">3</text>
+
+              <circle cx="246" cy="26" r="20" fill="var(--card-bg,#fff)" stroke="var(--muted)" stroke-width="2" stroke-dasharray="4 3"/>
+              <text x="246" y="32" text-anchor="middle" font-size="16" font-weight="700" fill="var(--muted)">4</text>
+
+              <circle cx="316" cy="26" r="20" fill="var(--card-bg,#fff)" stroke="var(--muted)" stroke-width="2" stroke-dasharray="4 3"/>
+              <text x="316" y="32" text-anchor="middle" font-size="16" font-weight="700" fill="var(--muted)">5</text>
+
+              <circle cx="386" cy="26" r="20" fill="var(--card-bg,#fff)" stroke="var(--muted)" stroke-width="2" stroke-dasharray="4 3"/>
+              <text x="386" y="32" text-anchor="middle" font-size="16" font-weight="700" fill="var(--muted)">6</text>
+
+              <text x="38" y="65" text-anchor="middle" font-size="11" fill="var(--ink-soft)">đã trả lời</text>
+              <text x="176" y="65" text-anchor="middle" font-size="11" fill="var(--ink-soft)">đang xem</text>
+              <text x="316" y="65" text-anchor="middle" font-size="11" fill="var(--ink-soft)">chưa trả lời</text>
+            </g>
+          </svg>
+          <div class="chips">
+            <span class="chip">Viền xanh đậm = câu đang xem</span>
+            <span class="chip">Có dấu tích = đã trả lời</span>
+            <span class="chip">Viền xám nét đứt = chưa trả lời</span>
+          </div>
+          <p style="margin-top:10px;">Có thể bấm vào một câu đã làm để quay lại sửa đáp án, hoặc dùng hai nút <b>Câu trước / Câu tiếp theo</b> ở cuối mỗi câu.</p>
+        </div>
+
+        <div class="grid-2">
+          <div class="card">
+            <h3>Câu có âm thanh / video</h3>
+            <p>Bấm <b>Nghe audio</b> hoặc <b>Xem video</b> để phát — có thể nghe/xem lại nhiều lần tuỳ ý trước khi chọn đáp án.</p>
+          </div>
+          <div class="card">
+            <h3>Câu hỏi tự luận / ghi âm</h3>
+            <p>Tuỳ cách bố/mẹ cấu hình, em sẽ thấy nút <b>Ghi âm</b>, một ô để <b>gõ chữ trả lời</b>, hoặc cả hai. Bấm <b>Dừng ghi âm</b> để lưu, có thể nghe lại và bấm <b>Xoá</b> để ghi lại từ đầu bất cứ lúc nào trước khi nộp bài.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Nộp bài</h3>
+          <p>Ô đếm <b>“Đã trả lời x/y”</b> ở đầu trang cho biết còn thiếu câu nào. <b>Phải trả lời hết mọi câu hỏi</b> (kể cả câu tự luận/ghi âm) thì nút <b>Nộp bài</b> mới bật lên được — làm dở giữa chừng và thoát ra thì lần sau vào lại, bài đã làm vẫn còn nguyên.</p>
+        </div>
+      </section>
+
+      <section class="feature" id="s-practice">
+        <div class="feature-head">
+          <div class="feature-icon">🔁</div>
+          <div><h2>Tự ôn tập</h2><div class="sub">Tạo đề luyện thêm bất cứ khi nào em muốn</div></div>
+        </div>
+        <div class="card">
+          <p>Trên trang <b>Đề của tôi</b>, bấm <b>Tạo đề ôn tập</b>, chọn một Môn học — hệ thống tự chọn ngẫu nhiên câu hỏi trắc nghiệm để em luyện. Có thể tạo lại bao nhiêu lần tuỳ thích, mỗi lần là một bộ câu hỏi khác nhau.</p>
+        </div>
+      </section>
+
+      <section class="feature" id="s-result">
+        <div class="feature-head">
+          <div class="feature-icon">✅</div>
+          <div><h2>Xem lại kết quả</h2><div class="sub">Sau khi đã nộp bài</div></div>
+        </div>
+        <div class="card">
+          <p>Với đề đã nộp, bấm <b>Xem đáp án</b> để xem điểm số, đáp án đã chọn so với đáp án đúng, và audio/video đính kèm câu hỏi (nếu có). Với câu tự luận/ghi âm, em nghe/đọc lại được câu trả lời của mình; việc chấm Đúng/Sai (nếu có) là do bố/mẹ đánh dấu, chỉ mang tính tham khảo.</p>
+        </div>
+      </section>
+
+      <section class="feature" id="s-library">
+        <div class="feature-head">
+          <div class="feature-icon">📚</div>
+          <div><h2>Thư viện sách giáo khoa</h2><div class="sub">Sách PDF của đúng lớp và môn em đang học</div></div>
+        </div>
+        <div class="card">
+          <p>Chọn một Môn học để xem các tài liệu bố/mẹ đã liên kết cho môn đó — bấm <b>Xem</b> để đọc ngay trên trình duyệt, hoặc <b>Tải xuống</b> để lưu về máy.</p>
+        </div>
+      </section>
+
+      <section class="feature" id="s-account">
+        <div class="feature-head">
+          <div class="feature-icon">👤</div>
+          <div><h2>Tài khoản</h2><div class="sub">Giữ mật khẩu an toàn</div></div>
+        </div>
+        <div class="card">
+          <p>Vào biểu tượng người dùng ở góc trên bên phải để <b>đổi mật khẩu</b> bất cứ lúc nào (cần nhập đúng mật khẩu hiện tại). Sau khi đổi, em sẽ cần đăng nhập lại bằng mật khẩu mới.</p>
+        </div>
+      </section>
+
+      <footer style="padding-top:8px;">
+        <p style="color:var(--muted); font-size:13px;">Nếu quên mật khẩu hoặc không đăng nhập được, hãy nhờ bố/mẹ hỗ trợ từ tài khoản Phụ huynh.</p>
+      </footer>
+
+    </main>
+  </div>
+</div>
+
+<footer class="page-footer">Hiểu Bài — Sổ tay sử dụng dành cho Phụ huynh &amp; Học sinh.</footer>
+
+<script>
+(function(){
+  var roleBtns = document.querySelectorAll('.role-btn');
+  var panels = document.querySelectorAll('[data-role-panel]');
+  function setRole(role){
+    roleBtns.forEach(function(b){ b.setAttribute('aria-pressed', b.dataset.role === role ? 'true' : 'false'); });
+    panels.forEach(function(p){ p.hidden = p.getAttribute('data-role-panel') !== role; });
+    try{ window.scrollTo({top:0, behavior:'instant'}); }catch(e){ window.scrollTo(0,0); }
+  }
+  roleBtns.forEach(function(b){ b.addEventListener('click', function(){ setRole(b.dataset.role); }); });
+
+  // mobile TOC toggle
+  var navToggle = document.getElementById('navToggle');
+  var backdrop = document.getElementById('tocBackdrop');
+  function currentToc(){
+    var visible = document.querySelector('[data-role-panel]:not([hidden])');
+    return visible ? visible.querySelector('.toc') : null;
+  }
+  navToggle.addEventListener('click', function(){
+    var toc = currentToc();
+    if(!toc) return;
+    var open = toc.classList.toggle('open');
+    backdrop.classList.toggle('open', open);
+    navToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  backdrop.addEventListener('click', function(){
+    var toc = currentToc();
+    if(toc) toc.classList.remove('open');
+    backdrop.classList.remove('open');
+    navToggle.setAttribute('aria-expanded','false');
+  });
+  document.querySelectorAll('.toc a').forEach(function(a){
+    a.addEventListener('click', function(){
+      var toc = currentToc();
+      if(toc) toc.classList.remove('open');
+      backdrop.classList.remove('open');
+    });
+  });
+
+  // scroll-spy per visible panel
+  var sections = document.querySelectorAll('section.feature');
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if(entry.isIntersecting){
+        var id = entry.target.id;
+        document.querySelectorAll('.toc a').forEach(function(a){
+          a.classList.toggle('active', a.getAttribute('href') === '#'+id);
+        });
+      }
+    });
+  }, { rootMargin: '-40% 0px -50% 0px', threshold: 0 });
+  sections.forEach(function(s){ io.observe(s); });
+})();
+</script>
+
+</body>
+</html>

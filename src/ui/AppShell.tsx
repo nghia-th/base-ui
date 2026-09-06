@@ -37,6 +37,7 @@ import StudentTimetable from "./pages/student/Timetable";
 import ParentQuestions from "./pages/parent/Questions";
 import ParentTests from "./pages/parent/Tests";
 import ParentReports from "./pages/parent/Reports";
+import HelpGuide from "./pages/HelpGuide";
 import AdminParents from "./pages/admin/Parents";
 import AdminAdmins from "./pages/admin/Admins";
 import AdminLibrary from "./pages/admin/Library";
@@ -307,6 +308,9 @@ export default function AppShell() {
                                                 <Route path="app/parent/reports" element={
                                                     <RequireQuizRole role="parent"><ParentReports /></RequireQuizRole>
                                                 } />
+                                                <Route path="app/parent/help" element={
+                                                    <RequireQuizRole role="parent"><HelpGuide /></RequireQuizRole>
+                                                } />
                                                 <Route path="app/student/today" element={
                                                     <RequireQuizRole role="student"><StudentToday /></RequireQuizRole>
                                                 } />
@@ -318,6 +322,9 @@ export default function AppShell() {
                                                 } />
                                                 <Route path="app/student/timetable" element={
                                                     <RequireQuizRole role="student"><StudentTimetable /></RequireQuizRole>
+                                                } />
+                                                <Route path="app/student/help" element={
+                                                    <RequireQuizRole role="student"><HelpGuide /></RequireQuizRole>
                                                 } />
                                                 <Route path="app/student/tests/:testId/take" element={
                                                     <RequireQuizRole role="student"><TakeTest /></RequireQuizRole>

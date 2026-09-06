@@ -14,4 +14,14 @@ export class QuizStudentLessonApi {
     static getImage(lessonId: number) {
         return QuizRequestBase.get(`${QUIZ_STUDENT_PREFIX}/lessons/${lessonId}/image`, { responseType: 'blob' });
     }
+
+    // File bài giảng đính kèm (2026-09-06) - cùng access rule như get()/getImage() ở trên, backend
+    // tự kiểm tra qua StudentLessonService.
+    static listAttachments(lessonId: number) {
+        return QuizRequestBase.get(`${QUIZ_STUDENT_PREFIX}/lessons/${lessonId}/attachments`);
+    }
+
+    static getAttachmentFile(lessonId: number, attachmentId: number) {
+        return QuizRequestBase.get(`${QUIZ_STUDENT_PREFIX}/lessons/${lessonId}/attachments/${attachmentId}/file`, { responseType: 'blob' });
+    }
 }

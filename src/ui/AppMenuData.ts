@@ -7,20 +7,7 @@ export interface MenuItem {
     // Chỉ set ở item cấp cao nhất: khi có giá trị, sidebar sẽ chèn 1 tiêu đề nhóm (uppercase)
     // ngay phía trên item này - tương tự nhãn "PAGES" / "ELEMENTS" của Mira.
     section?: string
-    // 2026-09-06 ("thêm phần help vào ui để xem file hướng dẫn sử dụng") - item mở 1 URL NGOÀI
-    // app trong tab mới (window.open) thay vì điều hướng route nội bộ qua react-router. Dùng
-    // field RIÊNG (không tái dùng "to") vì AppMenuList.tsx's onClick gọi thẳng navigate(item.to)
-    // - 1 URL tuyệt đối (https://...) đưa vào navigate() sẽ bị react-router hiểu nhầm thành path
-    // nội bộ thay vì điều hướng ra ngoài. Item có externalUrl KHÔNG được set "to" (loại trừ nhau -
-    // xem AppMenuList.tsx's onClick).
-    externalUrl?: string
 }
-
-// 2026-09-06 - link Sổ Tay Hiểu Bài (hướng dẫn sử dụng Phụ huynh/Học sinh, đã publish qua Claude
-// Artifact) - dùng chung cho mục "Trợ giúp" ở cả PARENT_MENU_DATA lẫn STUDENT_MENU_DATA bên dưới.
-// Republish giữ NGUYÊN URL này (Artifact cập nhật tại chỗ) nên không cần sửa gì ở đây khi nội
-// dung sổ tay được cập nhật sau này.
-export const QUIZ_HELP_GUIDE_URL = 'https://claude.ai/code/artifact/30329691-b44d-4dc9-88d3-477d0c1a60db';
 
 export interface BreadcrumbItem {
     path: string
@@ -119,9 +106,12 @@ export const PARENT_MENU_DATA: MenuItem[] = [
     { label: 'quiz-questions', icon: 'HelpOutlineOutlined', to: '/app/parent/questions', items: null },
     { label: 'quiz-tests', icon: 'AssignmentOutlined', to: '/app/parent/tests', items: null },
     { label: 'quiz-reports', icon: 'BarChartOutlined', to: '/app/parent/reports', items: null },
-    // 2026-09-06 - mở Sổ Tay Hiểu Bài (tab mới) thay vì điều hướng route nội bộ, xem
-    // MenuItem.externalUrl's comment.
-    { label: 'quiz-help', icon: 'MenuBookOutlined', externalUrl: QUIZ_HELP_GUIDE_URL, items: null }
+    // 2026-09-06 revision - "anh muốn đưa vào UI luôn không dùng link như vậy bởi vì anh cài
+    // trên máy không có mạng": Sổ Tay Hiểu Bài giờ là 1 route NỘI BỘ (/app/parent/help,
+    // HelpGuide.tsx) nhúng file tĩnh public/help/huong-dan.html qua <iframe> - hoạt động hoàn
+    // toàn offline một khi đã build/deploy, thay cho link claude.ai/code/artifact/... cũ (cần
+    // mạng, đã bị bỏ cùng field MenuItem.externalUrl).
+    { label: 'quiz-help', icon: 'MenuBookOutlined', to: '/app/parent/help', items: null }
 ]
 
 export const PARENT_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
@@ -147,9 +137,9 @@ export const STUDENT_MENU_DATA: MenuItem[] = [
     // khoa bieu khong cho xoa, update" - trang moi rieng, CHI cho phep THEM mon (xem
     // StudentTimetable.tsx's javadoc). Icon giong het muc quiz-timetable ben PARENT_MENU_DATA.
     { label: 'quiz-timetable', icon: 'CalendarMonthOutlined', to: '/app/student/timetable', items: null },
-    // 2026-09-06 - mở Sổ Tay Hiểu Bài (tab mới) thay vì điều hướng route nội bộ, xem
-    // MenuItem.externalUrl's comment.
-    { label: 'quiz-help', icon: 'MenuBookOutlined', externalUrl: QUIZ_HELP_GUIDE_URL, items: null }
+    // 2026-09-06 revision - cùng route nội bộ offline như PARENT_MENU_DATA ở trên, xem comment
+    // ở đó.
+    { label: 'quiz-help', icon: 'MenuBookOutlined', to: '/app/student/help', items: null }
 ]
 
 export const STUDENT_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {

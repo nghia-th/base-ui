@@ -15,6 +15,10 @@ import CircularProgress from "@mui/material/CircularProgress";
 import TextField from "@mui/material/TextField";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemText from "@mui/material/ListItemText";
+import IconButton from "@mui/material/IconButton";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 import CloseOutlined from "@mui/icons-material/CloseOutlined";
@@ -23,10 +27,14 @@ import VideocamOutlined from "@mui/icons-material/VideocamOutlined";
 import MicOutlined from "@mui/icons-material/MicOutlined";
 import StopCircleOutlined from "@mui/icons-material/StopCircleOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
+import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
+import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
+import InsertDriveFileOutlined from "@mui/icons-material/InsertDriveFileOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import AppDialog from "../../components/dialogs/AppDialog";
 import { DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import { BlocStudentAttempt, QuizStudentQuestion } from "../../bloc/BlocStudentAttempt";
+import { QuizLessonAttachment } from "../../../api/QuizLessonApi";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
@@ -588,36 +596,71 @@ export default function TakeTest() {
                                                                         builder={(imageSnap) => {
                                                                             const lessonImageUrl = imageSnap.data;
                                                                             return (
-                                                                                <Stack spacing={2} sx={{ mt: 1 }}>
-                                                                                    {lessonImageUrl && (
-                                                                                        <Box
-                                                                                            component="img"
-                                                                                            src={lessonImageUrl}
-                                                                                            alt={lessonData.name}
-                                                                                            sx={{ width: '100%', maxHeight: 280, objectFit: 'contain', borderRadius: 1 }}
-                                                                                        />
-                                                                                    )}
-                                                                                    {lessonData.textbookPage != null && (
-                                                                                        <Typography variant="body2" color="text.secondary">
-                                                                                            {t('quiz-lesson-textbook-page')}: {lessonData.textbookPage}
-                                                                                        </Typography>
-                                                                                    )}
-                                                                                    {lessonData.summary && (
-                                                                                        <Box>
-                                                                                            <Typography variant="subtitle2">{t('quiz-lesson-summary')}</Typography>
-                                                                                            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{lessonData.summary}</Typography>
-                                                                                        </Box>
-                                                                                    )}
-                                                                                    {lessonData.content && (
-                                                                                        <Box>
-                                                                                            <Typography variant="subtitle2">{t('quiz-lesson-content')}</Typography>
-                                                                                            <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{lessonData.content}</Typography>
-                                                                                        </Box>
-                                                                                    )}
-                                                                                    {!lessonData.summary && !lessonData.content && !lessonImageUrl && (
-                                                                                        <Typography variant="body2" color="text.secondary">{t('quiz-lesson-no-content')}</Typography>
-                                                                                    )}
-                                                                                </Stack>
+                                                                                <UIStream
+                                                                                    initialData={null}
+                                                                                    stream={bloc.getStream('lessonAttachments')}
+                                                                                    builder={(attachmentsSnap) => {
+                                                                                        const attachments: QuizLessonAttachment[] = attachmentsSnap.data ?? [];
+                                                                                        return (
+                                                                                    <Stack spacing={2} sx={{ mt: 1 }}>
+                                                                                        {lessonImageUrl && (
+                                                                                            <Box
+                                                                                                component="img"
+                                                                                                src={lessonImageUrl}
+                                                                                                alt={lessonData.name}
+                                                                                                sx={{ width: '100%', maxHeight: 280, objectFit: 'contain', borderRadius: 1 }}
+                                                                                            />
+                                                                                        )}
+                                                                                        {lessonData.textbookPage != null && (
+                                                                                            <Typography variant="body2" color="text.secondary">
+                                                                                                {t('quiz-lesson-textbook-page')}: {lessonData.textbookPage}
+                                                                                            </Typography>
+                                                                                        )}
+                                                                                        {lessonData.summary && (
+                                                                                            <Box>
+                                                                                                <Typography variant="subtitle2">{t('quiz-lesson-summary')}</Typography>
+                                                                                                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{lessonData.summary}</Typography>
+                                                                                            </Box>
+                                                                                        )}
+                                                                                        {lessonData.content && (
+                                                                                            <Box>
+                                                                                                <Typography variant="subtitle2">{t('quiz-lesson-content')}</Typography>
+                                                                                                <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{lessonData.content}</Typography>
+                                                                                            </Box>
+                                                                                        )}
+                                                                                            {attachments.length > 0 && (
+                                                                                                <Box>
+                                                                                                    <Typography variant="subtitle2">{t('quiz-lesson-attachments')}</Typography>
+                                                                                                    <List dense disablePadding>
+                                                                                                        {attachments.map((a) => (
+                                                                                                            <ListItem
+                                                                                                                key={a.id}
+                                                                                                                disableGutters
+                                                                                                                secondaryAction={
+                                                                                                                    <Stack direction="row" spacing={0.5}>
+                                                                                                                        <IconButton size="small" onClick={() => bloc.viewLessonAttachmentFile(lessonData.id, a.id, showError)}>
+                                                                                                                            <VisibilityOutlined fontSize="small" />
+                                                                                                                        </IconButton>
+                                                                                                                        <IconButton size="small" onClick={() => bloc.downloadLessonAttachmentFile(lessonData.id, a.id, a.originalName, showError)}>
+                                                                                                                            <DownloadOutlined fontSize="small" />
+                                                                                                                        </IconButton>
+                                                                                                                    </Stack>
+                                                                                                                }
+                                                                                                            >
+                                                                                                                <InsertDriveFileOutlined fontSize="small" sx={{ mr: 1, opacity: 0.6 }} />
+                                                                                                                <ListItemText primary={a.originalName} />
+                                                                                                            </ListItem>
+                                                                                                        ))}
+                                                                                                    </List>
+                                                                                                </Box>
+                                                                                            )}
+                                                                                        {!lessonData.summary && !lessonData.content && !lessonImageUrl && attachments.length === 0 && (
+                                                                                            <Typography variant="body2" color="text.secondary">{t('quiz-lesson-no-content')}</Typography>
+                                                                                        )}
+                                                                                    </Stack>
+                                                                                        );
+                                                                                    }}
+                                                                                />
                                                                             );
                                                                         }}
                                                                     />

@@ -13,12 +13,17 @@ import Card from "@mui/material/Card";
 import Chip from "@mui/material/Chip";
 import Alert from "@mui/material/Alert";
 import CircularProgress from "@mui/material/CircularProgress";
+import List from "@mui/material/List";
+import ListItem from "@mui/material/ListItem";
+import ListItemText from "@mui/material/ListItemText";
+import IconButton from "@mui/material/IconButton";
 import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
 import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
 import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
+import FolderOpenOutlined from "@mui/icons-material/FolderOpenOutlined";
 import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
@@ -31,28 +36,38 @@ import { DIALOG_CANCEL_BUTTON_SX, DIALOG_PRIMARY_BUTTON_SX } from "../../compone
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
 // Fixed 1-12 grade dropdown, per the user's explicit design decision (AskUserQuestion,
-// 2026-09-05) - re-validated on the backend too (LibraryService#upload, QUIZ_032
-// LIBRARY_INVALID_TAXONOMY). Curriculum ('bo sach') used to be a similar hardcoded 3-value
-// list here, but per the user's later request (2026-09-05, "chổ bộ sách phải được admin tạo
-// hiện tại đang set cứng") it is now Admin-managed (see CurriculumService.java) - loaded via
-// bloc.loadCurricula() below instead of a constant, see the 'curriculum' TextField's UIStream.
+// 2026-09-05) - re-validated on the backend too (LibraryService#validateTaxonomy, QUIZ_032
+// LIBRARY_INVALID_TAXONOMY). Curriculum ('bo sach') is Admin-managed (CurriculumService.java),
+// loaded via bloc.loadCurricula() below instead of a constant, see the 'curriculum' TextField's
+// UIStream.
 const GRADES = Array.from({ length: 12 }, (_, i) => i + 1);
 
-// Admin "Textbook library" page (/app/admin/library, 2026-09-05, "thu vien sach giao khoa"
-// feature) - upload/list/delete PDF textbooks organized by grade -> subject name -> curriculum
-// (e.g. "Lop 4 -> Toan tap 1 -> Ket noi tri thuc", the user's own example). No root restriction -
-// every Admin can manage the whole library (see LibraryService.java's javadoc). Same
-// UIStream/DataGrid/Dialog shape as Admins.tsx, with a file input added to the form for the PDF.
+// PDF or PowerPoint - matches LessonService.ALLOWED_ATTACHMENT_TYPES / LibraryService's own file
+// allow-list on the backend (2026-09-06 revision widened this library's files from PDF-only to
+// also accept PowerPoint, same as the new Lesson attachment feature).
+const DOCUMENT_FILE_ACCEPT = ".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation";
+
+function formatFileSize(bytes: number): string {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+// Admin "Thu vien mon hoc" page (/app/admin/library, 2026-09-05, "thu vien sach giao khoa"
+// feature; mo rong 2026-09-06 - "cho phep tao muon hoc khong thuoc lop nao, tai lieu la 1 file
+// hoac nhieu slide bai giang") - tao/xoa cac "document" (sach giao khoa theo Khoi/Curriculum, HOAC
+// 1 mon hoc chung khong phan biet Khoi/Lop), moi document co the co NHIEU file (PDF/PowerPoint)
+// quan ly qua dialog "Quan ly file" rieng. Khong con file picker luc tao - tao xong roi them file
+// sau (giong nhu Lesson: tao truoc, dinh kem file sau). Grade/Curriculum co the de trong ("Khong
+// chon") de bieu thi 1 mon hoc dung chung, khong thuoc Khoi/Lop nao.
 export default function AdminLibrary() {
     const { t } = useTranslation();
     const { enqueueSnackbar } = useSnackbar();
     const appContext = useContext(AppContext);
     const bloc = reUseBlocContent(appContext, BlocAdminLibrary);
-    const [file, setFile] = useState<File | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
     const importFileInputRef = useRef<HTMLInputElement>(null);
-    const attachFileInputRef = useRef<HTMLInputElement>(null);
-    const [attachTargetId, setAttachTargetId] = useState<number | null>(null);
+    const addFileInputRef = useRef<HTMLInputElement>(null);
+    const [manageFilesId, setManageFilesId] = useState<number | null>(null);
 
     useEffect(() => {
         bloc.reload();
@@ -62,36 +77,18 @@ export default function AdminLibrary() {
     const showError = (error: any) => enqueueSnackbar(quizErrorMessage(t, error), { variant: error?.variant ?? 'error' });
 
     const openNew = () => {
-        setFile(null);
         bloc.openNew();
-        // Tai lai danh sach Bo sach MOI LAN mo dialog, thay vi 1 lan luc trang mount o tren -
-        // UIStream cua 'curricula' nam LONG BEN TRONG AppDialog (chi mount khi form_view.isShow
-        // = true), trong khi Subject cua rxjs KHONG replay gia tri da phat cho subscriber den
-        // sau (khac BehaviorSubject) - neu goi luc trang mount, response tra ve truoc khi dialog
-        // duoc mo lan dau se bi mat vinh vien, dropdown "Bo sach" mai mai trong (bug bao cao
-        // 2026-09-05: "ui anh chua lay duoc danh sach bo sach"). Goi lai o day dam bao stream
-        // luon co subscriber (chinh UIStream nay) truoc khi response ve.
+        // Tai lai danh sach Bo sach MOI LAN mo dialog - xem comment goc cua ham nay (2026-09-05):
+        // Subject cua rxjs khong replay gia tri da phat cho subscriber den sau, goi lai o day dam
+        // bao stream luon co subscriber truoc khi response ve.
         bloc.loadCurricula();
     };
 
-    const closeForm = () => {
-        setFile(null);
-        bloc.closeForm();
-    };
-
-    const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const picked = e.target.files?.[0];
-        e.target.value = '';
-        if (picked) setFile(picked);
-    };
+    const closeForm = () => bloc.closeForm();
 
     const save = () => {
-        if (!file) {
-            showError({ messageKey: 'required-field' });
-            return;
-        }
-        bloc.upload(file, () => {
-            enqueueSnackbar(t('quiz-library-uploaded') as string, { variant: 'success' });
+        bloc.create(() => {
+            enqueueSnackbar(t('quiz-library-created') as string, { variant: 'success' });
             closeForm();
         }, showError);
     };
@@ -105,18 +102,25 @@ export default function AdminLibrary() {
         bloc.runImport(picked, showError);
     };
 
-    const askAttachFile = (row: QuizLibraryDocument) => {
-        setAttachTargetId(row.id);
-        attachFileInputRef.current?.click();
-    };
-
-    const onAttachFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const onAddFileChosen = (e: React.ChangeEvent<HTMLInputElement>) => {
         const picked = e.target.files?.[0];
         e.target.value = '';
-        if (!picked || attachTargetId == null) return;
-        bloc.attachFile(attachTargetId, picked, () => {
-            enqueueSnackbar(t('quiz-library-file-attached') as string, { variant: 'success' });
+        if (!picked || manageFilesId == null) return;
+        bloc.addFile(manageFilesId, picked, () => {
+            enqueueSnackbar(t('quiz-library-file-added') as string, { variant: 'success' });
         }, showError);
+    };
+
+    const askRemoveFile = (documentId: number, fileId: number) => {
+        bloc.confirm({
+            title: 'delete',
+            message: 'quiz-library-file-delete-confirm',
+            onYes: () => {
+                bloc.removeFile(documentId, fileId, () => {
+                    enqueueSnackbar(t('quiz-library-file-deleted') as string, { variant: 'success' });
+                }, showError);
+            }
+        });
     };
 
     const askRemove = (row: QuizLibraryDocument) => {
@@ -132,37 +136,39 @@ export default function AdminLibrary() {
     };
 
     const columns: GridColDef[] = useMemo(() => [
-        { field: 'grade', headerName: t('quiz-library-grade') as string, width: 100 },
+        {
+            field: 'grade', headerName: t('quiz-library-grade') as string, width: 100,
+            valueGetter: (_value, row) => (row as QuizLibraryDocument).grade ?? '-'
+        },
         { field: 'subjectName', headerName: t('quiz-library-subject-name') as string, flex: 1, minWidth: 160 },
-        { field: 'curriculum', headerName: t('quiz-library-curriculum') as string, width: 180 },
+        {
+            field: 'curriculum', headerName: t('quiz-library-curriculum') as string, width: 180,
+            valueGetter: (_value, row) => (row as QuizLibraryDocument).curriculum ?? '-'
+        },
         { field: 'volume', headerName: t('quiz-library-volume') as string, width: 120 },
         { field: 'title', headerName: t('quiz-library-title') as string, flex: 1, minWidth: 200 },
         {
-            // 2026-09-05 (item 1) - a row created via bulk import has no PDF yet, see
-            // QuizLibraryDocument.hasFile's comment. Same Chip-status-column shape as
-            // Admins.tsx's 'root' column.
-            field: 'hasFile', headerName: t('quiz-library-file-status') as string, width: 140,
-            renderCell: (params) => (
-                <Chip
-                    size="small"
-                    label={t(params.value ? 'quiz-library-has-file' : 'quiz-library-no-file-yet')}
-                    color={params.value ? 'success' : 'warning'}
-                    variant={params.value ? 'filled' : 'outlined'}
-                />
-            )
+            // Chip so luong file thay vi Chip "co/chua co file" (2026-09-06 revision - 1 document
+            // gio co the co nhieu file, "co/chua co" khong con du dien ta).
+            field: 'files', headerName: t('quiz-library-file-status') as string, width: 140, sortable: false,
+            renderCell: (params) => {
+                const count = ((params.row as QuizLibraryDocument).files ?? []).length;
+                return (
+                    <Chip
+                        size="small"
+                        label={count === 0 ? t('quiz-library-no-file-yet') : t('quiz-library-file-count', { count })}
+                        color={count === 0 ? 'warning' : 'success'}
+                        variant={count === 0 ? 'outlined' : 'filled'}
+                    />
+                );
+            }
         },
         {
-            field: 'actions', type: 'actions', headerName: t('actions') as string, width: 180,
-            getActions: (params) => params.row.hasFile
-                ? [
-                    <GridActionsCellItem icon={<VisibilityOutlined fontSize="small" />} label="quiz-library-view" onClick={() => bloc.view(params.row.id, showError)} />,
-                    <GridActionsCellItem icon={<DownloadOutlined fontSize="small" />} label="quiz-library-download" onClick={() => bloc.downloadFile(params.row.id, `${params.row.title}.pdf`, showError)} />,
-                    <GridActionsCellItem icon={<DeleteOutlined fontSize="small" />} label="delete" onClick={() => askRemove(params.row)} />
-                ]
-                : [
-                    <GridActionsCellItem icon={<UploadFileOutlined fontSize="small" />} label="quiz-library-attach-file" onClick={() => askAttachFile(params.row)} />,
-                    <GridActionsCellItem icon={<DeleteOutlined fontSize="small" />} label="delete" onClick={() => askRemove(params.row)} />
-                ]
+            field: 'actions', type: 'actions', headerName: t('actions') as string, width: 130,
+            getActions: (params) => [
+                <GridActionsCellItem icon={<FolderOpenOutlined fontSize="small" />} label="quiz-library-manage-files" onClick={() => setManageFilesId(params.row.id)} />,
+                <GridActionsCellItem icon={<DeleteOutlined fontSize="small" />} label="delete" onClick={() => askRemove(params.row)} />
+            ]
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     ], [t]);
@@ -173,6 +179,11 @@ export default function AdminLibrary() {
             stream={bloc.getStream('documents')}
             builder={(snapshot) => {
                 const rows: QuizLibraryDocument[] = snapshot.data ?? [];
+                // Tai lai document dang mo dialog "Quan ly file" tu chinh stream nay (khong dung
+                // stream rieng) - bloc.reload() da duoc goi lai sau moi addFile/removeFile, nen
+                // rows luon la du lieu moi nhat, tranh phai dong bo 2 nguon du lieu.
+                const manageFilesDoc = manageFilesId == null ? null : rows.find((r) => r.id === manageFilesId) ?? null;
+
                 return (
                     <>
                         <Card sx={{ p: { xs: 2, sm: 3 } }}>
@@ -191,7 +202,6 @@ export default function AdminLibrary() {
                                     disableRowSelectionOnClick
                                 />
                             </Box>
-                            <input ref={attachFileInputRef} type="file" accept="application/pdf" hidden onChange={onAttachFileChosen} />
                         </Card>
 
                         <UIStream
@@ -200,7 +210,7 @@ export default function AdminLibrary() {
                             builder={(viewSnap) => {
                                 const view = viewSnap.data ?? { isShow: false };
                                 return (
-                                    <AppDialog open={view.isShow === true} onClose={closeForm} title={t('quiz-library-upload')} icon={UploadFileOutlined}>
+                                    <AppDialog open={view.isShow === true} onClose={closeForm} title={t('quiz-library-create')} icon={AddOutlined}>
                                         <DialogContent>
                                             <Stack spacing={2} sx={{ mt: 1 }}>
                                                 <TextField
@@ -208,8 +218,10 @@ export default function AdminLibrary() {
                                                     label={t('quiz-library-grade')}
                                                     defaultValue={bloc.getField('grade', 'req') ?? ''}
                                                     onChange={(e) => bloc.setStream('grade', e.target.value, 'req')}
+                                                    helperText={t('quiz-library-grade-optional-hint')}
                                                     fullWidth
                                                 >
+                                                    <MenuItem value="">{t('quiz-library-not-selected')}</MenuItem>
                                                     {GRADES.map((g) => <MenuItem key={g} value={g}>{g}</MenuItem>)}
                                                 </TextField>
                                                 <TextField
@@ -231,6 +243,7 @@ export default function AdminLibrary() {
                                                                 onChange={(e) => bloc.setStream('curriculum', e.target.value, 'req')}
                                                                 fullWidth
                                                             >
+                                                                <MenuItem value="">{t('quiz-library-not-selected')}</MenuItem>
                                                                 {curricula.map((c) => <MenuItem key={c.id} value={c.name}>{c.name}</MenuItem>)}
                                                             </TextField>
                                                         );
@@ -248,10 +261,7 @@ export default function AdminLibrary() {
                                                     onChange={(e) => bloc.setStream('title', e.target.value, 'req')}
                                                     fullWidth
                                                 />
-                                                <Button variant="outlined" startIcon={<UploadFileOutlined />} onClick={() => fileInputRef.current?.click()}>
-                                                    {file ? file.name : t('quiz-library-choose-pdf')}
-                                                </Button>
-                                                <input ref={fileInputRef} type="file" accept="application/pdf" hidden onChange={onFileSelected} />
+                                                <Alert severity="info">{t('quiz-library-add-files-after-create-hint')}</Alert>
                                             </Stack>
                                         </DialogContent>
                                         <DialogActions>
@@ -333,6 +343,57 @@ export default function AdminLibrary() {
                                 );
                             }}
                         />
+
+                        {/* Dialog "Quan ly file" (2026-09-06 revision) - danh sach file cua 1 document, them/xem/
+                            tai/xoa tung file - tach rieng khoi form tao vi 1 document co the co nhieu file. */}
+                        <AppDialog open={manageFilesDoc != null} onClose={() => setManageFilesId(null)} maxWidth="xs" title={manageFilesDoc?.title ?? ''} icon={FolderOpenOutlined}>
+                            <DialogContent>
+                                <input ref={addFileInputRef} type="file" accept={DOCUMENT_FILE_ACCEPT} hidden onChange={onAddFileChosen} />
+                                <List dense disablePadding>
+                                    {(manageFilesDoc?.files ?? []).map((f) => (
+                                        <ListItem
+                                            key={f.id}
+                                            secondaryAction={
+                                                <Stack direction="row" spacing={0.5}>
+                                                    <IconButton size="small" onClick={() => manageFilesDoc && bloc.view(manageFilesDoc.id, f.id, showError)}>
+                                                        <VisibilityOutlined fontSize="small" />
+                                                    </IconButton>
+                                                    <IconButton size="small" onClick={() => manageFilesDoc && bloc.downloadFile(manageFilesDoc.id, f.id, f.originalName, showError)}>
+                                                        <DownloadOutlined fontSize="small" />
+                                                    </IconButton>
+                                                    <IconButton size="small" onClick={() => manageFilesDoc && askRemoveFile(manageFilesDoc.id, f.id)}>
+                                                        <DeleteOutlined fontSize="small" />
+                                                    </IconButton>
+                                                </Stack>
+                                            }
+                                        >
+                                            <ListItemText primary={f.originalName} secondary={formatFileSize(f.fileSize)} />
+                                        </ListItem>
+                                    ))}
+                                    {(manageFilesDoc?.files ?? []).length === 0 && (
+                                        <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>{t('quiz-library-no-files-yet')}</Typography>
+                                    )}
+                                </List>
+                                <UIStream
+                                    initialData={false}
+                                    stream={bloc.getStream('addingFile')}
+                                    builder={(addingSnap) => (
+                                        <Button
+                                            variant="outlined"
+                                            startIcon={addingSnap.data === true ? <CircularProgress size={16} /> : <UploadFileOutlined />}
+                                            disabled={addingSnap.data === true}
+                                            onClick={() => addFileInputRef.current?.click()}
+                                            sx={{ mt: 1 }}
+                                        >
+                                            {t('quiz-library-add-file')}
+                                        </Button>
+                                    )}
+                                />
+                            </DialogContent>
+                            <DialogActions>
+                                <Button onClick={() => setManageFilesId(null)} variant="contained" color="primary" startIcon={<CloseOutlined />} sx={DIALOG_PRIMARY_BUTTON_SX}>{t('close')}</Button>
+                            </DialogActions>
+                        </AppDialog>
                     </>
                 );
             }}

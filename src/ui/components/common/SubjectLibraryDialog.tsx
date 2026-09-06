@@ -19,6 +19,7 @@ import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
 import LinkOutlined from "@mui/icons-material/LinkOutlined";
 import LinkOffOutlined from "@mui/icons-material/LinkOffOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
+import InsertDriveFileOutlined from "@mui/icons-material/InsertDriveFileOutlined";
 import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import UIStream from "./UIStream";
 import AppDialog from "../dialogs/AppDialog";
@@ -34,6 +35,16 @@ import { QuizCurriculum } from "../../../api/QuizCurriculumApi";
 // same Admin-managed list QuizCurriculumApi.ts/CurriculumService.java expose.
 const GRADES = Array.from({ length: 12 }, (_, i) => i + 1);
 
+// grade/curriculum co the null (2026-09-06 revision - "cho phep tao muon hoc khong thuoc lop
+// nao") - document dang la 1 mon hoc dung chung thi khong hien "Khoi X - <bo sach>" nua ma hien
+// nhan rieng, xem quiz-library-uncategorized.
+function taxonomyLabel(t: (key: string, opts?: any) => string, doc: QuizLibraryDocument): string {
+    if (doc.grade == null && doc.curriculum == null) return t('quiz-library-uncategorized');
+    if (doc.grade == null) return doc.curriculum as string;
+    if (doc.curriculum == null) return `${t('quiz-library-grade')} ${doc.grade}`;
+    return `${t('quiz-library-grade')} ${doc.grade} - ${doc.curriculum}`;
+}
+
 interface SubjectLibraryDialogProps {
     bloc: BlocParentSubjects;
     subjectId: number | null;
@@ -42,14 +53,18 @@ interface SubjectLibraryDialogProps {
     onClose: () => void;
 }
 
-// Parent-side textbook library dialog (2026-09-05, "thu vien sach giao khoa" feature) - opened
-// per-subject from Subjects.tsx (MenuBookOutlined icon on each subject row). Uses the SAME
+// Parent-side textbook/course library dialog (2026-09-05, "thu vien sach giao khoa" feature; mo
+// rong 2026-09-06 - moi document gio co the co NHIEU file, hien flat list khong collapse/expand
+// duoi moi document da lien ket, tranh vi pham Rules of Hooks vi day la .map() ben trong builder()
+// cua UIStream - xem claude/subject-shared-across-classrooms... cho quy uoc nay). Opened per-
+// subject from Subjects.tsx (MenuBookOutlined icon on each subject row). Uses the SAME
 // BlocParentSubjects instance as the page (passed down as a prop) rather than its own bloc, since
 // reUseBlocContent only keeps one "content" bloc per page (see AppContext.ts) - see the
 // 'library_links'/'library_catalog' methods added at the bottom of BlocParentSubjects.ts.
-// Shows the subject's already-linked documents on top (unlink/download), and the filterable whole
-// catalog below to link new ones - a document already linked is marked instead of offering Link
-// again (QUIZ_035 LIBRARY_ALREADY_LINKED would otherwise be a common, avoidable error).
+// Shows the subject's already-linked documents on top (unlink + per-file view/download), and the
+// filterable whole catalog below to link new ones - a document already linked is marked instead
+// of offering Link again (QUIZ_035 LIBRARY_ALREADY_LINKED would otherwise be a common, avoidable
+// error).
 export default function SubjectLibraryDialog({ bloc, subjectId, subjectName, open, onClose }: SubjectLibraryDialogProps) {
     const { t } = useTranslation();
     const { enqueueSnackbar } = useSnackbar();
@@ -95,14 +110,14 @@ export default function SubjectLibraryDialog({ bloc, subjectId, subjectName, ope
         });
     };
 
-    const download = (doc: QuizLibraryDocument) => {
+    const download = (doc: QuizLibraryDocument, fileId: number, filename: string) => {
         if (subjectId == null) return;
-        bloc.downloadLibraryFile(subjectId, doc.id, `${doc.title}.pdf`, showError);
+        bloc.downloadLibraryFile(subjectId, doc.id, fileId, filename, showError);
     };
 
-    const view = (doc: QuizLibraryDocument) => {
+    const view = (doc: QuizLibraryDocument, fileId: number) => {
         if (subjectId == null) return;
-        bloc.viewLibraryFile(subjectId, doc.id, showError);
+        bloc.viewLibraryFile(subjectId, doc.id, fileId, showError);
     };
 
     return (
@@ -124,24 +139,36 @@ export default function SubjectLibraryDialog({ bloc, subjectId, subjectName, ope
                                     {links.map((l) => (
                                         <ListItem
                                             key={l.id}
+                                            divider
+                                            alignItems="flex-start"
                                             secondaryAction={
-                                                <Stack direction="row" spacing={0.5}>
-                                                    <IconButton size="small" onClick={() => view(l.document)}>
-                                                        <VisibilityOutlined fontSize="small" />
-                                                    </IconButton>
-                                                    <IconButton size="small" onClick={() => download(l.document)}>
-                                                        <DownloadOutlined fontSize="small" />
-                                                    </IconButton>
-                                                    <IconButton size="small" onClick={() => unlink(l.document.id)}>
-                                                        <LinkOffOutlined fontSize="small" />
-                                                    </IconButton>
-                                                </Stack>
+                                                <IconButton size="small" onClick={() => unlink(l.document.id)}>
+                                                    <LinkOffOutlined fontSize="small" />
+                                                </IconButton>
                                             }
                                         >
-                                            <ListItemText
-                                                primary={l.document.title}
-                                                secondary={`${t('quiz-library-grade')} ${l.document.grade} - ${l.document.curriculum}`}
-                                            />
+                                            <Stack sx={{ width: '100%', pr: 4 }}>
+                                                <ListItemText
+                                                    primary={l.document.title}
+                                                    secondary={taxonomyLabel(t, l.document)}
+                                                />
+                                                {/* Flat file list, khong collapse/expand - xem comment o dau file. */}
+                                                {l.document.files.length === 0 && (
+                                                    <Typography variant="caption" color="text.secondary">{t('quiz-library-no-files-yet')}</Typography>
+                                                )}
+                                                {l.document.files.map((f) => (
+                                                    <Stack key={f.id} direction="row" alignItems="center" spacing={0.5} sx={{ pl: 1 }}>
+                                                        <InsertDriveFileOutlined fontSize="inherit" sx={{ opacity: 0.6 }} />
+                                                        <Typography variant="body2" sx={{ flex: 1 }} noWrap>{f.originalName}</Typography>
+                                                        <IconButton size="small" onClick={() => view(l.document, f.id)}>
+                                                            <VisibilityOutlined fontSize="small" />
+                                                        </IconButton>
+                                                        <IconButton size="small" onClick={() => download(l.document, f.id, f.originalName)}>
+                                                            <DownloadOutlined fontSize="small" />
+                                                        </IconButton>
+                                                    </Stack>
+                                                ))}
+                                            </Stack>
                                         </ListItem>
                                     ))}
                                     {links.length === 0 && snapshot.data != null && (
@@ -218,7 +245,7 @@ export default function SubjectLibraryDialog({ bloc, subjectId, subjectName, ope
                                                         >
                                                             <ListItemText
                                                                 primary={doc.title}
-                                                                secondary={`${t('quiz-library-grade')} ${doc.grade} - ${doc.curriculum}`}
+                                                                secondary={taxonomyLabel(t, doc)}
                                                             />
                                                         </ListItem>
                                                     );

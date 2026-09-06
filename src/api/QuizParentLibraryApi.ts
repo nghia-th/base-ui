@@ -24,8 +24,9 @@ export class QuizParentLibraryApi {
     }
 
     // responseType 'blob' - same reasoning as QuizLessonApi.getImage: the download endpoint needs
-    // an Authorization header, so it cannot be used directly as an <img>/<a> src.
-    static downloadFile(subjectId: number, documentId: number) {
-        return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/subjects/${subjectId}/library-links/${documentId}/file`, { responseType: 'blob' });
+    // an Authorization header, so it cannot be used directly as an <img>/<a> src. fileId
+    // (2026-09-06 revision) - a document can now hold more than one file.
+    static downloadFile(subjectId: number, documentId: number, fileId: number) {
+        return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/subjects/${subjectId}/library-links/${documentId}/files/${fileId}`, { responseType: 'blob' });
     }
 }

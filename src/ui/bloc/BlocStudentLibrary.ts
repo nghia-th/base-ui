@@ -29,9 +29,10 @@ export class BlocStudentLibrary extends IBlocUI {
 
     // res (the apiRequest onData param, from CallApi.ts's blob branch) has shape {data: Blob,
     // disposition: string}, same as BlocParentQuestions.downloadTemplate / the Parent library
-    // download above.
-    downloadFile(subjectId: number, documentId: number, defaultFilename: string, onError: (error: any) => void) {
-        this.apiRequest(QuizStudentLibraryApi.downloadFile(subjectId, documentId), (res: any) => {
+    // download above. fileId (2026-09-06 revision) - a linked document can now hold more than
+    // one file.
+    downloadFile(subjectId: number, documentId: number, fileId: number, defaultFilename: string, onError: (error: any) => void) {
+        this.apiRequest(QuizStudentLibraryApi.downloadFile(subjectId, documentId, fileId), (res: any) => {
             const blob: Blob = res.data
             const disposition: string | undefined = res.disposition
             const match = disposition?.match(/filename="?([^"]+)"?/)
@@ -45,10 +46,10 @@ export class BlocStudentLibrary extends IBlocUI {
         }, { onError })
     }
 
-    // Opens the PDF in a new tab instead of forcing a save-to-disk - same endpoint as
+    // Opens the file in a new tab instead of forcing a save-to-disk - same endpoint as
     // downloadFile above, see BlocAdminLibrary.view's comment for why the frontend decides this.
-    viewFile(subjectId: number, documentId: number, onError: (error: any) => void) {
-        this.apiRequest(QuizStudentLibraryApi.downloadFile(subjectId, documentId), (res: any) => {
+    viewFile(subjectId: number, documentId: number, fileId: number, onError: (error: any) => void) {
+        this.apiRequest(QuizStudentLibraryApi.downloadFile(subjectId, documentId, fileId), (res: any) => {
             const blob: Blob = res.data
             window.open(URL.createObjectURL(blob), '_blank')
         }, { onError })

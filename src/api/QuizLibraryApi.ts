@@ -2,22 +2,46 @@ import { QuizRequestBase } from "../quiz-net/QuizRequestBase";
 import QUIZ_API from "../quiz-net/QuizApiService";
 import { QUIZ_ADMIN_PREFIX } from "../base/PrefixService";
 
-// Matches AdminLibraryApi.java (2026-09-05, textbook PDF library feature). grade is a fixed 1-12
-// dropdown and curriculum is a fixed 3-value list on the UI side; the backend re-validates both
-// anyway (QUIZ_032 LIBRARY_INVALID_TAXONOMY).
+// Matches LibraryDocumentFileResponse.java (2026-09-06 revision - "thu vien mon hoc" mo rong, xem
+// claude/subject-import-feature... va yeu cau moi: "cho phep tao muon hoc khong thuoc lop nao,
+// tai lieu la 1 file hoac nhieu slide bai giang"). 1 LibraryDocument gio co the co NHIEU file
+// (truoc day chi 1 PDF duy nhat, field fileSize/hasFile nam thang tren LibraryDocument) - moi file
+// la 1 dong rieng o day, giu nguyen originalName de phan biet cac file voi nhau tren UI.
+export interface QuizLibraryDocumentFile {
+    id: number;
+    originalName: string;
+    fileSize: number;
+    contentType: string;
+    uploadedAt: string;
+}
+
+// Matches AdminLibraryApi.java / LibraryDocumentResponse.java. grade/curriculum la fixed dropdown
+// (1-12 / danh sach Curriculum do Admin quan ly) nhung backend van validate lai (QUIZ_032
+// LIBRARY_INVALID_TAXONOMY) - CA HAI GIO CO THE null (2026-09-06 revision) khi document la 1 "mon
+// hoc" (VD: "Lap trinh Python") khong thuoc Lop/Khoi nao, khong phai sach giao khoa theo Khoi.
 export interface QuizLibraryDocument {
     id: number;
-    grade: number;
+    grade: number | null;
     subjectName: string;
-    curriculum: string;
+    curriculum: string | null;
     volume?: string;
     title: string;
-    fileSize: number;
-    // 2026-09-05 (item 1 of the 11-item batch request) - false for a row created via bulk import
-    // before its PDF is attached (see quizAttachLibraryFile below). Matches
-    // LibraryDocumentResponse.java's hasFile field.
+    // Danh sach file dinh kem (0..N) - hasFile suy ra tu files.length > 0 (khop
+    // LibraryDocumentResponse.java's hasFile, van la field rieng cho tien dung tren UI thay vi
+    // phai check files.length moi noi).
+    files: QuizLibraryDocumentFile[];
     hasFile: boolean;
     createdAt: string;
+}
+
+// Matches LibraryDocumentCreateRequest.java (2026-09-06) - tao truoc metadata, file(s) them sau
+// qua addFile - khong con nhan file ngay luc tao nua (khac model cu 1-document-1-file).
+export interface QuizLibraryCreateRequest {
+    grade?: number;
+    subjectName: string;
+    curriculum?: string;
+    volume?: string;
+    title?: string;
 }
 
 // Matches ImportRowError.java / LibraryImportResponse.java.
@@ -48,14 +72,25 @@ export class QuizLibraryApi {
         });
     }
 
+    // JSON body, khong con file - "them file" gio la addFile ben duoi, tach rieng khoi tao
+    // metadata (2026-09-06 revision, xem LibraryDocumentCreateRequest.java's javadoc).
+    static create(request: QuizLibraryCreateRequest) {
+        return QuizRequestBase.post(`${QUIZ_ADMIN_PREFIX}/library`, request);
+    }
+
     static remove(id: number) {
         return QuizRequestBase.delete(`${QUIZ_ADMIN_PREFIX}/library/${id}`);
     }
 
+    static removeFile(documentId: number, fileId: number) {
+        return QuizRequestBase.delete(`${QUIZ_ADMIN_PREFIX}/library/${documentId}/files/${fileId}`);
+    }
+
     // responseType 'blob' - same reasoning as QuizLessonApi.getImage (used for both view-in-new-tab
-    // and forced download, see BlocAdminLibrary.ts).
-    static file(id: number) {
-        return QuizRequestBase.get(`${QUIZ_ADMIN_PREFIX}/library/${id}/file`, { responseType: 'blob' });
+    // and forced download, see BlocAdminLibrary.ts). documentId + fileId (2026-09-06 revision) -
+    // 1 document co the co nhieu file, khong con GET /{id}/file duy nhat nua.
+    static file(documentId: number, fileId: number) {
+        return QuizRequestBase.get(`${QUIZ_ADMIN_PREFIX}/library/${documentId}/files/${fileId}`, { responseType: 'blob' });
     }
 
     // responseType:'blob' - same reasoning/shape as QuizQuestionApi.downloadTemplate.
@@ -64,35 +99,10 @@ export class QuizLibraryApi {
     }
 }
 
-// Multipart upload - called directly through QUIZ_API rather than QuizRequestBase, same reasoning
-// as quizUploadLessonImage in QuizLessonApi.ts: QUIZ_API defaults to Content-Type: application/
-// json, so it must be overridden to undefined here so axios does not convert the FormData into
-// JSON (never hardcode 'multipart/form-data' either - it would be missing its boundary).
-export async function quizUploadLibraryDocument(
-    grade: number,
-    subjectName: string,
-    curriculum: string,
-    file: File,
-    volume?: string,
-    title?: string
-) {
-    const formData = new FormData();
-    formData.append('grade', String(grade));
-    formData.append('subjectName', subjectName);
-    formData.append('curriculum', curriculum);
-    if (volume) formData.append('volume', volume);
-    if (title) formData.append('title', title);
-    formData.append('file', file);
-    const res = await QUIZ_API.post(`${QUIZ_ADMIN_PREFIX}/library`, formData, {
-        headers: { 'Content-Type': undefined }
-    });
-    return res.data;
-}
-
 // Import Excel/CSV (multipart/form-data) - same "call QUIZ_API directly, override Content-Type to
-// undefined" workaround as quizUploadLibraryDocument above / QuizQuestionApi.quizImportQuestions
-// (see that function's comment for the full axios FormData->JSON bug explanation). No fixed FK
-// param (unlike quizImportQuestions' lessonId) - see LibraryImportService.java's javadoc.
+// undefined" workaround as quizAddLibraryFile below / QuizQuestionApi.quizImportQuestions (see
+// that function's comment for the full axios FormData->JSON bug explanation). No fixed FK param
+// (unlike quizImportQuestions' lessonId) - see LibraryImportService.java's javadoc.
 export async function quizImportLibraryDocuments(file: File) {
     const formData = new FormData();
     formData.append('file', file);
@@ -102,13 +112,14 @@ export async function quizImportLibraryDocuments(file: File) {
     return res.data;
 }
 
-// Attaches (or replaces) a library document's PDF - the second half of "import metadata now,
-// upload the file later" (see LibraryService#attachFile's javadoc). Same multipart workaround as
-// the two upload functions above.
-export async function quizAttachLibraryFile(id: number, file: File) {
+// Adds a lecture/document file to a LibraryDocument - NEVER replaces an existing one (2026-09-06
+// revision, replaces the old quizAttachLibraryFile "attach/replace single PDF" behaviour). A
+// document may now hold any number of files (PDF or PowerPoint). Same multipart workaround as
+// quizImportLibraryDocuments above.
+export async function quizAddLibraryFile(documentId: number, file: File) {
     const formData = new FormData();
     formData.append('file', file);
-    const res = await QUIZ_API.put(`${QUIZ_ADMIN_PREFIX}/library/${id}/file`, formData, {
+    const res = await QUIZ_API.post(`${QUIZ_ADMIN_PREFIX}/library/${documentId}/files`, formData, {
         headers: { 'Content-Type': undefined }
     });
     return res.data;

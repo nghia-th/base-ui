@@ -10,9 +10,11 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import ListItemText from "@mui/material/ListItemText";
 import IconButton from "@mui/material/IconButton";
+import Stack from "@mui/material/Stack";
 import DialogContent from "@mui/material/DialogContent";
 import DialogActions from "@mui/material/DialogActions";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
+import InsertDriveFileOutlined from "@mui/icons-material/InsertDriveFileOutlined";
 import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import VisibilityOutlined from "@mui/icons-material/VisibilityOutlined";
 import CloseOutlined from "@mui/icons-material/CloseOutlined";
@@ -20,16 +22,27 @@ import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import AppDialog from "../../components/dialogs/AppDialog";
 import { DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
 import { BlocStudentLibrary, QuizStudentSubjectLite } from "../../bloc/BlocStudentLibrary";
-import { QuizSubjectLibraryLink } from "../../../api/QuizLibraryApi";
+import { QuizLibraryDocument, QuizSubjectLibraryLink } from "../../../api/QuizLibraryApi";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
-// Student "Textbook library" page (/app/student/library, 2026-09-05, "thu vien sach giao khoa"
-// feature) - read-only: lists the student's own classroom's subjects (same GET /api/student/
-// subjects endpoint Tests.tsx's practice-test picker already uses), and for whichever subject is
-// clicked, shows the documents linked to it (StudentLibraryApi.java - the backend already checked
-// the subject is in this student's own classroom, so nothing extra is filtered here) with a
-// download button per document.
+// grade/curriculum co the null (2026-09-06 revision) - cung helper nhu SubjectLibraryDialog.tsx
+// (khong import cheo giua trang Phu huynh/Hoc sinh, moi noi tu khai bao rieng theo dung convention
+// cua file nay).
+function taxonomyLabel(t: (key: string, opts?: any) => string, doc: QuizLibraryDocument): string {
+    if (doc.grade == null && doc.curriculum == null) return t('quiz-library-uncategorized');
+    if (doc.grade == null) return doc.curriculum as string;
+    if (doc.curriculum == null) return `${t('quiz-library-grade')} ${doc.grade}`;
+    return `${t('quiz-library-grade')} ${doc.grade} - ${doc.curriculum}`;
+}
+
+// Student "Textbook/course library" page (/app/student/library, 2026-09-05, "thu vien sach giao
+// khoa" feature; mo rong 2026-09-06 - moi document co the co nhieu file) - read-only: lists the
+// student's own classroom's subjects (same GET /api/student/subjects endpoint Tests.tsx's
+// practice-test picker already uses), and for whichever subject is clicked, shows the documents
+// linked to it (StudentLibraryApi.java - the backend already checked the subject is in this
+// student's own classroom, so nothing extra is filtered here) with a flat per-file view/download
+// list (no collapse/expand, same reasoning as SubjectLibraryDialog.tsx).
 export default function StudentLibrary() {
     const { t } = useTranslation();
     const { enqueueSnackbar } = useSnackbar();
@@ -49,14 +62,14 @@ export default function StudentLibrary() {
         bloc.loadLinks(subject.id);
     };
 
-    const download = (doc: QuizSubjectLibraryLink['document']) => {
+    const download = (doc: QuizLibraryDocument, fileId: number, filename: string) => {
         if (openSubject == null) return;
-        bloc.downloadFile(openSubject.id, doc.id, `${doc.title}.pdf`, showError);
+        bloc.downloadFile(openSubject.id, doc.id, fileId, filename, showError);
     };
 
-    const view = (doc: QuizSubjectLibraryLink['document']) => {
+    const view = (doc: QuizLibraryDocument, fileId: number) => {
         if (openSubject == null) return;
-        bloc.viewFile(openSubject.id, doc.id, showError);
+        bloc.viewFile(openSubject.id, doc.id, fileId, showError);
     };
 
     return (
@@ -95,23 +108,28 @@ export default function StudentLibrary() {
                                         return (
                                             <List dense disablePadding>
                                                 {links.map((l) => (
-                                                    <ListItem
-                                                        key={l.id}
-                                                        secondaryAction={
-                                                            <>
-                                                                <IconButton size="small" onClick={() => view(l.document)}>
-                                                                    <VisibilityOutlined fontSize="small" />
-                                                                </IconButton>
-                                                                <IconButton size="small" onClick={() => download(l.document)}>
-                                                                    <DownloadOutlined fontSize="small" />
-                                                                </IconButton>
-                                                            </>
-                                                        }
-                                                    >
-                                                        <ListItemText
-                                                            primary={l.document.title}
-                                                            secondary={`${t('quiz-library-grade')} ${l.document.grade} - ${l.document.curriculum}`}
-                                                        />
+                                                    <ListItem key={l.id} divider alignItems="flex-start">
+                                                        <Stack sx={{ width: '100%' }}>
+                                                            <ListItemText
+                                                                primary={l.document.title}
+                                                                secondary={taxonomyLabel(t, l.document)}
+                                                            />
+                                                            {l.document.files.length === 0 && (
+                                                                <Typography variant="caption" color="text.secondary">{t('quiz-library-no-files-yet')}</Typography>
+                                                            )}
+                                                            {l.document.files.map((f) => (
+                                                                <Stack key={f.id} direction="row" alignItems="center" spacing={0.5} sx={{ pl: 1 }}>
+                                                                    <InsertDriveFileOutlined fontSize="inherit" sx={{ opacity: 0.6 }} />
+                                                                    <Typography variant="body2" sx={{ flex: 1 }} noWrap>{f.originalName}</Typography>
+                                                                    <IconButton size="small" onClick={() => view(l.document, f.id)}>
+                                                                        <VisibilityOutlined fontSize="small" />
+                                                                    </IconButton>
+                                                                    <IconButton size="small" onClick={() => download(l.document, f.id, f.originalName)}>
+                                                                        <DownloadOutlined fontSize="small" />
+                                                                    </IconButton>
+                                                                </Stack>
+                                                            ))}
+                                                        </Stack>
                                                     </ListItem>
                                                 ))}
                                                 {links.length === 0 && linksSnap.data != null && (
