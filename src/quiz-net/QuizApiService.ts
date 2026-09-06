@@ -157,9 +157,23 @@ QUIZ_API.interceptors.response.use((response) => {
 
         const body = error?.response?.data // ApiResponse.error(...): { success:false, code, message, timestamp }
         if (status && body) {
+            // 2026-09-06: PHÁT HIỆN LỖI "đăng nhập sai không hiện thông báo gì trên UI" - đăng
+            // nhập sai mật khẩu/tài khoản (INVALID_CREDENTIALS, xem QuizErrorCode.java) trả về
+            // HTTP 401 giống hệt mã lỗi "phiên đăng nhập hết hạn/token sai" - nhưng base/CallApi.ts
+            // (không được đụng vào, xem comment đầu file) coi MỌI code===401 là onUnAuth() (tự
+            // đăng xuất + điều hướng /login, KHÔNG gọi onError() nào cả) - nên lỗi đăng nhập sai
+            // bị "nuốt" âm thầm, trang chỉ load lại chứ không hiện snackbar lỗi nào. 401 từ chính
+            // /api/auth/** (login/register/refresh) không phải là "phiên hết hạn" (làm gì đã có
+            // phiên nào để hết hạn) nên KHÔNG được đi vào nhánh onUnAuth() - dịch code này thành -1
+            // (đã dùng cho lỗi thường ở interceptor thành công phía trên) CHỈ cho request
+            // /api/auth/** để base/CallApi.ts rơi đúng vào nhánh onError() (mỗi trang tự hiện
+            // snackbar qua showError/quizErrorMessage) - 401 thật của các request khác (token sai/
+            // hết hạn ở /api/parent/**, /api/student/**...) vẫn giữ nguyên code=401 như cũ, không
+            // đổi hành vi tự đăng xuất đã đúng từ trước.
+            const isAuthEndpoint = (error?.config?.url as string | undefined)?.startsWith(QUIZ_AUTH_PREFIX) ?? false
             return Promise.resolve({
                 data: {
-                    code: status, // base/CallApi.ts: code===401 -> onUnAuth() (đúng, JwtAuthFilter trả 401 khi thiếu/sai/hết hạn token)
+                    code: (status === 401 && isAuthEndpoint) ? -1 : status,
                     message: body.message,
                     messageKey: body.code, // vd "QUIZ_005" - dùng làm key tra cứu bản dịch lỗi cụ thể nếu cần, xem public/languages
                     httpError: true,

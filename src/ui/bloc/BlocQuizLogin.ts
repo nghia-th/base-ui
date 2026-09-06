@@ -94,7 +94,10 @@ export class BlocQuizLogin extends IBlocUI {
     // 2026-09-04: backend đổi field {token} -> {accessToken, refreshToken} (thêm refresh token,
     // xem AuthService.java's javadoc + QuizApiService.ts's error interceptor) - đổi đúng 1 chỗ
     // đọc field ở đây, không đổi gì khác trong luồng login/register.
-    private handleAuthSuccess(role: QuizLoginRole, res: any, onComplete: { (res: any): void }) {
+    // protected (2026-09-06, xem BlocStudentLogin.ts) - luong dang nhap Hoc sinh moi (chon
+    // ten trong danh sach thay vi go username) ke thua BlocQuizLogin de tai dung ham nay thay vi
+    // chep lai y het logic luu token/role/profile.
+    protected handleAuthSuccess(role: QuizLoginRole, res: any, onComplete: { (res: any): void }) {
         const accessToken: string | undefined = res?.data?.accessToken
         const refreshToken: string | undefined = res?.data?.refreshToken
         // 2026-09-04: AdminAuthResponse.java trả {..., admin} (khác {..., parent}/{..., student}) -

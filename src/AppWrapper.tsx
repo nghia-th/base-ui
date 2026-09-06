@@ -13,7 +13,9 @@ import { createAppTheme } from "./theme/muiTheme";
 import AlertDialog from "./ui/components/dialogs/AlertDialog";
 import ConfirmDialog from "./ui/components/dialogs/ConfirmDialog";
 import Login from "./ui/pages/Login";
+import ParentLogin from "./ui/pages/ParentLogin";
 import AdminLogin from "./ui/pages/admin/AdminLogin";
+import StudentLogin from "./ui/pages/StudentLogin";
 import Register from "./ui/pages/Register";
 import ForgotPassword from "./ui/pages/ForgotPassword";
 import NotFound from "./ui/pages/NotFound";
@@ -94,6 +96,8 @@ export default function AppWrapper({ app }: AppWrapperProps) {
                                     {snapshot.data?.finish ? (
                                         <Routes>
                                             <Route path="/login" element={<Login />} />
+                                            <Route path="/parent-login" element={<ParentLogin />} />
+                                            <Route path="/student-login" element={<StudentLogin />} />
                                             <Route path="/admin/login" element={<AdminLogin />} />
                                             <Route path="/register" element={<Register />} />
                                             <Route path="/forgot-password" element={<ForgotPassword />} />

@@ -1,5 +1,5 @@
-import React, { useContext, useEffect } from "react";
-import { Link as RouterLink, useLocation } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { useSnackbar } from "notistack";
 import Box from "@mui/material/Box";
@@ -8,60 +8,95 @@ import TextField from "@mui/material/TextField";
 import Button from "@mui/material/Button";
 import Typography from "@mui/material/Typography";
 import Avatar from "@mui/material/Avatar";
-import Link from "@mui/material/Link";
+import ButtonBase from "@mui/material/ButtonBase";
 import Stack from "@mui/material/Stack";
-import ToggleButton from "@mui/material/ToggleButton";
-import ToggleButtonGroup from "@mui/material/ToggleButtonGroup";
+import DialogContent from "@mui/material/DialogContent";
+import DialogActions from "@mui/material/DialogActions";
 import LockOutlined from "@mui/icons-material/LockOutlined";
-import { AppContext, reUseBloc } from "../../base/AppContext";
-import { BlocQuizLogin, QuizLoginRole } from "../bloc/BlocQuizLogin";
-import { BASE_URL } from "../../base/PrefixService";
-import UIStream from "../components/common/UIStream";
-import { quizErrorMessage } from "../../quiz-net/quizErrors";
+import PersonOutlined from "@mui/icons-material/PersonOutlined";
+import SchoolOutlined from "@mui/icons-material/SchoolOutlined";
+import AdminPanelSettingsOutlined from "@mui/icons-material/AdminPanelSettingsOutlined";
+import ChevronRightOutlined from "@mui/icons-material/ChevronRightOutlined";
+import FamilyRestroomOutlined from "@mui/icons-material/FamilyRestroomOutlined";
+import CloseOutlined from "@mui/icons-material/CloseOutlined";
+import CheckOutlined from "@mui/icons-material/CheckOutlined";
+import AppDialog from "../components/dialogs/AppDialog";
+import { DIALOG_CANCEL_BUTTON_SX, DIALOG_PRIMARY_BUTTON_SX } from "../components/dialogs/dialogToneStyles";
+import LocalStorage from "../../base/LocalStorage";
+import { STUDENT_LOGIN_PARENT_KEY } from "../bloc/BlocStudentLogin";
 
-// Đăng nhập THẬT cho Hiểu Bài (quiz-service), thay cho pattern demo (BlocLogin.ts, login giả bằng
-// setTimeout, giữ nguyên không xoá để tham khảo pattern cũ). Chỉ 1 route /login dùng chung cho cả
-// "/" (Hiểu Bài thật) và "/demo" (trang tham khảo UI-kit) - xem AppWrapper.tsx - nên trang này giờ
-// là cổng vào duy nhất, cần chọn Phụ huynh/Học sinh vì quiz-service có 2 endpoint login riêng biệt
-// theo role (AuthApi.java: /api/auth/parent/login và /api/auth/student/login).
+// Trang CHON VAI TRO dang nhap (LoginChooser) - route /login (2026-09-06, ban sua 2 cua thiet ke
+// lai dang nhap, thay cho ban sua 1 truoc do - xem claude/login-redesign-2026-09-06.md de biet
+// toan bo lich su/ly do). De xuat MOI cua anh: "mo dau vao dang nhap muon co 3 o: Quan tri vien/
+// Phu huynh/Hoc sinh, chon 1 trong 3 o do thi tuong ung di toi dang nhap tung chuc nang rieng".
 //
-// STATE MANAGEMENT (đổi 2026-09-01, xem claude/ui-base-status.md "Quy ước state mới"): trước đây
-// role/identifier/password/submitting đều là useState ngay trong component - mỗi lần gõ 1 ký tự
-// vào ô mật khẩu làm re-render lại CẢ trang. Giờ dồn hết vào loginBloc (setStream/getField, đúng
-// pattern BlocCamera.ts của project mẫu module-ui): identifier/password là input KHÔNG controlled
-// (không có value=, chỉ onChange đẩy vào bloc qua objectKey 'req') nên gõ chữ không kích hoạt
-// React re-render nào cả; role/submitting là 2 stream RIÊNG, mỗi cái chỉ bọc đúng phần UI phụ
-// thuộc nó bằng 1 UIStream hẹp - đổi ToggleButtonGroup hay bấm nút Đăng nhập chỉ re-render đúng
-// phần đó, không đụng gì tới phần còn lại của trang.
+// 3 O CHON:
+//   - "Phu huynh" -> dieu huong sang /parent-login (ParentLogin.tsx, form that su, giu nguyen
+//     query string ?url=... de sau khi dang nhap xong quay lai dung trang ban dau da yeu cau).
+//   - "Hoc sinh" -> NEU da co parentIdentifier luu san (localStorage, dang nhap thanh cong lan
+//     truoc) thi di THANG sang /student-login (khong hoi lai) - dung y "neu dang nhap thanh cong
+//     se luu thong tin phu huynh de lan sau khong phai chon nua". NEU CHUA co, hien 1 POPUP
+//     ("Chon phu huynh") de go thong tin Phu huynh (email/sdt/username) TRUOC KHI vao trang nhap
+//     lieu cua Hoc sinh - dung y "truoc khi vao trang nhap thong tin thi show popup chon phu
+//     huynh roi chuyen sang login danh cho hoc sinh". Popup nay CHI luu chuoi da go vao
+//     localStorage roi dieu huong - KHONG tu goi API tra cuu o day (tranh goi API 2 lan) -
+//     StudentLogin.tsx's initData() se tu tra cuu that su khi mo trang do (xem BlocStudentLogin.ts).
+//   - "Quan tri vien" -> dieu huong sang /admin/login (AdminLogin.tsx, GIU NGUYEN 100% khong doi
+//     theo dung yeu cau "doi voi admin thi nhu cu" cua anh).
+//
+// TAT GOI Y TRINH DUYET (best-effort, theo yeu cau "neu duoc tat goi y cua trinh duyet" cua anh):
+// o nhap Phu huynh trong popup nay dung autoComplete="off". Luu y day chi la TIN HIEU GOI Y cho
+// trinh duyet, KHONG phai co che bat buoc - Chrome/Edge hien dai van co the tu quyet dinh hien goi
+// y username/password da luu bat chap thuoc tinh nay trong 1 so truong hop (day la han che da
+// biet cua chuan HTML autocomplete, khong co cach nao phia web page ep buoc 100% duoc) - diem mau
+// chot THAT SU chan duoc loi goi y nham la thiet ke "BAM CHON ten thay vi go chu" o buoc ke tiep
+// (StudentLogin.tsx's buoc 'picker') - 1 nut bam khong phai o nhap chu nen trinh duyet KHONG CO
+// GI de goi y vao do ca, khac voi autoComplete chi la 1 goi y co the bi bo qua.
 export default function Login() {
     const { t } = useTranslation();
     const { enqueueSnackbar } = useSnackbar();
+    const navigate = useNavigate();
     const location = useLocation();
-    const appContext = useContext(AppContext);
-    const loginBloc = reUseBloc(appContext, BlocQuizLogin);
-    const locSearch = new URLSearchParams(location.search);
+    const [studentDialogOpen, setStudentDialogOpen] = useState(false);
+    const [parentIdentifier, setParentIdentifier] = useState('');
 
     useEffect(() => {
         document.title = t('log-in') as string;
     }, [t]);
 
-    const showError = (error: any) => enqueueSnackbar(quizErrorMessage(t, error), { variant: 'error' });
+    const goParent = () => navigate(`/parent-login${location.search}`);
 
-    const doLogin = () => {
-        loginBloc.doLogin((res: any) => {
-            enqueueSnackbar(t(res.messageKey ?? 'login-success') as string, { variant: 'success' });
-            const url = locSearch.get('url');
-            // Vào thẳng khu vực đúng role vừa đăng nhập (/app/parent hoặc /app/student/tests - xem
-            // AppShell.tsx/RequireQuizRole; học sinh không có trang tổng quan riêng, /app/student/tests
-            // LÀ trang chủ - xem AppMenuData.ts) trừ khi có "url" chỉ định cụ thể (vd bị AppWrapper.tsx
-            // redirect về /login?url=... vì hết hạn đăng nhập ở 1 trang cụ thể nào đó).
-            window.location.href = BASE_URL + (url ?? (res.role === 'student' ? '/app/student/tests' : '/app/parent'));
-        }, showError);
+    const goAdmin = () => navigate('/admin/login');
+
+    const goStudent = () => {
+        if (LocalStorage.getItem(STUDENT_LOGIN_PARENT_KEY)) {
+            navigate('/student-login');
+            return;
+        }
+        setParentIdentifier('');
+        setStudentDialogOpen(true);
     };
 
-    const onKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter') doLogin();
+    const submitStudentDialog = () => {
+        const trimmed = parentIdentifier.trim();
+        if (!trimmed) {
+            enqueueSnackbar(t('please-enter-login-info') as string, { variant: 'warning' });
+            return;
+        }
+        LocalStorage.setItem(STUDENT_LOGIN_PARENT_KEY, trimmed);
+        setStudentDialogOpen(false);
+        navigate('/student-login');
     };
+
+    const onKeyDownDialog = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') submitStudentDialog();
+    };
+
+    const roles: { icon: React.ElementType; label: string; onClick: () => void }[] = [
+        { icon: PersonOutlined, label: t('quiz-role-parent'), onClick: goParent },
+        { icon: SchoolOutlined, label: t('quiz-role-student'), onClick: goStudent },
+        { icon: AdminPanelSettingsOutlined, label: t('quiz-role-admin'), onClick: goAdmin },
+    ];
 
     return (
         <Box sx={{
@@ -74,96 +109,67 @@ export default function Login() {
                         <LockOutlined />
                     </Avatar>
                     <Typography variant="h6" fontWeight={700}>{t('app-name')}</Typography>
-                    <Typography variant="body2" color="text.secondary">{t('log-in')}</Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
+                        {t('quiz-login-choose-role-title')}
+                    </Typography>
                 </Box>
 
-                <UIStream
-                    initialData={loginBloc.getField('role') ?? 'parent'}
-                    stream={loginBloc.getStream('role')}
-                    builder={(roleSnap) => {
-                        const role: QuizLoginRole = roleSnap.data ?? 'parent';
-                        const onRoleChange = (_e: React.MouseEvent<HTMLElement>, value: QuizLoginRole | null) => {
-                            if (value) loginBloc.setStream('role', value);
-                        };
+                <Stack spacing={1.5} sx={{ mt: 2 }}>
+                    {roles.map((role) => {
+                        const Icon = role.icon;
                         return (
-                            <>
-                                <ToggleButtonGroup
-                                    value={role}
-                                    exclusive
-                                    fullWidth
-                                    onChange={onRoleChange}
-                                    sx={{ mt: 1, mb: 1 }}
-                                >
-                                    <ToggleButton value="parent">{t('quiz-role-parent')}</ToggleButton>
-                                    <ToggleButton value="student">{t('quiz-role-student')}</ToggleButton>
-                                </ToggleButtonGroup>
-
-                                <TextField
-                                    label={role === 'parent' ? t('quiz-login-identifier') : t('username')}
-                                    fullWidth
-                                    margin="normal"
-                                    autoFocus
-                                    onChange={(e) => loginBloc.setStream('identifier', e.target.value, 'req')}
-                                    onKeyDown={onKeyDown}
-                                />
-                                <TextField
-                                    label={t('password')}
-                                    type="password"
-                                    fullWidth
-                                    margin="normal"
-                                    onChange={(e) => loginBloc.setStream('password', e.target.value, 'req')}
-                                    onKeyDown={onKeyDown}
-                                />
-                                {role === 'parent' && (
-                                    <Box sx={{ textAlign: 'right', mt: 0.5 }}>
-                                        <Link component={RouterLink} to="/forgot-password" variant="body2">
-                                            {t('forgot-password')}
-                                        </Link>
-                                    </Box>
-                                )}
-
-                                <UIStream
-                                    initialData={false}
-                                    stream={loginBloc.getStream('submitting')}
-                                    builder={(submittingSnap) => (
-                                        <Button
-                                            fullWidth
-                                            variant="contained"
-                                            size="large"
-                                            sx={{ mt: 3 }}
-                                            disabled={submittingSnap.data === true}
-                                            onClick={doLogin}
-                                        >
-                                            {t('log-in')}
-                                        </Button>
-                                    )}
-                                />
-
-                                {role === 'parent' && (
-                                    <Stack sx={{ mt: 2 }}>
-                                        <Typography variant="body2" sx={{ textAlign: 'center' }}>
-                                            {t('dont-have-account')} <Link component={RouterLink} to="/register">{t('register')}</Link>
-                                        </Typography>
-                                    </Stack>
-                                )}
-                            </>
+                            <ButtonBase
+                                key={role.label}
+                                onClick={role.onClick}
+                                sx={{
+                                    display: 'flex', alignItems: 'center', gap: 1.5, width: '100%',
+                                    px: 2, py: 1.5, borderRadius: 2, border: '1px solid',
+                                    borderColor: 'divider', textAlign: 'left',
+                                    '&:hover': { bgcolor: 'action.hover', borderColor: 'primary.main' }
+                                }}
+                            >
+                                <Avatar sx={{ bgcolor: 'primary.main' }}>
+                                    <Icon />
+                                </Avatar>
+                                <Typography variant="subtitle1" fontWeight={600} sx={{ flexGrow: 1 }}>
+                                    {role.label}
+                                </Typography>
+                                <ChevronRightOutlined color="action" />
+                            </ButtonBase>
                         );
-                    }}
-                />
-
-                <Stack sx={{ mt: 2 }}>
-                    <Typography variant="body2" sx={{ textAlign: 'center' }}>
-                        {/* 2026-09-04 - "thêm link đăng nhập cho tài khoản quản trị" (yêu cầu của anh) -
-                            link nhỏ, không nổi bật (Admin không phải role công khai như Phụ huynh/Học
-                            sinh ở ToggleButtonGroup trên, không cần quảng bá) trỏ sang trang đăng nhập
-                            RIÊNG /admin/login (xem AdminLogin.tsx) thay vì thêm 'admin' vào
-                            ToggleButtonGroup này - tách hẳn khỏi luồng đăng nhập công khai. */}
-                        <Link component={RouterLink} to="/admin/login" color="text.secondary">
-                            {t('quiz-admin-login-link')}
-                        </Link>
-                    </Typography>
+                    })}
                 </Stack>
             </Paper>
+
+            <AppDialog
+                open={studentDialogOpen}
+                onClose={() => setStudentDialogOpen(false)}
+                title={t('quiz-student-choose-parent-title')}
+                icon={FamilyRestroomOutlined}
+            >
+                <DialogContent>
+                    <TextField
+                        label={t('quiz-student-parent-identifier-label')}
+                        helperText={t('quiz-student-parent-identifier-hint')}
+                        fullWidth
+                        margin="normal"
+                        autoFocus
+                        // 2026-09-06 - xem comment dau file "TAT GOI Y TRINH DUYET".
+                        autoComplete="off"
+                        value={parentIdentifier}
+                        onChange={(e) => setParentIdentifier(e.target.value)}
+                        onKeyDown={onKeyDownDialog}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setStudentDialogOpen(false)} variant="contained" startIcon={<CloseOutlined />} sx={DIALOG_CANCEL_BUTTON_SX}>
+                        {t('cancel')}
+                    </Button>
+                    <Button variant="contained" color="primary" startIcon={<CheckOutlined />} onClick={submitStudentDialog} sx={DIALOG_PRIMARY_BUTTON_SX}>
+                        {t('next')}
+                    </Button>
+                </DialogActions>
+            </AppDialog>
         </Box>
     );
 }

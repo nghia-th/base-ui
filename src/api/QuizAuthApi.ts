@@ -18,6 +18,23 @@ export class QuizAuthApi {
         return QuizRequestBase.post(`${QUIZ_AUTH_PREFIX}/student/login`, { username, password });
     }
 
+    // 2026-09-06 (login redesign, xem StudentLogin.tsx/BlocStudentLogin.ts) - bước 1: Học sinh gõ
+    // thông tin Phụ huynh (email/sdt/username, giống hệt loginParent's identifier) để tìm đúng
+    // gia đình, KHÔNG kèm mật khẩu - server luôn trả 200 với mảng students (có thể rỗng), không
+    // bao giờ báo lỗi "không tìm thấy" (xem AuthService#lookupStudentFamily's javadoc, tránh lộ
+    // thông tin ai có tài khoản trong hệ thống).
+    static lookupStudentFamily(parentIdentifier: string) {
+        return QuizRequestBase.post(`${QUIZ_AUTH_PREFIX}/student/family`, { parentIdentifier });
+    }
+
+    // 2026-09-06 (login redesign) - bước 2: Học sinh đã bấm chọn đúng tên mình (studentId lấy từ
+    // kết quả lookupStudentFamily ở trên) rồi gõ mật khẩu - KHÔNG cần gõ username, nên trình duyệt
+    // không có chỗ nào để gợi ý nhầm mật khẩu đã lưu của Phụ huynh vào. loginStudent() (theo
+    // username) ở trên vẫn giữ nguyên, dùng làm lối "Đăng nhập thủ công" dự phòng.
+    static loginStudentById(studentId: number, password: string) {
+        return QuizRequestBase.post(`${QUIZ_AUTH_PREFIX}/student/login-by-id`, { studentId, password });
+    }
+
     // 2026-09-04 - đăng nhập quản trị viên (Admin, xem entity/Admin.java's javadoc: không có
     // đăng ký, chỉ 1 tài khoản đầu tiên được tạo sẵn lúc backend khởi động qua
     // AdminBootstrapRunner). Dùng lại đúng field email/password như loginParent - AdminLogin.tsx
