@@ -75,6 +75,11 @@ export class BlocStudentAttempt extends IBlocUI {
         this.setStream('speakingLoadingIds', {})
         this.setStream('recordingQuestionId', null)
         this.setStream('speakingTextAnswers', {})
+        // 2026-09-06 (thiết kế lại giao diện làm bài - xem TakeTest.tsx's comment): câu đang xem
+        // trong chế độ "1 câu/màn hình + next/prev/bảng chọn nhanh" - luôn bắt đầu lại từ câu đầu
+        // tiên mỗi khi start 1 attempt mới (kể cả resume lại attempt đang làm dở) - đơn giản, đúng
+        // yêu cầu của anh, không cần tính "câu chưa làm gần nhất" phức tạp hơn.
+        this.setStream('currentIndex', 0)
         this.start(testId, (attemptId, questions) => {
             this.setStream('attemptId', attemptId)
             this.setStream('questions', questions)
@@ -107,6 +112,23 @@ export class BlocStudentAttempt extends IBlocUI {
         const answers = { ...(this.getField('answers') ?? {}), [questionId]: choiceId }
         this.setStream('answers', answers)
         if (attemptId != null) this.saveAnswer(attemptId, questionId, choiceId, onError)
+    }
+
+    // Điều hướng qua lại giữa các câu hỏi (2026-09-06) - currentIndex là stream THUẦN UI (không
+    // ảnh hưởng gì tới dữ liệu bài làm/đáp án đã lưu) nhưng vẫn đặt ở đây theo đúng quy ước "mọi
+    // state của trang này dồn vào Bloc" đã chốt từ trước (xem comment đầu file).
+    goToQuestion(index: number) {
+        this.setStream('currentIndex', index)
+    }
+
+    nextQuestion(total: number) {
+        const current = this.getField('currentIndex') ?? 0
+        if (current < total - 1) this.setStream('currentIndex', current + 1)
+    }
+
+    prevQuestion() {
+        const current = this.getField('currentIndex') ?? 0
+        if (current > 0) this.setStream('currentIndex', current - 1)
     }
 
     doSubmit(onError: (error: any) => void) {

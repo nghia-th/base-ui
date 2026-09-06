@@ -7,6 +7,7 @@ import Card from "@mui/material/Card";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Button from "@mui/material/Button";
+import ButtonBase from "@mui/material/ButtonBase";
 import Radio from "@mui/material/Radio";
 import RadioGroup from "@mui/material/RadioGroup";
 import FormControlLabel from "@mui/material/FormControlLabel";
@@ -40,6 +41,20 @@ import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 // khi nộp (radio chuyển disabled, chỉ xem lại lựa chọn cũ, không có trang "review" khác). Mỗi câu
 // hỏi có nút mở Dialog xem nội dung Bài học nó thuộc về (StudentLessonApi.java qua
 // BlocStudentAttempt.loadLesson/loadLessonImage) - dùng chung 1 Dialog cho cả 2 giai đoạn.
+//
+// GIAO DIỆN LÀM BÀI "1 CÂU/MÀN HÌNH" (2026-09-06, theo yêu cầu của anh: "đề dài quá làm học sinh
+// mất thời gian scroll... thiết kế kiểu next/prev từng câu, câu nào đã làm thì đánh dấu check, bấm
+// câu chưa làm/đã làm để move đến câu đó làm/sửa đáp án") - CHỈ áp dụng lúc ĐANG làm bài
+// (`result == null`): 1 bảng chọn nhanh (hàng ngang, tự xuống dòng - đã chọn qua AskUserQuestion
+// thay vì sidebar cố định) hiện SỐ THỨ TỰ mọi câu, câu đã trả lời có dấu tích xanh, câu đang xem có
+// viền màu primary - bấm số nào nhảy thẳng tới câu đó (không giới hạn đã làm hay chưa, đúng ý "sửa
+// đáp án" của anh) + 2 nút "Câu trước"/"Câu tiếp theo" dưới câu hỏi. Sau khi đã NỘP bài
+// (`result != null`) GIỮ NGUYÊN kiểu liệt kê hết mọi câu 1 lượt như cũ (đã chốt qua
+// AskUserQuestion, không đổi trải nghiệm xem lại). `renderQuestionCard(...)` (khai báo ngay trước
+// `return` bên dưới) là nội dung 1 Card câu hỏi DÙNG CHUNG cho cả 2 chế độ - y hệt logic cũ, chỉ
+// bọc thành hàm để gọi lại được ở cả `.map()` (xem lại) lẫn hiện đơn lẻ (đang làm). `currentIndex`
+// (stream mới trong BlocStudentAttempt) là câu đang xem trong chế độ "đang làm bài" - LUÔN reset về
+// 0 mỗi khi start 1 attempt (kể cả resume dở dang).
 //
 // STATE MANAGEMENT (đổi 2026-09-01, xem claude/ui-base-status.md "Quy ước state mới") - toàn bộ
 // useState cục bộ trước đây (attemptId/questions/answers/submitting/result + state Dialog xem lại
@@ -87,123 +102,13 @@ export default function TakeTest() {
         if (attemptId != null) bloc.saveSpeakingTextAnswer(attemptId, questionId, text, showError);
     };
 
-    return (
-        <UIStream
-            initialData={bloc.getField('questions') ?? null}
-            stream={bloc.getStream('questions')}
-            builder={(qSnap) => {
-                const questions: QuizStudentQuestion[] | null = qSnap.data;
-                if (!questions) {
-                    return (
-                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-                            <CircularProgress />
-                        </Box>
-                    );
-                }
-
-                return (
-                    <Stack spacing={2}>
-                        <UIStream
-                            initialData={null}
-                            stream={bloc.getStream('result')}
-                            builder={(resultSnap) => {
-                                const result = resultSnap.data;
-                                if (result) {
-                                    return (
-                                        <Card sx={{ p: 4, textAlign: 'center' }}>
-                                            <CheckCircleOutlined color="success" sx={{ fontSize: 64, mb: 1 }} />
-                                            <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>{t('quiz-test-submitted')}</Typography>
-                                            <Typography variant="h4" fontWeight={700} color="primary.main" sx={{ mb: 1 }}>
-                                                {result.correctCount}/{result.totalQuestions}
-                                            </Typography>
-                                            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                                                {t('quiz-score-percent', { percent: Math.round(result.scorePercent) })}
-                                            </Typography>
-                                            <Button variant="contained" onClick={() => navigate('/app/student/tests')}>{t('quiz-back-to-tests')}</Button>
-                                        </Card>
-                                    );
-                                }
-                                return (
-                                    <UIStream
-                                        initialData={bloc.getField('answers') ?? {}}
-                                        stream={bloc.getStream('answers')}
-                                        builder={(answersSnap) => {
-                                            const answers: Record<number, number> = answersSnap.data ?? {};
-                                            return (
-                                                <UIStream
-                                                    initialData={bloc.getField('speakingAudioUrls') ?? {}}
-                                                    stream={bloc.getStream('speakingAudioUrls')}
-                                                    builder={(speakingSnap) => {
-                                                        const speakingUrls: Record<number, string> = speakingSnap.data ?? {};
-                                                        return (
-                                                            <UIStream
-                                                                initialData={bloc.getField('speakingTextAnswers') ?? {}}
-                                                                stream={bloc.getStream('speakingTextAnswers')}
-                                                                builder={(speakingTextSnap) => {
-                                                                    const speakingTexts: Record<number, string> = speakingTextSnap.data ?? {};
-                                                                    // Đếm "đã trả lời" gộp cả 2 loại - câu MULTIPLE_CHOICE tính đã
-                                                                    // chọn đáp án, câu SPEAKING tính đã có bản ghi âm HOẶC đã gõ
-                                                                    // chữ (không dùng Object.keys(answers).length như cũ vì
-                                                                    // 'answers' chỉ chứa câu trắc nghiệm).
-                                                                    const answeredCount = questions.filter((q) => q.questionType === 'SPEAKING'
-                                                                        ? (speakingUrls[q.questionId] != null || !!speakingTexts[q.questionId]?.trim())
-                                                                        : answers[q.questionId] != null).length;
-                                                                    // Bat buoc tra loi HET moi duoc nop bai (2026-09-05, theo yeu cau
-                                                                    // "cho lam bai cua hoc sinh bat buoc phai tra loi het moi nop bai") -
-                                                                    // ap dung cho MOI cau hoi ke ca SPEAKING, dung y het cach dem
-                                                                    // answeredCount o tren (khop AskUserQuestion da chot). Nut Nop bai
-                                                                    // disable khi con thieu - backend cung tu choi lai lan nua qua
-                                                                    // QUIZ_038 ATTEMPT_NOT_ALL_ANSWERED neu goi thang API (xem
-                                                                    // StudentAttemptService#assertAllQuestionsAnswered), day chi la lop
-                                                                    // chan o frontend cho trai nghiem muot hon.
-                                                                    const allAnswered = answeredCount >= questions.length;
-                                                                    return (
-                                                                        <Card sx={{ p: 2 }}>
-                                                                            <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
-                                                                                <Typography variant="subtitle1" fontWeight={700} color={allAnswered ? 'text.primary' : 'error.main'}>
-                                                                                    {t('quiz-answered-count', { answered: answeredCount, total: questions.length })}
-                                                                                </Typography>
-                                                                                <UIStream
-                                                                                    initialData={false}
-                                                                                    stream={bloc.getStream('submitting')}
-                                                                                    builder={(submittingSnap) => (
-                                                                                        <Button variant="contained" disabled={submittingSnap.data === true || !allAnswered} onClick={askSubmit}>{t('quiz-submit-test')}</Button>
-                                                                                    )}
-                                                                                />
-                                                                            </Stack>
-                                                                            {!allAnswered && (
-                                                                                <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 1 }}>
-                                                                                    {t('quiz-answer-all-required')}
-                                                                                </Typography>
-                                                                            )}
-                                                                        </Card>
-                                                                    );
-                                                                }}
-                                                            />
-                                                        );
-                                                    }}
-                                                />
-                                            );
-                                        }}
-                                    />
-                                );
-                            }}
-                        />
-
-                        <UIStream
-                            initialData={bloc.getField('answers') ?? {}}
-                            stream={bloc.getStream('answers')}
-                            builder={(answersSnap) => {
-                                const answers: Record<number, number> = answersSnap.data ?? {};
-                                return (
-                                    <UIStream
-                                        initialData={null}
-                                        stream={bloc.getStream('result')}
-                                        builder={(resultSnap) => {
-                                            const result = resultSnap.data;
-                                            return (
-                                                <Stack spacing={2}>
-                                                    {questions.map((q, i) => (
+    // Tách riêng thành 1 hàm (2026-09-06, thiết kế lại giao diện làm bài) - nội dung Card của
+    // 1 câu hỏi CŨ chỉ dùng để .map() hiện HẾT mọi câu 1 lượt, GIỜ dùng lại y hệt cho CẢ 2 chỗ:
+    // (1) chế độ đang làm bài - chỉ hiện 1 câu (currentQuestion) kèm bảng chọn nhanh + next/prev
+    // (theo yêu cầu của anh - tránh cuộn dài với đề nhiều câu); (2) chế độ xem lại SAU KHI đã nộp
+    // - vẫn liệt kê hết 1 lượt như cũ (đã chốt qua AskUserQuestion, không đổi trải nghiệm xem lại).
+    // Không đổi bất kỳ logic/JSX nào bên trong - nguyên xi nội dung Card cũ, chỉ bọc thành hàm.
+    const renderQuestionCard = (q: QuizStudentQuestion, i: number, answers: Record<number, number>, result: any) => (
                                                         <Card key={q.questionId} sx={{ p: { xs: 2, sm: 3 } }}>
                                                             <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={1} sx={{ mb: 1 }}>
                                                                 <Typography variant="body1" fontWeight={700}>
@@ -394,8 +299,243 @@ export default function TakeTest() {
                                                                 </RadioGroup>
                                                             )}
                                                         </Card>
-                                                    ))}
-                                                </Stack>
+    );
+
+    return (
+        <UIStream
+            initialData={bloc.getField('questions') ?? null}
+            stream={bloc.getStream('questions')}
+            builder={(qSnap) => {
+                const questions: QuizStudentQuestion[] | null = qSnap.data;
+                if (!questions) {
+                    return (
+                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                            <CircularProgress />
+                        </Box>
+                    );
+                }
+
+                return (
+                    <Stack spacing={2}>
+                        <UIStream
+                            initialData={null}
+                            stream={bloc.getStream('result')}
+                            builder={(resultSnap) => {
+                                const result = resultSnap.data;
+                                if (result) {
+                                    return (
+                                        <Card sx={{ p: 4, textAlign: 'center' }}>
+                                            <CheckCircleOutlined color="success" sx={{ fontSize: 64, mb: 1 }} />
+                                            <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>{t('quiz-test-submitted')}</Typography>
+                                            <Typography variant="h4" fontWeight={700} color="primary.main" sx={{ mb: 1 }}>
+                                                {result.correctCount}/{result.totalQuestions}
+                                            </Typography>
+                                            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
+                                                {t('quiz-score-percent', { percent: Math.round(result.scorePercent) })}
+                                            </Typography>
+                                            <Button variant="contained" onClick={() => navigate('/app/student/tests')}>{t('quiz-back-to-tests')}</Button>
+                                        </Card>
+                                    );
+                                }
+                                return (
+                                    <UIStream
+                                        initialData={bloc.getField('answers') ?? {}}
+                                        stream={bloc.getStream('answers')}
+                                        builder={(answersSnap) => {
+                                            const answers: Record<number, number> = answersSnap.data ?? {};
+                                            return (
+                                                <UIStream
+                                                    initialData={bloc.getField('speakingAudioUrls') ?? {}}
+                                                    stream={bloc.getStream('speakingAudioUrls')}
+                                                    builder={(speakingSnap) => {
+                                                        const speakingUrls: Record<number, string> = speakingSnap.data ?? {};
+                                                        return (
+                                                            <UIStream
+                                                                initialData={bloc.getField('speakingTextAnswers') ?? {}}
+                                                                stream={bloc.getStream('speakingTextAnswers')}
+                                                                builder={(speakingTextSnap) => {
+                                                                    const speakingTexts: Record<number, string> = speakingTextSnap.data ?? {};
+                                                                    // Đếm "đã trả lời" gộp cả 2 loại - câu MULTIPLE_CHOICE tính đã
+                                                                    // chọn đáp án, câu SPEAKING tính đã có bản ghi âm HOẶC đã gõ
+                                                                    // chữ (không dùng Object.keys(answers).length như cũ vì
+                                                                    // 'answers' chỉ chứa câu trắc nghiệm).
+                                                                    const answeredCount = questions.filter((q) => q.questionType === 'SPEAKING'
+                                                                        ? (speakingUrls[q.questionId] != null || !!speakingTexts[q.questionId]?.trim())
+                                                                        : answers[q.questionId] != null).length;
+                                                                    // Bat buoc tra loi HET moi duoc nop bai (2026-09-05, theo yeu cau
+                                                                    // "cho lam bai cua hoc sinh bat buoc phai tra loi het moi nop bai") -
+                                                                    // ap dung cho MOI cau hoi ke ca SPEAKING, dung y het cach dem
+                                                                    // answeredCount o tren (khop AskUserQuestion da chot). Nut Nop bai
+                                                                    // disable khi con thieu - backend cung tu choi lai lan nua qua
+                                                                    // QUIZ_038 ATTEMPT_NOT_ALL_ANSWERED neu goi thang API (xem
+                                                                    // StudentAttemptService#assertAllQuestionsAnswered), day chi la lop
+                                                                    // chan o frontend cho trai nghiem muot hon.
+                                                                    const allAnswered = answeredCount >= questions.length;
+                                                                    return (
+                                                                        <Card sx={{ p: 2 }}>
+                                                                            <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1}>
+                                                                                <Typography variant="subtitle1" fontWeight={700} color={allAnswered ? 'text.primary' : 'error.main'}>
+                                                                                    {t('quiz-answered-count', { answered: answeredCount, total: questions.length })}
+                                                                                </Typography>
+                                                                                <UIStream
+                                                                                    initialData={false}
+                                                                                    stream={bloc.getStream('submitting')}
+                                                                                    builder={(submittingSnap) => (
+                                                                                        <Button variant="contained" disabled={submittingSnap.data === true || !allAnswered} onClick={askSubmit}>{t('quiz-submit-test')}</Button>
+                                                                                    )}
+                                                                                />
+                                                                            </Stack>
+                                                                            {!allAnswered && (
+                                                                                <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 1 }}>
+                                                                                    {t('quiz-answer-all-required')}
+                                                                                </Typography>
+                                                                            )}
+                                                                        </Card>
+                                                                    );
+                                                                }}
+                                                            />
+                                                        );
+                                                    }}
+                                                />
+                                            );
+                                        }}
+                                    />
+                                );
+                            }}
+                        />
+
+                        <UIStream
+                            initialData={bloc.getField('answers') ?? {}}
+                            stream={bloc.getStream('answers')}
+                            builder={(answersSnap) => {
+                                const answers: Record<number, number> = answersSnap.data ?? {};
+                                return (
+                                    <UIStream
+                                        initialData={bloc.getField('speakingAudioUrls') ?? {}}
+                                        stream={bloc.getStream('speakingAudioUrls')}
+                                        builder={(speakingSnap) => {
+                                            const speakingUrls: Record<number, string> = speakingSnap.data ?? {};
+                                            return (
+                                                <UIStream
+                                                    initialData={bloc.getField('speakingTextAnswers') ?? {}}
+                                                    stream={bloc.getStream('speakingTextAnswers')}
+                                                    builder={(speakingTextSnap) => {
+                                                        const speakingTexts: Record<number, string> = speakingTextSnap.data ?? {};
+                                                        return (
+                                                            <UIStream
+                                                                initialData={null}
+                                                                stream={bloc.getStream('result')}
+                                                                builder={(resultSnap) => {
+                                                                    const result = resultSnap.data;
+
+                                                                    // Sau khi đã NỘP bài - GIỮ NGUYÊN kiểu liệt kê hết 1 lượt như cũ
+                                                                    // (không áp dụng giao diện "1 câu/màn hình" cho chế độ xem lại -
+                                                                    // đã chốt qua AskUserQuestion 2026-09-06).
+                                                                    if (result != null) {
+                                                                        return (
+                                                                            <Stack spacing={2}>
+                                                                                {questions.map((q, i) => renderQuestionCard(q, i, answers, result))}
+                                                                            </Stack>
+                                                                        );
+                                                                    }
+
+                                                                    // ĐANG làm bài (2026-09-06, thiết kế lại theo yêu cầu của anh:
+                                                                    // "next, prev từng câu, những câu nào đã làm thì đánh dấu check, có
+                                                                    // thể bấm câu chưa làm hoặc đã làm để move đến câu đó làm/sửa đáp
+                                                                    // án") - CHỈ hiện 1 câu/màn hình (tránh cuộn dài với đề nhiều câu) +
+                                                                    // 1 bảng chọn nhanh (hàng ngang, tự xuống dòng - đã chọn qua
+                                                                    // AskUserQuestion, không dùng sidebar) phía trên + nút Câu trước/
+                                                                    // Câu tiếp theo phía dưới.
+                                                                    return (
+                                                                        <UIStream
+                                                                            initialData={bloc.getField('currentIndex') ?? 0}
+                                                                            stream={bloc.getStream('currentIndex')}
+                                                                            builder={(idxSnap) => {
+                                                                                const currentIndex = idxSnap.data ?? 0;
+                                                                                const currentQuestion = questions[currentIndex];
+                                                                                return (
+                                                                                    <Stack spacing={2}>
+                                                                                        <Card sx={{ p: 2 }}>
+                                                                                            <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 1.5 }}>
+                                                                                                {t('quiz-question-navigator')}
+                                                                                            </Typography>
+                                                                                            <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 1.5 }}>
+                                                                                                {questions.map((qq, qi) => {
+                                                                                                    const isAnswered = qq.questionType === 'SPEAKING'
+                                                                                                        ? (speakingUrls[qq.questionId] != null || !!speakingTexts[qq.questionId]?.trim())
+                                                                                                        : answers[qq.questionId] != null;
+                                                                                                    const isCurrent = qi === currentIndex;
+                                                                                                    return (
+                                                                                                        <ButtonBase
+                                                                                                            key={qq.questionId}
+                                                                                                            onClick={() => bloc.goToQuestion(qi)}
+                                                                                                            sx={{
+                                                                                                                width: 40, height: 40, borderRadius: 1.5, position: 'relative',
+                                                                                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                                                                border: '2px solid',
+                                                                                                                borderColor: isCurrent ? 'primary.main' : (isAnswered ? 'success.main' : 'divider'),
+                                                                                                                bgcolor: isAnswered ? 'success.light' : 'transparent',
+                                                                                                                color: isAnswered ? 'success.dark' : 'text.primary',
+                                                                                                                '&:hover': { bgcolor: isAnswered ? 'success.light' : 'action.hover' }
+                                                                                                            }}
+                                                                                                        >
+                                                                                                            <Typography variant="body2" fontWeight={700}>{qi + 1}</Typography>
+                                                                                                            {isAnswered && (
+                                                                                                                <CheckCircleOutlined
+                                                                                                                    sx={{
+                                                                                                                        position: 'absolute', top: -6, right: -6, fontSize: 16,
+                                                                                                                        color: 'success.main', bgcolor: 'background.paper', borderRadius: '50%'
+                                                                                                                    }}
+                                                                                                                />
+                                                                                                            )}
+                                                                                                        </ButtonBase>
+                                                                                                    );
+                                                                                                })}
+                                                                                            </Stack>
+                                                                                            <Stack direction="row" spacing={2} flexWrap="wrap">
+                                                                                                <Stack direction="row" alignItems="center" spacing={0.5}>
+                                                                                                    <Box sx={{ width: 14, height: 14, borderRadius: 0.5, border: '2px solid', borderColor: 'success.main', bgcolor: 'success.light' }} />
+                                                                                                    <Typography variant="caption" color="text.secondary">{t('quiz-question-answered-legend')}</Typography>
+                                                                                                </Stack>
+                                                                                                <Stack direction="row" alignItems="center" spacing={0.5}>
+                                                                                                    <Box sx={{ width: 14, height: 14, borderRadius: 0.5, border: '2px solid', borderColor: 'divider' }} />
+                                                                                                    <Typography variant="caption" color="text.secondary">{t('quiz-question-unanswered-legend')}</Typography>
+                                                                                                </Stack>
+                                                                                                <Stack direction="row" alignItems="center" spacing={0.5}>
+                                                                                                    <Box sx={{ width: 14, height: 14, borderRadius: 0.5, border: '2px solid', borderColor: 'primary.main' }} />
+                                                                                                    <Typography variant="caption" color="text.secondary">{t('quiz-question-current-legend')}</Typography>
+                                                                                                </Stack>
+                                                                                            </Stack>
+                                                                                        </Card>
+
+                                                                                        {renderQuestionCard(currentQuestion, currentIndex, answers, result)}
+
+                                                                                        <Stack direction="row" justifyContent="space-between">
+                                                                                            <Button
+                                                                                                variant="outlined"
+                                                                                                disabled={currentIndex === 0}
+                                                                                                onClick={() => bloc.prevQuestion()}
+                                                                                            >
+                                                                                                {t('quiz-prev-question')}
+                                                                                            </Button>
+                                                                                            <Button
+                                                                                                variant="outlined"
+                                                                                                disabled={currentIndex === questions.length - 1}
+                                                                                                onClick={() => bloc.nextQuestion(questions.length)}
+                                                                                            >
+                                                                                                {t('quiz-next-question')}
+                                                                                            </Button>
+                                                                                        </Stack>
+                                                                                    </Stack>
+                                                                                );
+                                                                            }}
+                                                                        />
+                                                                    );
+                                                                }}
+                                                            />
+                                                        );
+                                                    }}
+                                                />
                                             );
                                         }}
                                     />
