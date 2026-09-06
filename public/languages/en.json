@@ -62,7 +62,7 @@
     "quiz-student-created": "Student added",
     "quiz-student-updated": "Student updated",
     "quiz-student-deleted": "Student deleted",
-    "quiz-delete-student-confirm": "Are you sure you want to delete this student? This action cannot be undone.",
+    "quiz-delete-student-confirm": "Are you sure you want to delete this student? ALL of this student's data will be permanently deleted, including: assigned tests/practice tests, submitted results/scores, lesson-report history, and their timetable. This action cannot be undone.",
     "quiz-subjects": "Subjects",
     "quiz-questions": "Question bank",
     "quiz-tests": "Tests",

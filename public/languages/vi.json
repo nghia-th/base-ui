@@ -62,7 +62,7 @@
     "quiz-student-created": "Đã thêm học sinh",
     "quiz-student-updated": "Đã cập nhật học sinh",
     "quiz-student-deleted": "Đã xoá học sinh",
-    "quiz-delete-student-confirm": "Bạn có chắc muốn xoá học sinh này không? Hành động này không thể hoàn tác.",
+    "quiz-delete-student-confirm": "Bạn có chắc muốn xoá học sinh này không? TOÀN BỘ dữ liệu của học sinh này sẽ bị xoá vĩnh viễn, bao gồm: đề kiểm tra/đề ôn đã giao, kết quả/điểm số đã làm, lịch sử báo bài, và thời khoá biểu. Hành động này không thể hoàn tác.",
     "quiz-subjects": "Môn học",
     "quiz-questions": "Ngân hàng câu hỏi",
     "quiz-tests": "Đề kiểm tra",
