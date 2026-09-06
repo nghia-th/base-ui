@@ -30,7 +30,7 @@ import CalendarMonthOutlined from "@mui/icons-material/CalendarMonthOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import AppDialog from "../../components/dialogs/AppDialog";
 import { DIALOG_CANCEL_BUTTON_SX, DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
-import { BlocParentTimetable, QuizClassroomLite, QuizSubjectLite } from "../../bloc/BlocParentTimetable";
+import { BlocParentTimetable, QuizStudentLite, QuizSubjectLite } from "../../bloc/BlocParentTimetable";
 import { QuizTimetableEntry } from "../../../api/QuizTimetableApi";
 import UIStream from "../../components/common/UIStream";
 import { quizErrorMessage } from "../../../quiz-net/quizErrors";
@@ -52,15 +52,20 @@ function todayIsoDayOfWeek(): number {
 
 // Trang "Thoi khoa bieu" (khu vuc Phu huynh, /app/parent/timetable - MOI, 2026-09-05, phan 1 cua
 // tinh nang - CRUD cho Phu huynh, theo yeu cau "tao chuc nang thoi khoa bieu trong 1 tuan cua
-// con"). Mau CHUNG DUY NHAT cho ca Lop (khong theo tung tuan cu the - AskUserQuestion 2026-09-05),
-// khong co gio giac (chi thu tu mon trong ngay).
+// con"). Mau CHUNG DUY NHAT cho moi Hoc sinh (khong theo tung tuan cu the - AskUserQuestion
+// 2026-09-05), khong co gio giac (chi thu tu mon trong ngay).
 //
-// Revision 2026-09-06: bo han buoc chon Bai hoc (Lesson) - sau khi anh test ban dau va yeu cau
-// "thoi khoa bieu la: toan, anh van, hoa", 1 ngay chi con la danh sach Mon hoc theo thu tu.
+// Revision 2026-09-06 (a): bo han buoc chon Bai hoc (Lesson) - sau khi anh test ban dau va yeu
+// cau "thoi khoa bieu la: toan, anh van, hoa", 1 ngay chi con la danh sach Mon hoc theo thu tu.
 //
-// Chon Lop o dau trang (neu Phu huynh co nhieu hon 1 Lop) -> 7 the ngay Thu Hai..Chu Nhat, moi the
-// liet ke cac Mon hoc da xep theo thu tu + nut Sua mo Dialog thay TOAN BO danh sach ngay do (chon
-// Mon hoc -> Them vao danh sach dang soan, co the xoa/doi thu tu truoc khi Luu).
+// Revision 2026-09-06 (b): chon Hoc sinh (khong con chon Lop nua) - theo yeu cau "hien tai tao
+// thoi khoa bieu theo lop dung ra la thoi khoa bieu theo hoc sinh boi vi phu huynh co 2 con cung
+// hoc mot lop nhung thoi khoa bieu khac nhau" - 2 anh em hoc chung 1 Lop gio co the co thoi khoa
+// bieu rieng, moi Hoc sinh 1 bo lich doc lap.
+//
+// Chon Hoc sinh o dau trang (neu Phu huynh co nhieu hon 1 con) -> 7 the ngay Thu Hai..Chu Nhat,
+// moi the liet ke cac Mon hoc da xep theo thu tu + nut Sua mo Dialog thay TOAN BO danh sach ngay
+// do (chon Mon hoc -> Them vao danh sach dang soan, co the xoa/doi thu tu truoc khi Luu).
 export default function ParentTimetable() {
     const { t } = useTranslation();
     const { enqueueSnackbar } = useSnackbar();
@@ -99,31 +104,31 @@ export default function ParentTimetable() {
 
     return (
         <UIStream
-            initialData={bloc.getField('classrooms') ?? null}
-            stream={bloc.getStream('classrooms')}
-            builder={(classroomsSnap) => {
-                const classrooms: QuizClassroomLite[] = classroomsSnap.data ?? [];
-                if (classroomsSnap.data == null) {
+            initialData={bloc.getField('students') ?? null}
+            stream={bloc.getStream('students')}
+            builder={(studentsSnap) => {
+                const students: QuizStudentLite[] = studentsSnap.data ?? [];
+                if (studentsSnap.data == null) {
                     return (
                         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
                             <CircularProgress />
                         </Box>
                     );
                 }
-                if (classrooms.length === 0) {
+                if (students.length === 0) {
                     return (
                         <Card sx={{ p: 3 }}>
-                            <Typography color="text.secondary">{t('quiz-timetable-no-classroom')}</Typography>
+                            <Typography color="text.secondary">{t('quiz-timetable-no-student')}</Typography>
                         </Card>
                     );
                 }
 
                 return (
                     <UIStream
-                        initialData={bloc.getField('selectedClassroomId') ?? null}
-                        stream={bloc.getStream('selectedClassroomId')}
-                        builder={(classroomIdSnap) => {
-                            const selectedClassroomId = classroomIdSnap.data;
+                        initialData={bloc.getField('selectedStudentId') ?? null}
+                        stream={bloc.getStream('selectedStudentId')}
+                        builder={(studentIdSnap) => {
+                            const selectedStudentId = studentIdSnap.data;
                             return (
                                 <UIStream
                                     initialData={bloc.getField('subjects') ?? []}
@@ -133,19 +138,19 @@ export default function ParentTimetable() {
                                         return (
                                             <Stack spacing={2}>
                                                 <Card sx={{ p: { xs: 2, sm: 3 } }}>
-                                                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: classrooms.length > 1 ? 2 : 0 }}>
+                                                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: students.length > 1 ? 2 : 0 }}>
                                                         <CalendarMonthOutlined color="primary" />
                                                         <Typography variant="h6" fontWeight={700}>{t('quiz-timetable')}</Typography>
                                                     </Stack>
-                                                    {classrooms.length > 1 && (
+                                                    {students.length > 1 && (
                                                         <FormControl size="small" sx={{ minWidth: 240 }}>
-                                                            <InputLabel>{t('quiz-classrooms')}</InputLabel>
+                                                            <InputLabel>{t('quiz-students')}</InputLabel>
                                                             <Select
-                                                                label={t('quiz-classrooms')}
-                                                                value={selectedClassroomId ?? ''}
-                                                                onChange={(e) => bloc.selectClassroom(Number(e.target.value))}
+                                                                label={t('quiz-students')}
+                                                                value={selectedStudentId ?? ''}
+                                                                onChange={(e) => bloc.selectStudent(Number(e.target.value))}
                                                             >
-                                                                {classrooms.map((c) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
+                                                                {students.map((s) => <MenuItem key={s.id} value={s.id}>{s.fullName}</MenuItem>)}
                                                             </Select>
                                                         </FormControl>
                                                     )}

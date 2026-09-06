@@ -572,6 +572,7 @@
     "QUIZ_038": "You must answer every question before submitting.",
     "quiz-timetable": "Timetable",
     "quiz-timetable-no-classroom": "You have no classroom yet - go to \"Classrooms\" to create one before setting up a timetable.",
+    "quiz-timetable-no-student": "You have no student yet - go to \"Students\" to create your first child's profile before setting up a timetable.",
     "quiz-timetable-no-subject": "This classroom has no subjects yet - go to \"Subjects\" to add one before scheduling the timetable.",
     "quiz-timetable-day-empty": "No lessons scheduled for this day yet.",
     "quiz-timetable-saved": "Timetable saved",

@@ -572,6 +572,7 @@
     "QUIZ_038": "Bạn phải trả lời hết tất cả câu hỏi trước khi nộp bài.",
     "quiz-timetable": "Thời khoá biểu",
     "quiz-timetable-no-classroom": "Anh chưa có lớp học nào - vào mục \"Lớp học\" để tạo lớp đầu tiên trước khi lập thời khoá biểu.",
+    "quiz-timetable-no-student": "Anh chưa có học sinh nào - vào mục \"Học sinh\" để tạo hồ sơ con đầu tiên trước khi lập thời khoá biểu.",
     "quiz-timetable-no-subject": "Lớp này chưa có môn học nào - vào mục \"Môn học\" để thêm trước khi xếp thời khoá biểu.",
     "quiz-timetable-day-empty": "Chưa xếp môn học nào cho ngày này.",
     "quiz-timetable-saved": "Đã lưu thời khoá biểu",

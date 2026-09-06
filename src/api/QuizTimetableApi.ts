@@ -6,9 +6,15 @@ import { QUIZ_PARENT_PREFIX } from "../base/PrefixService";
 // java.time.DayOfWeek#getValue(), ISO-8601) - dung chung o ca frontend lan backend, khong dich
 // nguoc lai kieu 0-based/Chu Nhat dau tuan.
 //
-// Doi tu gan Lesson cu the sang chi gan Subject (2026-09-06, sau khi anh test ban dau va yeu cau
-// "thoi khoa bieu la: toan, anh van, hoa") - khong con lessonId/lessonName nua, xem
+// Doi tu gan Lesson cu the sang chi gan Subject (2026-09-06 revision a, sau khi anh test ban dau
+// va yeu cau "thoi khoa bieu la: toan, anh van, hoa") - khong con lessonId/lessonName nua, xem
 // TimetableEntry.java's javadoc ben backend.
+//
+// Doi tu gan theo Lop (classroomId) sang gan theo Hoc sinh (studentId) (2026-09-06 revision b,
+// theo yeu cau "hien tai tao thoi khoa bieu theo lop dung ra la thoi khoa bieu theo hoc sinh boi
+// vi phu huynh co 2 con cung hoc mot lop nhung thoi khoa bieu khac nhau") - getWeek/setDay doi
+// param sang studentId, path doi tu /classrooms/{classroomId}/timetable sang
+// /students/{studentId}/timetable.
 export interface QuizTimetableEntry {
     id: number;
     dayOfWeek: number;
@@ -37,14 +43,14 @@ export class QuizTimetableApi {
     // Danh sach phang ca tuan (moi dayOfWeek tron lan nhau, da sap xep san theo dayOfWeek roi
     // orderIndex o backend) - frontend tu group lai theo dayOfWeek, dung convention "flat list,
     // group tren client" nhu StudentTestSummaryResponse.
-    static getWeek(classroomId: number) {
-        return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/classrooms/${classroomId}/timetable`);
+    static getWeek(studentId: number) {
+        return QuizRequestBase.get(`${QUIZ_PARENT_PREFIX}/students/${studentId}/timetable`);
     }
 
     // THAY TOAN BO danh sach mon hoc cua 1 ngay trong 1 lan goi (khong phai them/xoa tung dong) -
     // subjectIds rong = xoa trong ngay do. Xem TimetableService#setDay's javadoc ben backend.
-    static setDay(classroomId: number, dayOfWeek: number, request: QuizTimetableDayRequest) {
-        return QuizRequestBase.put(`${QUIZ_PARENT_PREFIX}/classrooms/${classroomId}/timetable/${dayOfWeek}`, request);
+    static setDay(studentId: number, dayOfWeek: number, request: QuizTimetableDayRequest) {
+        return QuizRequestBase.put(`${QUIZ_PARENT_PREFIX}/students/${studentId}/timetable/${dayOfWeek}`, request);
     }
 
     // Item 10 (dot 11 yeu cau, 2026-09-05) - checklist "chuan bi bai cho ngay mai" cua 1 hoc sinh,
