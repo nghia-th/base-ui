@@ -154,6 +154,8 @@ export class BlocParentTests extends IBlocUI {
         this.setStream('formMode', 'question')
         this.setStream('formStudentId', '')
         this.setStream('formSubjectId', '')
+        this.setStream('formSubjectIsShared', false)
+        this.setStream('formExtraStudentIds', [])
         this.setStream('formLessonId', '')
         this.setStream('formQuestionIds', [])
         this.setStream('formLessonIds', [])
@@ -184,6 +186,8 @@ export class BlocParentTests extends IBlocUI {
     changeFormStudent(value: number | '') {
         this.setStream('formStudentId', value)
         this.setStream('formSubjectId', '')
+        this.setStream('formSubjectIsShared', false)
+        this.setStream('formExtraStudentIds', [])
         this.setStream('formLessonId', '')
         this.setStream('formQuestionIds', [])
         this.setStream('formLessonIds', [])
@@ -194,14 +198,34 @@ export class BlocParentTests extends IBlocUI {
         if (classroomId != null) this.loadSubjects(classroomId)
     }
 
+    // 2026-09-06 (d) - "tạo đề kiểm tra cho phép chọn nhiều học sinh khi Môn dùng chung mọi lớp":
+    // phát hiện Môn vừa chọn có phải loại DÙNG CHUNG không (classroomId null, xem Subject.java's
+    // javadoc) bằng cách tra lại trong 'subjects' đã tải sẵn (không cần gọi API riêng) - chỉ khi
+    // đúng loại này mới hiện danh sách "chọn thêm học sinh khác" bên dưới, xem
+    // toggleFormExtraStudent/submitCreate. Đổi Môn thì bỏ hết học sinh phụ đã tick trước đó (có
+    // thể không còn hợp lệ nếu Môn mới không phải loại dùng chung).
     changeFormSubject(value: number) {
         this.setStream('formSubjectId', value)
+        this.setStream('formExtraStudentIds', [])
+        const subjects: any[] = this.getField('subjects') ?? []
+        const isShared = subjects.find((s) => s.id === value)?.classroomId == null
+        this.setStream('formSubjectIsShared', isShared)
         this.setStream('formLessonId', '')
         this.setStream('formQuestionIds', [])
         this.setStream('formLessonIds', [])
         this.setStream('formLessonQuestions', [])
         this.setStream('formLessonSelectedQuestionIds', [])
         this.loadLessons(value)
+    }
+
+    // Tick/bỏ tick 1 Học sinh PHỤ trong danh sách "chọn thêm học sinh khác" (chỉ hiện khi Môn đang
+    // chọn là loại dùng chung, xem changeFormSubject) - Học sinh CHÍNH (formStudentId) không nằm
+    // trong danh sách này, xem Tests.tsx's filter. submitCreate() sẽ tạo CÙNG 1 đề (cùng câu hỏi)
+    // riêng cho Học sinh chính + từng Học sinh phụ được tick ở đây.
+    toggleFormExtraStudent(id: number) {
+        const ids: number[] = this.getField('formExtraStudentIds') ?? []
+        const next = ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]
+        this.setStream('formExtraStudentIds', next)
     }
 
     // Chế độ 'lesson' (2026-09-05, mục 3/11) - tick/bỏ tick nhiều Bài học cùng lúc, cùng shape
@@ -267,7 +291,16 @@ export class BlocParentTests extends IBlocUI {
         this.setStream('formQuestionIds', next)
     }
 
-    submitCreate(onComplete: () => void, onError: (error: any) => void) {
+    // 2026-09-06 (d): studentIds có thể có NHIỀU hơn 1 phần tử khi Môn đang chọn là loại DÙNG
+    // CHUNG và Phụ huynh có tick thêm "học sinh khác" (xem changeFormSubject/toggleFormExtraStudent)
+    // - tạo TUẦN TỰ (await từng cái, không song song, tránh dội tải server) 1 Test giống hệt nhau
+    // (cùng name/câu hỏi) cho MỖI Học sinh trong danh sách, dùng thẳng QuizTestApi qua
+    // apiRequestAwait (thay vì gọi lại create()/createFromLessons() ở trên, vốn tự
+    // reloadTests() sau MỖI lần - ở đây chỉ cần reloadTests() 1 LẦN sau khi xong cả danh sách).
+    // Best-effort per-student giống hệt quy ước import file (1 học sinh lỗi không chặn các học
+    // sinh còn lại) - 'lastCreateStudentCount' lưu số tạo THÀNH CÔNG để Tests.tsx hiện đúng số
+    // trong thông báo (xem submitCreate ở Tests.tsx).
+    async submitCreate(onComplete: () => void, onError: (error: any) => void) {
         const studentId = this.getField('formStudentId')
         const name = this.getField('name', 'createReq') ?? ''
         const mode = this.getField('formMode') ?? 'question'
@@ -275,30 +308,60 @@ export class BlocParentTests extends IBlocUI {
             onError({ messageKey: 'required-field' })
             return
         }
+        const isShared = this.getField('formSubjectIsShared') === true
+        const extraStudentIds: number[] = isShared ? (this.getField('formExtraStudentIds') ?? []) : []
+        const studentIds = [studentId, ...extraStudentIds.filter((id) => id !== studentId)]
+
+        let lessonIds: number[] = []
+        let questionIds: number[] = []
         if (mode === 'lesson') {
-            const lessonIds: number[] = this.getField('formLessonIds') ?? []
+            lessonIds = this.getField('formLessonIds') ?? []
             // 2026-09-06: questionIds giờ bắt buộc - Phụ huynh phải tự tick câu hỏi (hoặc bấm
             // "Chọn tất cả"), không còn server tự lấy hết nữa.
-            const questionIds: number[] = this.getField('formLessonSelectedQuestionIds') ?? []
+            questionIds = this.getField('formLessonSelectedQuestionIds') ?? []
             if (lessonIds.length === 0 || questionIds.length === 0) {
                 onError({ messageKey: 'required-field' })
                 return
             }
-            this.setStream('submitting', true)
-            const request: QuizTestCreateFromLessonsRequest = { studentId, name, lessonIds, questionIds }
-            this.createFromLessons(request, () => { this.setStream('submitting', false); onComplete() },
-                (error: any) => { this.setStream('submitting', false); onError(error) })
-            return
+        } else {
+            questionIds = this.getField('formQuestionIds') ?? []
+            if (questionIds.length === 0) {
+                onError({ messageKey: 'required-field' })
+                return
+            }
         }
-        const questionIds: number[] = this.getField('formQuestionIds') ?? []
-        if (questionIds.length === 0) {
-            onError({ messageKey: 'required-field' })
-            return
-        }
+
         this.setStream('submitting', true)
-        const request: QuizTestCreateRequest = { studentId, name, questionIds }
-        this.create(request, () => { this.setStream('submitting', false); onComplete() },
-            (error: any) => { this.setStream('submitting', false); onError(error) })
+        let successCount = 0
+        let lastError: any = null
+        for (const sid of studentIds) {
+            const result = await this.createOneTestFor(sid, mode, name, lessonIds, questionIds)
+            if (result.success) successCount++
+            else lastError = result.error
+        }
+        this.setStream('submitting', false)
+        this.setStream('lastCreateStudentCount', successCount)
+        this.reloadTests()
+        if (successCount > 0) {
+            onComplete()
+        } else {
+            onError(lastError ?? { messageKey: 'required-field' })
+        }
+    }
+
+    // Tách riêng khỏi vòng lặp for của submitCreate() ở trên (ESLint no-loop-func - khai báo hàm
+    // đóng (closure) tham chiếu biến ngoài vòng lặp bên trong chính vòng lặp đó dễ gây lỗi tinh vi
+    // nếu sau này đổi thành song song thay vì tuần tự) - trả về kết quả THÀNH CÔNG/LỖI của đúng 1
+    // lần gọi thay vì mutate biến đếm dùng chung.
+    private async createOneTestFor(studentId: number, mode: 'question' | 'lesson', name: string, lessonIds: number[], questionIds: number[]): Promise<{ success: boolean; error?: any }> {
+        const request = mode === 'lesson'
+            ? QuizTestApi.createFromLessons({ studentId, name, lessonIds, questionIds } as QuizTestCreateFromLessonsRequest)
+            : QuizTestApi.create({ studentId, name, questionIds } as QuizTestCreateRequest)
+        let success = false
+        let error: any = null
+        await this.apiRequestAwait(request, () => { success = true },
+            { onError: (e: any) => { error = e }, isShowLoading: false })
+        return { success, error }
     }
 
     // --- Dialog "Tạo đề ôn tập" ---

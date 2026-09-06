@@ -78,7 +78,10 @@ export default function Tests() {
 
     const submitCreate = () => {
         bloc.submitCreate(() => {
-            enqueueSnackbar(t('quiz-test-created') as string, { variant: 'success' });
+            // 2026-09-06 (d): >1 nghĩa là vừa tạo cho nhiều Học sinh (Môn dùng chung + có tick
+            // "chọn thêm học sinh khác") - xem BlocParentTests.submitCreate's comment.
+            const count = bloc.getField('lastCreateStudentCount') ?? 1;
+            enqueueSnackbar((count > 1 ? t('quiz-test-created-multi', { count }) : t('quiz-test-created')) as string, { variant: 'success' });
             bloc.closeCreate();
         }, showError);
     };
@@ -273,6 +276,50 @@ export default function Tests() {
                                                                 )}
                                                             />
                                                         )}
+                                                    />
+                                                    {/* "Chọn thêm học sinh khác" (2026-09-06 (d)) - chỉ hiện khi Môn đang chọn là loại DÙNG
+                                                        CHUNG (classroomId null, xem BlocParentTests.changeFormSubject) - cùng 1 đề (cùng câu
+                                                        hỏi) sẽ được tạo riêng cho Học sinh chính + từng Học sinh được tick ở đây, xem
+                                                        submitCreate() ở trên. */}
+                                                    <UIStream
+                                                        initialData={bloc.getField('formSubjectIsShared') ?? false}
+                                                        stream={bloc.getStream('formSubjectIsShared')}
+                                                        builder={(isSharedSnap) => {
+                                                            if (isSharedSnap.data !== true) return null;
+                                                            return (
+                                                                <UIStream
+                                                                    initialData={bloc.getField('formStudentId') ?? ''}
+                                                                    stream={bloc.getStream('formStudentId')}
+                                                                    builder={(studentIdSnap) => {
+                                                                        const otherStudents = students.filter((s) => s.id !== studentIdSnap.data);
+                                                                        if (otherStudents.length === 0) return null;
+                                                                        return (
+                                                                            <UIStream
+                                                                                initialData={bloc.getField('formExtraStudentIds') ?? []}
+                                                                                stream={bloc.getStream('formExtraStudentIds')}
+                                                                                builder={(extraSnap) => {
+                                                                                    const extraIds: number[] = extraSnap.data ?? [];
+                                                                                    return (
+                                                                                        <Box>
+                                                                                            <Typography variant="subtitle2" sx={{ mb: 0.5 }}>{t('quiz-select-extra-students')}</Typography>
+                                                                                            <Stack sx={{ maxHeight: 160, overflowY: 'auto' }}>
+                                                                                                {otherStudents.map((s) => (
+                                                                                                    <FormControlLabel
+                                                                                                        key={s.id}
+                                                                                                        control={<Checkbox checked={extraIds.includes(s.id)} onChange={() => bloc.toggleFormExtraStudent(s.id)} />}
+                                                                                                        label={s.fullName}
+                                                                                                    />
+                                                                                                ))}
+                                                                                            </Stack>
+                                                                                        </Box>
+                                                                                    );
+                                                                                }}
+                                                                            />
+                                                                        );
+                                                                    }}
+                                                                />
+                                                            );
+                                                        }}
                                                     />
                                                     <UIStream
                                                         initialData={bloc.getField('formMode') ?? 'question'}

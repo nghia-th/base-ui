@@ -194,8 +194,10 @@ export default function Subjects() {
                                                         // như trước - lý do anh test thấy 2 môn cùng tên "Toán" không phân biệt được
                                                         // thuộc Lớp nào khi lọc "Tất cả lớp" (2026-09-01).
                                                         const classrooms: QuizClassroomLite[] = classroomsSnap.data ?? [];
-                                                        const classroomName = (classroomId: number) =>
-                                                            classrooms.find((c) => c.id === classroomId)?.name ?? '';
+                                                        // classroomId null (2026-09-06 (c)) = Môn dùng chung mọi Lớp - hiện nhãn riêng
+                                                        // thay vì để trống, xem QuizSubject.classroomId's comment.
+                                                        const classroomName = (classroomId: number | null) =>
+                                                            classroomId == null ? t('quiz-subject-shared-all-classrooms') : (classrooms.find((c) => c.id === classroomId)?.name ?? '');
                                                         return (
                                                             <>
                                                                 <UIStream
@@ -270,8 +272,14 @@ export default function Subjects() {
                                                                                         <Select
                                                                                             label={t('quiz-classrooms')}
                                                                                             value={classroomIdSnap.data ?? ''}
-                                                                                            onChange={(e) => bloc.setStream('subjectFormClassroomId', e.target.value === '' ? '' : Number(e.target.value), 'subjectReq')}
+                                                                                            onChange={(e) => {
+                                                                                                const v = e.target.value;
+                                                                                                bloc.setStream('subjectFormClassroomId', v === '' ? '' : (v === 'ALL' ? 'ALL' : Number(v)), 'subjectReq')
+                                                                                            }}
                                                                                         >
+                                                                                            {/* 'ALL' (2026-09-06 (c)) = Môn dùng chung mọi Lớp của Phụ huynh - chuyển thành
+                                                                                                classroomId=null khi lưu, xem BlocParentSubjects.saveSubject. */}
+                                                                                            <MenuItem value="ALL">{t('quiz-subject-shared-all-classrooms')}</MenuItem>
                                                                                             {(classroomsSnap.data ?? []).map((c: QuizClassroomLite) => <MenuItem key={c.id} value={c.id}>{c.name}</MenuItem>)}
                                                                                         </Select>
                                                                                     </FormControl>

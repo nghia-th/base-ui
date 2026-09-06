@@ -3,10 +3,14 @@ import QUIZ_API from "../quiz-net/QuizApiService";
 import { QUIZ_PARENT_PREFIX } from "../base/PrefixService";
 
 // Khớp SubjectRequest.java (dùng chung cho create/update) - từ khi thêm "Lớp học", mỗi Môn học
-// giờ thuộc về 1 Lớp cụ thể (classroomId bắt buộc, có thể đổi lớp qua update bình thường - xem
-// SubjectRequest.java's javadoc bên backend), không còn thuộc thẳng về Phụ huynh như trước.
+// thuộc về 1 Lớp cụ thể (có thể đổi lớp qua update bình thường - xem SubjectRequest.java's
+// javadoc bên backend), không còn thuộc thẳng về Phụ huynh như trước.
+//
+// Sửa 2026-09-06 (c): classroomId giờ KHÔNG BẮT BUỘC nữa - để trống (undefined/null) nghĩa là
+// Môn học này DÙNG CHUNG cho MỌI Lớp của Phụ huynh (VD: "Lập trình Python" không phân biệt lớp),
+// theo yêu cầu của anh. Xem SubjectRequest.java/Subject.java's javadoc bên backend.
 export interface QuizSubjectRequest {
-    classroomId: number;
+    classroomId?: number | null;
     name: string;
 }
 

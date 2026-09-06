@@ -9,9 +9,13 @@ import { QuizLibraryDocument, QuizSubjectLibraryLink } from "../../api/QuizLibra
 
 // Khớp SubjectResponse.java / LessonResponse.java. classroomId thay cho parentId cũ - Subject giờ
 // là con của Classroom (không còn gán trực tiếp vào Parent nữa), xem ClassroomApi.ts.
+//
+// Sửa 2026-09-06 (c): classroomId giờ CÓ THỂ null - nghĩa là Môn học này DÙNG CHUNG cho MỌI Lớp
+// của Phụ huynh (VD: "Lập trình Python" không phân biệt lớp), theo yêu cầu của anh. Xem
+// Subject.java's javadoc bên backend.
 export interface QuizSubject {
     id: number;
-    classroomId: number;
+    classroomId: number | null;
     name: string;
 }
 
@@ -192,9 +196,12 @@ export class BlocParentSubjects extends IBlocUI {
         this.setStream('subject_form_view', { isShow: true, id: 0 })
     }
 
+    // classroomId null (Môn dùng chung mọi lớp, 2026-09-06 (c)) hiện lên form dưới dạng sentinel
+    // chuỗi 'ALL' - xem saveSubject() bên dưới cho chiều ngược lại (chuyển 'ALL' -> null khi gửi
+    // request), và Subjects.tsx's Select cho MenuItem value="ALL" tương ứng.
     openEditSubject(subject: QuizSubject) {
         this.setField('subjectReq', {})
-        this.setStream('subjectFormClassroomId', subject.classroomId, 'subjectReq')
+        this.setStream('subjectFormClassroomId', subject.classroomId ?? 'ALL', 'subjectReq')
         this.setStream('subjectFormName', subject.name, 'subjectReq')
         this.setStream('subject_form_view', { isShow: true, id: subject.id })
     }
@@ -208,6 +215,9 @@ export class BlocParentSubjects extends IBlocUI {
         const view = this.getField('subject_form_view') ?? {}
         const req = this.getField('subjectReq') ?? {}
         const classroomId = req.subjectFormClassroomId
+        // Vẫn bắt buộc phải CHỦ ĐỘNG chọn 1 trong 2: 1 Lớp cụ thể, hoặc "Dùng chung mọi lớp"
+        // ('ALL') - '' nghĩa là chưa chọn gì cả, không phải là cách để tạo Môn dùng chung (tránh
+        // vô tình tạo nhầm Môn dùng chung mọi lớp chỉ vì bỏ trống).
         if (!req.subjectFormName || classroomId === '' || classroomId == null) {
             onError({ messageKey: 'required-field' })
             return
@@ -215,7 +225,7 @@ export class BlocParentSubjects extends IBlocUI {
         this.setStream('submitting', true)
         const done = () => { this.setStream('submitting', false); onComplete() }
         const fail = (error: any) => { this.setStream('submitting', false); onError(error) }
-        const request = { name: req.subjectFormName, classroomId }
+        const request = { name: req.subjectFormName, classroomId: classroomId === 'ALL' ? null : classroomId }
         if ((view.id ?? 0) > 0) {
             this.updateSubject(view.id, request, done, fail)
         } else {
