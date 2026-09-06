@@ -24,6 +24,8 @@ import FactCheckOutlined from "@mui/icons-material/FactCheckOutlined";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
 import CancelOutlined from "@mui/icons-material/CancelOutlined";
 import RecordVoiceOverOutlined from "@mui/icons-material/RecordVoiceOverOutlined";
+import VolumeUpOutlined from "@mui/icons-material/VolumeUpOutlined";
+import VideocamOutlined from "@mui/icons-material/VideocamOutlined";
 import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -59,6 +61,8 @@ export default function Tests() {
     const showError = (error: any) => enqueueSnackbar(quizErrorMessage(t, error), { variant: error?.variant ?? 'error' });
     const openAnswerReview = (testId: number) => bloc.openAnswerReview(testId, showError);
     const playSpeakingAnswer = (attemptId: number, questionId: number) => bloc.loadSpeakingAnswer(attemptId, questionId, showError);
+    const playQuestionAudio = (questionId: number) => bloc.loadQuestionAudio(questionId, showError);
+    const playQuestionVideo = (questionId: number) => bloc.loadQuestionVideo(questionId, showError);
 
     useEffect(() => {
         bloc.initData();
@@ -240,6 +244,66 @@ export default function Tests() {
                                             <Stack spacing={1.5}>
                                                 {review.answers.map((a, i) => (
                                                     <Box key={a.questionId}>
+                                                        {a.hasAudio && (
+                                                            <UIStream
+                                                                initialData={null}
+                                                                stream={bloc.getStream('audioUrls')}
+                                                                builder={(urlsSnap) => {
+                                                                    const url = (urlsSnap.data ?? {})[a.questionId];
+                                                                    if (url) {
+                                                                        return <Box component="audio" controls src={url} sx={{ height: 36, mb: 1, maxWidth: 320, display: 'block' }} />;
+                                                                    }
+                                                                    return (
+                                                                        <UIStream
+                                                                            initialData={null}
+                                                                            stream={bloc.getStream('audioLoadingIds')}
+                                                                            builder={(loadingSnap) => (
+                                                                                <Button
+                                                                                    size="small"
+                                                                                    variant="outlined"
+                                                                                    startIcon={<VolumeUpOutlined />}
+                                                                                    disabled={(loadingSnap.data ?? {})[a.questionId] === true}
+                                                                                    onClick={() => playQuestionAudio(a.questionId)}
+                                                                                    sx={{ mb: 1 }}
+                                                                                >
+                                                                                    {(loadingSnap.data ?? {})[a.questionId] === true ? t('quiz-question-audio-loading') : t('quiz-question-audio-play')}
+                                                                                </Button>
+                                                                            )}
+                                                                        />
+                                                                    );
+                                                                }}
+                                                            />
+                                                        )}
+                                                        {a.hasVideo && (
+                                                            <UIStream
+                                                                initialData={null}
+                                                                stream={bloc.getStream('videoUrls')}
+                                                                builder={(urlsSnap) => {
+                                                                    const url = (urlsSnap.data ?? {})[a.questionId];
+                                                                    if (url) {
+                                                                        return <Box component="video" controls src={url} sx={{ maxHeight: 220, mb: 1, maxWidth: 360, display: 'block' }} />;
+                                                                    }
+                                                                    return (
+                                                                        <UIStream
+                                                                            initialData={null}
+                                                                            stream={bloc.getStream('videoLoadingIds')}
+                                                                            builder={(loadingSnap) => (
+                                                                                <Button
+                                                                                    size="small"
+                                                                                    variant="outlined"
+                                                                                    startIcon={<VideocamOutlined />}
+                                                                                    disabled={(loadingSnap.data ?? {})[a.questionId] === true}
+                                                                                    onClick={() => playQuestionVideo(a.questionId)}
+                                                                                    sx={{ mb: 1 }}
+                                                                                >
+                                                                                    {(loadingSnap.data ?? {})[a.questionId] === true ? t('quiz-question-video-loading') : t('quiz-question-video-play')}
+                                                                                </Button>
+                                                                            )}
+                                                                        />
+                                                                    );
+                                                                }}
+                                                            />
+                                                        )}
                                                         {a.questionType === 'SPEAKING' ? (
                                                             <Stack direction="row" alignItems="flex-start" spacing={1}>
                                                                 {a.parentMarkedCorrect === true && <CheckCircleOutlined color="success" fontSize="small" sx={{ mt: 0.3 }} />}

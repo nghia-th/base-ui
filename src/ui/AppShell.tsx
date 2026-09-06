@@ -33,6 +33,7 @@ import ParentStudents from "./pages/parent/Students";
 import ParentSubjects from "./pages/parent/Subjects";
 import ParentTimetable from "./pages/parent/Timetable";
 import StudentToday from "./pages/student/Today";
+import StudentTimetable from "./pages/student/Timetable";
 import ParentQuestions from "./pages/parent/Questions";
 import ParentTests from "./pages/parent/Tests";
 import ParentReports from "./pages/parent/Reports";
@@ -314,6 +315,9 @@ export default function AppShell() {
                                                 } />
                                                 <Route path="app/student/library" element={
                                                     <RequireQuizRole role="student"><StudentLibrary /></RequireQuizRole>
+                                                } />
+                                                <Route path="app/student/timetable" element={
+                                                    <RequireQuizRole role="student"><StudentTimetable /></RequireQuizRole>
                                                 } />
                                                 <Route path="app/student/tests/:testId/take" element={
                                                     <RequireQuizRole role="student"><TakeTest /></RequireQuizRole>

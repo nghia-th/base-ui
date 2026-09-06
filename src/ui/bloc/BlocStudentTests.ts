@@ -16,6 +16,12 @@ export interface QuizStudentAttemptAnswerDetail {
     parentMarkedCorrect: boolean | null;
     answerText: string | null;
     answerMode: 'AUDIO' | 'TEXT' | 'BOTH' | null;
+    // Them 2026-09-06 ("phan xem dap an cua hoc sinh anh muon hien thi them phan audio, video ma
+    // cau hoi co") - audio/video CUA CHINH CAU HOI (khac han hasSpeakingAnswer, la ban ghi am CUA
+    // HOC SINH tra loi) - tai qua CUNG API voi luc lam bai (QuizStudentAttemptApi.getQuestionAudio/
+    // getQuestionVideo), API do da cho phep truy cap bat ke trang thai attempt tu truoc.
+    hasAudio: boolean;
+    hasVideo: boolean;
 }
 
 // Khớp StudentAttemptReportResponse.java (mới, 2026-09-02) - "Xem lại đáp án" phía Học sinh.
@@ -69,6 +75,10 @@ export class BlocStudentTests extends IBlocUI {
         this.revokeSpeakingAudioUrls()
         this.setStream('speakingAudioUrls', {})
         this.setStream('speakingLoadingIds', {})
+        this.revokeQuestionMediaUrls('audioUrls')
+        this.revokeQuestionMediaUrls('videoUrls')
+        this.setStream('audioUrls', {})
+        this.setStream('videoUrls', {})
         this.apiRequest(QuizStudentAttemptApi.getOwnAttemptReport(testId), (res) => {
             this.setStream('answerReview', res.data as QuizStudentAttemptReport)
         }, { onError })
@@ -78,11 +88,58 @@ export class BlocStudentTests extends IBlocUI {
         this.setStream('answerReview', null)
         this.revokeSpeakingAudioUrls()
         this.setStream('speakingAudioUrls', {})
+        this.revokeQuestionMediaUrls('audioUrls')
+        this.revokeQuestionMediaUrls('videoUrls')
+        this.setStream('audioUrls', {})
+        this.setStream('videoUrls', {})
     }
 
     private revokeSpeakingAudioUrls() {
         const urls: Record<number, string> = this.getField('speakingAudioUrls') ?? {}
         Object.values(urls).forEach((url) => URL.revokeObjectURL(url))
+    }
+
+    private revokeQuestionMediaUrls(field: 'audioUrls' | 'videoUrls') {
+        const urls: Record<number, string> = this.getField(field) ?? {}
+        Object.values(urls).forEach((url) => URL.revokeObjectURL(url))
+    }
+
+    // Nghe/xem audio/video CUA CAU HOI trong Dialog "Xem lai dap an" (2026-09-06, theo yeu cau
+    // "phan xem dap an cua hoc sinh anh muon hien thi them phan audio, video ma cau hoi co") -
+    // CUNG PATTERN loadQuestionAudio/loadQuestionVideo ben BlocStudentAttempt.ts (cache theo
+    // questionId, khong gioi han so lan xem lai) - API nay da cho phep truy cap bat ke trang thai
+    // attempt (dang lam hay da nop), xem StudentAttemptService#getQuestionAudio/getQuestionVideo's
+    // javadoc, nen tai lai y het khong can API rieng cho che do xem lai.
+    loadQuestionAudio(questionId: number, onError: (error: any) => void) {
+        const urls = this.getField('audioUrls') ?? {}
+        if (urls[questionId]) return
+        this.setStream('audioLoadingIds', { ...(this.getField('audioLoadingIds') ?? {}), [questionId]: true })
+        this.apiRequest(QuizStudentAttemptApi.getQuestionAudio(questionId), (res: any) => {
+            const nextUrls = { ...(this.getField('audioUrls') ?? {}), [questionId]: URL.createObjectURL(res.data as Blob) }
+            this.setStream('audioUrls', nextUrls)
+            this.setStream('audioLoadingIds', { ...(this.getField('audioLoadingIds') ?? {}), [questionId]: false })
+        }, {
+            onError: (error: any) => {
+                this.setStream('audioLoadingIds', { ...(this.getField('audioLoadingIds') ?? {}), [questionId]: false })
+                onError(error)
+            }
+        })
+    }
+
+    loadQuestionVideo(questionId: number, onError: (error: any) => void) {
+        const urls = this.getField('videoUrls') ?? {}
+        if (urls[questionId]) return
+        this.setStream('videoLoadingIds', { ...(this.getField('videoLoadingIds') ?? {}), [questionId]: true })
+        this.apiRequest(QuizStudentAttemptApi.getQuestionVideo(questionId), (res: any) => {
+            const nextUrls = { ...(this.getField('videoUrls') ?? {}), [questionId]: URL.createObjectURL(res.data as Blob) }
+            this.setStream('videoUrls', nextUrls)
+            this.setStream('videoLoadingIds', { ...(this.getField('videoLoadingIds') ?? {}), [questionId]: false })
+        }, {
+            onError: (error: any) => {
+                this.setStream('videoLoadingIds', { ...(this.getField('videoLoadingIds') ?? {}), [questionId]: false })
+                onError(error)
+            }
+        })
     }
 
     // Nghe lại bản ghi âm CỦA CHÍNH học sinh cho 1 câu SPEAKING trong đề đang xem lại - cùng

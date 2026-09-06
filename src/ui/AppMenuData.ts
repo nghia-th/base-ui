@@ -126,7 +126,11 @@ export const STUDENT_MENU_DATA: MenuItem[] = [
     { label: 'quiz-tests', icon: 'AssignmentOutlined', to: '/app/student/tests', items: null },
     // 2026-09-05 - textbook PDF library, read-only (view/download documents linked to a subject in
     // the student's own classroom), see StudentLibraryApi.java.
-    { label: 'quiz-admin-library', icon: 'MenuBookOutlined', to: '/app/student/library', items: null }
+    { label: 'quiz-admin-library', icon: 'MenuBookOutlined', to: '/app/student/library', items: null },
+    // 2026-09-06 (revision c cua tinh nang Thoi khoa bieu) - "hoc sinh cho phep hoc sinh tao thoi
+    // khoa bieu khong cho xoa, update" - trang moi rieng, CHI cho phep THEM mon (xem
+    // StudentTimetable.tsx's javadoc). Icon giong het muc quiz-timetable ben PARENT_MENU_DATA.
+    { label: 'quiz-timetable', icon: 'CalendarMonthOutlined', to: '/app/student/timetable', items: null }
 ]
 
 export const STUDENT_BREADCRUMB_DATA: BreadcrumbItem[] = (() => {
