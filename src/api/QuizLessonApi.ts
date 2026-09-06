@@ -38,6 +38,12 @@ export class QuizLessonApi {
         return QuizRequestBase.delete(`${QUIZ_PARENT_PREFIX}/lessons/${id}`);
     }
 
+    // Xoá nhiều bài học cùng lúc (2026-09-06, "xoa bai cua muon hoc") - cùng cách làm hệt
+    // QuizQuestionApi.removeMany ở trên.
+    static removeMany(ids: number[]) {
+        return QuizRequestBase.deleteWithBody(`${QUIZ_PARENT_PREFIX}/lessons/deletes`, ids);
+    }
+
     // Tải ảnh minh hoạ về dạng blob để hiển thị <img> (không dùng thẳng <img src="<url>"> vì
     // endpoint cần header Authorization: Bearer <token> - <img> không tự gắn header được). responseType
     // 'blob' -> QuizApiService.ts's response interceptor để nguyên response.data, không dịch envelope,

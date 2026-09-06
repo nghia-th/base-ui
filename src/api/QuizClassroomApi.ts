@@ -24,4 +24,11 @@ export class QuizClassroomApi {
     static remove(id: number) {
         return QuizRequestBase.delete(`${QUIZ_PARENT_PREFIX}/classrooms/${id}`);
     }
+
+    // Xoá nhiều lớp cùng lúc (2026-09-06, "xoa lop") - cùng cách làm hệt QuizQuestionApi.removeMany
+    // ở trên. Backend cascade xoá luôn Học sinh/Môn học/Bài học/Câu hỏi/Đề thi bên dưới mỗi Lớp -
+    // xem ClassroomApi.java/CascadeDeleteService#deleteClassroomCascade.
+    static removeMany(ids: number[]) {
+        return QuizRequestBase.deleteWithBody(`${QUIZ_PARENT_PREFIX}/classrooms/deletes`, ids);
+    }
 }

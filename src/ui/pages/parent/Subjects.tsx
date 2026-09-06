@@ -19,9 +19,11 @@ import InputLabel from "@mui/material/InputLabel";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import Alert from "@mui/material/Alert";
+import Checkbox from "@mui/material/Checkbox";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import EditOutlined from "@mui/icons-material/EditOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
+import DeleteSweepOutlined from "@mui/icons-material/DeleteSweepOutlined";
 import MenuBookOutlined from "@mui/icons-material/MenuBookOutlined";
 import ImageOutlined from "@mui/icons-material/ImageOutlined";
 import CircularProgress from "@mui/material/CircularProgress";
@@ -30,7 +32,7 @@ import DownloadOutlined from "@mui/icons-material/DownloadOutlined";
 import UploadFileOutlined from "@mui/icons-material/UploadFileOutlined";
 import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import CheckOutlined from "@mui/icons-material/CheckOutlined";
-import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridActionsCellItem, GridRowSelectionModel } from "@mui/x-data-grid";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
 import AppDialog from "../../components/dialogs/AppDialog";
 import { DIALOG_CANCEL_BUTTON_SX, DIALOG_PRIMARY_BUTTON_SX } from "../../components/dialogs/dialogToneStyles";
@@ -74,6 +76,21 @@ export default function Subjects() {
                 bloc.removeSubject(subject.id, () => {
                     enqueueSnackbar(t('quiz-subject-deleted') as string, { variant: 'success' });
                     bloc.askRemoveSubjectCleanup(subject.id);
+                }, showError);
+            }
+        });
+    };
+
+    // Xoá nhiều Môn học (2026-09-06, "xoa muon hoc") - "Xoá đã chọn"/"Xoá tất cả" ở cột trái.
+    const askRemoveSubjects = (ids: number[]) => {
+        if (ids.length === 0) return;
+        bloc.confirm({
+            title: 'delete',
+            message: t('quiz-delete-selected-subjects-confirm', { count: ids.length }) as string,
+            onYes: () => {
+                bloc.removeSubjects(ids, (result) => {
+                    enqueueSnackbar(t('quiz-subjects-bulk-deleted', { deleted: result.deletedCount, total: result.requested }) as string,
+                        { variant: result.deletedCount === result.requested ? 'success' : 'warning' });
                 }, showError);
             }
         });
@@ -133,6 +150,22 @@ export default function Subjects() {
         });
     };
 
+    // Xoá nhiều Bài học (2026-09-06, "xoa bai cua muon hoc") - "Xoá đã chọn"/"Xoá tất cả" ở
+    // DataGrid cột phải.
+    const askRemoveLessons = (ids: number[], subjectId: number) => {
+        if (ids.length === 0) return;
+        bloc.confirm({
+            title: 'delete',
+            message: t('quiz-delete-selected-lessons-confirm', { count: ids.length }) as string,
+            onYes: () => {
+                bloc.removeLessons(ids, subjectId, (result) => {
+                    enqueueSnackbar(t('quiz-lessons-bulk-deleted', { deleted: result.deletedCount, total: result.requested }) as string,
+                        { variant: result.deletedCount === result.requested ? 'success' : 'warning' });
+                }, showError);
+            }
+        });
+    };
+
     const lessonColumns = (subjectId: number): GridColDef[] => [
         { field: 'name', headerName: t('quiz-lesson-name') as string, flex: 1, minWidth: 200 },
         {
@@ -186,6 +219,28 @@ export default function Subjects() {
                                                     </Stack>
                                                 </Stack>
                                                 <UIStream
+                                                    initialData={[]}
+                                                    stream={bloc.getStream('subjectSelection')}
+                                                    builder={(subjectSelSnap) => {
+                                                        const selectedSubjectIds: number[] = subjectSelSnap.data ?? [];
+                                                        return (
+                                                            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" rowGap={0.5} sx={{ mb: 1 }}>
+                                                                {selectedSubjectIds.length > 0 && (
+                                                                    <Typography variant="caption" color="text.secondary">
+                                                                        {t('quiz-selected-count', { count: selectedSubjectIds.length })}
+                                                                    </Typography>
+                                                                )}
+                                                                <Button size="small" color="error" startIcon={<DeleteOutlined />} disabled={selectedSubjectIds.length === 0} onClick={() => askRemoveSubjects(selectedSubjectIds)}>
+                                                                    {t('quiz-delete-selected')}
+                                                                </Button>
+                                                                <Button size="small" color="error" startIcon={<DeleteSweepOutlined />} disabled={subjects.length === 0} onClick={() => askRemoveSubjects(subjects.map((s) => s.id))}>
+                                                                    {t('quiz-delete-all')}
+                                                                </Button>
+                                                            </Stack>
+                                                        );
+                                                    }}
+                                                />
+                                                <UIStream
                                                     initialData={bloc.getField('classrooms')}
                                                     stream={bloc.getStream('classrooms')}
                                                     builder={(classroomsSnap) => {
@@ -217,32 +272,48 @@ export default function Subjects() {
                                                                         </FormControl>
                                                                     )}
                                                                 />
-                                                                <List disablePadding>
-                                                                    {subjects.map((s) => (
-                                                                        <ListItemButton
-                                                                            key={s.id}
-                                                                            selected={selectedSubject?.id === s.id}
-                                                                            onClick={() => bloc.selectSubject(s)}
-                                                                            sx={{ borderRadius: 1, mb: 0.5 }}
-                                                                        >
-                                                                            <ListItemText primary={s.name} secondary={classroomName(s.classroomId)} />
-                                                                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); setLibraryDialogSubject(s); }}>
-                                                                                <MenuBookOutlined fontSize="small" />
-                                                                            </IconButton>
-                                                                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); bloc.openEditSubject(s); }}>
-                                                                                <EditOutlined fontSize="small" />
-                                                                            </IconButton>
-                                                                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); askRemoveSubject(s); }}>
-                                                                                <DeleteOutlined fontSize="small" />
-                                                                            </IconButton>
-                                                                        </ListItemButton>
-                                                                    ))}
-                                                                    {subjects.length === 0 && snapshot.data != null && (
-                                                                        <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
-                                                                            {t('quiz-no-subjects')}
-                                                                        </Typography>
-                                                                    )}
-                                                                </List>
+                                                                <UIStream
+                                                                    initialData={[]}
+                                                                    stream={bloc.getStream('subjectSelection')}
+                                                                    builder={(subjectSelSnap2) => {
+                                                                        const selectedSubjectIds2: number[] = subjectSelSnap2.data ?? [];
+                                                                        return (
+                                                                            <List disablePadding>
+                                                                                {subjects.map((s) => (
+                                                                                    <ListItemButton
+                                                                                        key={s.id}
+                                                                                        selected={selectedSubject?.id === s.id}
+                                                                                        onClick={() => bloc.selectSubject(s)}
+                                                                                        sx={{ borderRadius: 1, mb: 0.5 }}
+                                                                                    >
+                                                                                        <Checkbox
+                                                                                            size="small"
+                                                                                            edge="start"
+                                                                                            checked={selectedSubjectIds2.includes(s.id)}
+                                                                                            onClick={(e) => e.stopPropagation()}
+                                                                                            onChange={() => bloc.toggleSubjectSelection(s.id)}
+                                                                                        />
+                                                                                        <ListItemText primary={s.name} secondary={classroomName(s.classroomId)} />
+                                                                                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); setLibraryDialogSubject(s); }}>
+                                                                                            <MenuBookOutlined fontSize="small" />
+                                                                                        </IconButton>
+                                                                                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); bloc.openEditSubject(s); }}>
+                                                                                            <EditOutlined fontSize="small" />
+                                                                                        </IconButton>
+                                                                                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); askRemoveSubject(s); }}>
+                                                                                            <DeleteOutlined fontSize="small" />
+                                                                                        </IconButton>
+                                                                                    </ListItemButton>
+                                                                                ))}
+                                                                                {subjects.length === 0 && snapshot.data != null && (
+                                                                                    <Typography variant="body2" color="text.secondary" sx={{ p: 1 }}>
+                                                                                        {t('quiz-no-subjects')}
+                                                                                    </Typography>
+                                                                                )}
+                                                                            </List>
+                                                                        );
+                                                                    }}
+                                                                />
                                                             </>
                                                         );
                                                     }}
@@ -426,27 +497,50 @@ export default function Subjects() {
                                         const lessons: QuizLesson[] = snapshot.data ?? [];
                                         return (
                                             <>
-                                                <Card sx={{ p: { xs: 2, sm: 3 } }}>
-                                                    <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                                                        <Typography variant="h6" fontWeight={700}>
-                                                            {t('quiz-lessons-of', { subject: selectedSubject.name })}
-                                                        </Typography>
-                                                        <Stack direction="row" spacing={1} flexWrap="wrap">
-                                                            <Button size="small" startIcon={<DownloadOutlined />} onClick={() => downloadLessonTemplate('xlsx')}>{t('quiz-download-template-xlsx')}</Button>
-                                                            <Button size="small" startIcon={<DownloadOutlined />} onClick={() => downloadLessonTemplate('csv')}>{t('quiz-download-template-csv')}</Button>
-                                                            <Button size="small" variant="outlined" startIcon={<UploadFileOutlined />} onClick={() => bloc.openLessonImport()}>{t('quiz-import-lessons')}</Button>
-                                                            <Button variant="contained" startIcon={<AddOutlined />} onClick={() => bloc.openNewLesson()}>{t('new')}</Button>
-                                                        </Stack>
-                                                    </Stack>
-                                                    <Box sx={{ height: 380 }}>
-                                                        <DataGrid
-                                                            rows={lessons}
-                                                            columns={lessonColumnsMemo}
-                                                            loading={snapshot.data == null}
-                                                            disableRowSelectionOnClick
-                                                        />
-                                                    </Box>
-                                                </Card>
+                                                <UIStream
+                                                    initialData={[]}
+                                                    stream={bloc.getStream('lessonSelection')}
+                                                    builder={(lessonSelSnap) => {
+                                                        const selectedLessonIds: number[] = lessonSelSnap.data ?? [];
+                                                        return (
+                                                            <Card sx={{ p: { xs: 2, sm: 3 } }}>
+                                                                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }} flexWrap="wrap" rowGap={1}>
+                                                                    <Typography variant="h6" fontWeight={700}>
+                                                                        {t('quiz-lessons-of', { subject: selectedSubject.name })}
+                                                                    </Typography>
+                                                                    <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+                                                                        {selectedLessonIds.length > 0 && (
+                                                                            <Typography variant="body2" color="text.secondary">
+                                                                                {t('quiz-selected-count', { count: selectedLessonIds.length })}
+                                                                            </Typography>
+                                                                        )}
+                                                                        <Button size="small" color="error" startIcon={<DeleteOutlined />} disabled={selectedLessonIds.length === 0} onClick={() => askRemoveLessons(selectedLessonIds, selectedSubject.id)}>
+                                                                            {t('quiz-delete-selected')}
+                                                                        </Button>
+                                                                        <Button size="small" color="error" startIcon={<DeleteSweepOutlined />} disabled={lessons.length === 0} onClick={() => askRemoveLessons(lessons.map((l) => l.id), selectedSubject.id)}>
+                                                                            {t('quiz-delete-all')}
+                                                                        </Button>
+                                                                        <Button size="small" startIcon={<DownloadOutlined />} onClick={() => downloadLessonTemplate('xlsx')}>{t('quiz-download-template-xlsx')}</Button>
+                                                                        <Button size="small" startIcon={<DownloadOutlined />} onClick={() => downloadLessonTemplate('csv')}>{t('quiz-download-template-csv')}</Button>
+                                                                        <Button size="small" variant="outlined" startIcon={<UploadFileOutlined />} onClick={() => bloc.openLessonImport()}>{t('quiz-import-lessons')}</Button>
+                                                                        <Button variant="contained" startIcon={<AddOutlined />} onClick={() => bloc.openNewLesson()}>{t('new')}</Button>
+                                                                    </Stack>
+                                                                </Stack>
+                                                                <Box sx={{ height: 380 }}>
+                                                                    <DataGrid
+                                                                        rows={lessons}
+                                                                        columns={lessonColumnsMemo}
+                                                                        loading={snapshot.data == null}
+                                                                        disableRowSelectionOnClick
+                                                                        checkboxSelection
+                                                                        rowSelectionModel={selectedLessonIds}
+                                                                        onRowSelectionModelChange={(model: GridRowSelectionModel) => bloc.changeLessonSelection(model as number[])}
+                                                                    />
+                                                                </Box>
+                                                            </Card>
+                                                        );
+                                                    }}
+                                                />
 
                                                 <UIStream
                                                     initialData={{ isShow: false, id: 0 }}

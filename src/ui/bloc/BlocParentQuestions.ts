@@ -3,6 +3,7 @@ import { QuizQuestionApi, QuizQuestionRequest, quizImportQuestions, quizUploadQu
 import { QuizSubjectApi } from "../../api/QuizSubjectApi";
 import { QuizLessonApi } from "../../api/QuizLessonApi";
 import { QuizClassroomApi } from "../../api/QuizClassroomApi";
+import { QuizBulkDeleteResult } from "./QuizBulkDelete";
 
 // Chỉ lấy 2 field cần cho dropdown - cùng convention "mỗi Bloc content tự khai báo shape riêng"
 // với BlocParentSubjects.QuizClassroomLite/BlocParentTests.QuizClassroomLite (không dùng chung 1
@@ -113,6 +114,22 @@ export class BlocParentQuestions extends IBlocUI {
         }, { onError })
     }
 
+    // Xoá nhiều câu hỏi cùng lúc (2026-09-06, "xoa nhieu cau hoi cua mot bai hoac xoa all cau
+    // hoi") - dùng chung cho "Xoá đã chọn"/"Xoá tất cả", xem askRemoveMany trong Questions.tsx.
+    removeMany(ids: number[], lessonId: number, onComplete: (result: QuizBulkDeleteResult) => void, onError: (error: any) => void) {
+        this.apiRequest(QuizQuestionApi.removeMany(ids), (res) => {
+            this.setStream('questionSelection', [])
+            onComplete(res.data as QuizBulkDeleteResult)
+            this.loadQuestions(lessonId)
+        }, { onError })
+    }
+
+    // --- Chọn nhiều dòng (2026-09-06) ---
+    toggleQuestionSelection(id: number) {
+        const current: number[] = this.getField('questionSelection') ?? []
+        this.setStream('questionSelection', current.includes(id) ? current.filter((x) => x !== id) : [...current, id])
+    }
+
     // res (tham số onData của apiRequest, gọi từ CallApi.ts's nhánh blob) có dạng
     // {data: Blob, disposition: string} - KHÔNG phải {code,message,...} như mọi response khác,
     // vì đây là request responseType:'blob' (xem QuizQuestionApi.downloadTemplate).
@@ -158,17 +175,20 @@ export class BlocParentQuestions extends IBlocUI {
         this.setStream('filterClassroomId', value)
         this.setStream('filterSubjectId', '')
         this.setStream('filterLessonId', '')
+        this.setStream('questionSelection', [])
         this.loadSubjects(value === '' ? undefined : value)
     }
 
     changeFilterSubject(value: number) {
         this.setStream('filterSubjectId', value)
         this.setStream('filterLessonId', '')
+        this.setStream('questionSelection', [])
         this.loadLessons(value)
     }
 
     changeFilterLesson(value: number) {
         this.setStream('filterLessonId', value)
+        this.setStream('questionSelection', [])
         this.loadQuestions(value)
     }
 

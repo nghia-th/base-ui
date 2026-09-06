@@ -1,5 +1,6 @@
 import { IBlocUI } from "../../base/IBlocUI";
 import { QuizClassroomApi, QuizClassroomRequest } from "../../api/QuizClassroomApi";
+import { QuizBulkDeleteResult } from "./QuizBulkDelete";
 
 // Khớp ClassroomResponse.java.
 export interface QuizClassroom {
@@ -42,6 +43,24 @@ export class BlocParentClassrooms extends IBlocUI {
             onComplete()
             this.reload()
         }, { onError })
+    }
+
+    // Xoá nhiều Lớp cùng lúc (2026-09-06, "xoa lop") - dùng cho cả 2 nút "Xoá đã chọn" (ids =
+    // đang tick) và "Xoá tất cả" (ids = mọi id đang hiện trong bảng, xem askRemoveSelected/
+    // askRemoveAll trong Classrooms.tsx) - Frontend không cần phân biệt 2 luồng này ở tầng Bloc,
+    // chỉ khác NGUỒN của mảng ids truyền vào. Best-effort phía backend (BulkDeleteResponse) - trả
+    // nguyên kết quả cho trang tự hiện toast đúng số lượng thành công/thất bại.
+    removeMany(ids: number[], onComplete: (result: QuizBulkDeleteResult) => void, onError: (error: any) => void) {
+        this.apiRequest(QuizClassroomApi.removeMany(ids), (res) => {
+            this.setStream('classroomSelection', [])
+            onComplete(res.data as QuizBulkDeleteResult)
+            this.reload()
+        }, { onError })
+    }
+
+    // --- Chọn nhiều dòng (DataGrid checkboxSelection) ---
+    changeClassroomSelection(ids: number[]) {
+        this.setStream('classroomSelection', ids)
     }
 
     // Dialog form (2026-09-01, xem BlocParentStudents.ts's comment cho lý do chi tiết) - cùng

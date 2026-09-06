@@ -30,6 +30,7 @@ import ExpandMoreOutlined from "@mui/icons-material/ExpandMoreOutlined";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
 import EditOutlined from "@mui/icons-material/EditOutlined";
+import DeleteSweepOutlined from "@mui/icons-material/DeleteSweepOutlined";
 import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import CheckCircleOutlined from "@mui/icons-material/CheckCircleOutlined";
@@ -90,6 +91,23 @@ export default function Questions() {
             onYes: () => {
                 bloc.remove(q.id, lessonId, () => {
                     enqueueSnackbar(t('quiz-question-deleted') as string, { variant: 'success' });
+                }, showError);
+            }
+        });
+    };
+
+    // Xoá nhiều câu hỏi (2026-09-06, "xoa nhieu cau hoi cua mot bai hoac xoa all cau hoi") -
+    // "Xoá đã chọn"/"Xoá tất cả" ở đầu danh sách câu hỏi của bài học đang chọn.
+    const askRemoveMany = (ids: number[]) => {
+        const lessonId = bloc.getField('filterLessonId');
+        if (typeof lessonId !== 'number' || ids.length === 0) return;
+        bloc.confirm({
+            title: 'delete',
+            message: t('quiz-delete-selected-questions-confirm', { count: ids.length }) as string,
+            onYes: () => {
+                bloc.removeMany(ids, lessonId, (result) => {
+                    enqueueSnackbar(t('quiz-questions-bulk-deleted', { deleted: result.deletedCount, total: result.requested }) as string,
+                        { variant: result.deletedCount === result.requested ? 'success' : 'warning' });
                 }, showError);
             }
         });
@@ -235,57 +253,83 @@ export default function Questions() {
                                 const questions: QuizQuestion[] = snapshot.data ?? [];
                                 return (
                                     <>
-                                        <Card sx={{ p: { xs: 2, sm: 3 } }}>
-                                            <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
-                                                <Typography variant="h6" fontWeight={700}>{t('quiz-questions')}</Typography>
-                                                <Stack direction="row" spacing={1} flexWrap="wrap">
-                                                    <Button size="small" startIcon={<DownloadOutlined />} onClick={() => download('xlsx')}>{t('quiz-download-template-xlsx')}</Button>
-                                                    <Button size="small" startIcon={<DownloadOutlined />} onClick={() => download('csv')}>{t('quiz-download-template-csv')}</Button>
-                                                    <Button size="small" variant="outlined" startIcon={<UploadFileOutlined />} onClick={() => bloc.openImport()}>{t('quiz-import-questions')}</Button>
-                                                    <Button variant="contained" startIcon={<AddOutlined />} onClick={() => bloc.openNewQuestion()}>{t('new')}</Button>
-                                                </Stack>
-                                            </Stack>
-
-                                            {questions.length === 0 && snapshot.data != null && (
-                                                <Typography variant="body2" color="text.secondary">{t('quiz-no-questions')}</Typography>
-                                            )}
-
-                                            {questions.map((q, qi) => (
-                                                <Accordion key={q.id} disableGutters>
-                                                    <AccordionSummary expandIcon={<ExpandMoreOutlined />}>
-                                                        <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%', pr: 1 }}>
-                                                            <Typography sx={{ flexGrow: 1 }}>{qi + 1}. {q.content}</Typography>
-                                                            {q.questionType === 'SPEAKING' && <RecordVoiceOverOutlined fontSize="small" color="action" titleAccess={t('quiz-question-type-speaking') as string} />}
-                                                            {q.hasAudio && <VolumeUpOutlined fontSize="small" color="action" titleAccess={t('quiz-question-has-audio') as string} />}
-                                                            {q.hasVideo && <VideocamOutlined fontSize="small" color="action" titleAccess={t('quiz-question-has-video') as string} />}
-                                                            {q.knowledgeTag && <Chip size="small" label={q.knowledgeTag} />}
-                                                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); bloc.openEditQuestion(q); }}>
-                                                                <EditOutlined fontSize="small" />
-                                                            </IconButton>
-                                                            <IconButton size="small" onClick={(e) => { e.stopPropagation(); askRemove(q); }}>
-                                                                <DeleteOutlined fontSize="small" />
-                                                            </IconButton>
-                                                        </Stack>
-                                                    </AccordionSummary>
-                                                    <AccordionDetails>
-                                                        {q.questionType === 'SPEAKING' ? (
-                                                            <Typography variant="body2" color="text.secondary">{t('quiz-question-type-speaking-hint')}</Typography>
-                                                        ) : (
-                                                            <Stack spacing={0.5} sx={{ mb: 1 }}>
-                                                                {q.choices.map((c) => (
-                                                                    <Stack key={c.id} direction="row" alignItems="center" spacing={1}>
-                                                                        {c.correct ? <CheckCircleOutlined color="success" fontSize="small" /> : <Box sx={{ width: 20 }} />}
-                                                                        <Typography variant="body2" color={c.correct ? 'success.main' : 'text.primary'} fontWeight={c.correct ? 700 : 400}>
-                                                                            {c.content}
-                                                                        </Typography>
-                                                                    </Stack>
-                                                                ))}
+                                        <UIStream
+                                            initialData={[]}
+                                            stream={bloc.getStream('questionSelection')}
+                                            builder={(questionSelSnap) => {
+                                                const selectedQuestionIds: number[] = questionSelSnap.data ?? [];
+                                                return (
+                                                    <Card sx={{ p: { xs: 2, sm: 3 } }}>
+                                                        <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1} sx={{ mb: 2 }}>
+                                                            <Typography variant="h6" fontWeight={700}>{t('quiz-questions')}</Typography>
+                                                            <Stack direction="row" spacing={1} flexWrap="wrap" alignItems="center">
+                                                                {selectedQuestionIds.length > 0 && (
+                                                                    <Typography variant="body2" color="text.secondary">
+                                                                        {t('quiz-selected-count', { count: selectedQuestionIds.length })}
+                                                                    </Typography>
+                                                                )}
+                                                                <Button size="small" color="error" startIcon={<DeleteOutlined />} disabled={selectedQuestionIds.length === 0} onClick={() => askRemoveMany(selectedQuestionIds)}>
+                                                                    {t('quiz-delete-selected')}
+                                                                </Button>
+                                                                <Button size="small" color="error" startIcon={<DeleteSweepOutlined />} disabled={questions.length === 0} onClick={() => askRemoveMany(questions.map((q) => q.id))}>
+                                                                    {t('quiz-delete-all')}
+                                                                </Button>
+                                                                <Button size="small" startIcon={<DownloadOutlined />} onClick={() => download('xlsx')}>{t('quiz-download-template-xlsx')}</Button>
+                                                                <Button size="small" startIcon={<DownloadOutlined />} onClick={() => download('csv')}>{t('quiz-download-template-csv')}</Button>
+                                                                <Button size="small" variant="outlined" startIcon={<UploadFileOutlined />} onClick={() => bloc.openImport()}>{t('quiz-import-questions')}</Button>
+                                                                <Button variant="contained" startIcon={<AddOutlined />} onClick={() => bloc.openNewQuestion()}>{t('new')}</Button>
                                                             </Stack>
+                                                        </Stack>
+
+                                                        {questions.length === 0 && snapshot.data != null && (
+                                                            <Typography variant="body2" color="text.secondary">{t('quiz-no-questions')}</Typography>
                                                         )}
-                                                    </AccordionDetails>
-                                                </Accordion>
-                                            ))}
-                                        </Card>
+
+                                                        {questions.map((q, qi) => (
+                                                            <Accordion key={q.id} disableGutters>
+                                                                <AccordionSummary expandIcon={<ExpandMoreOutlined />}>
+                                                                    <Stack direction="row" alignItems="center" spacing={1} sx={{ width: '100%', pr: 1 }}>
+                                                                        <Checkbox
+                                                                            size="small"
+                                                                            checked={selectedQuestionIds.includes(q.id)}
+                                                                            onClick={(e) => e.stopPropagation()}
+                                                                            onChange={() => bloc.toggleQuestionSelection(q.id)}
+                                                                        />
+                                                                        <Typography sx={{ flexGrow: 1 }}>{qi + 1}. {q.content}</Typography>
+                                                                        {q.questionType === 'SPEAKING' && <RecordVoiceOverOutlined fontSize="small" color="action" titleAccess={t('quiz-question-type-speaking') as string} />}
+                                                                        {q.hasAudio && <VolumeUpOutlined fontSize="small" color="action" titleAccess={t('quiz-question-has-audio') as string} />}
+                                                                        {q.hasVideo && <VideocamOutlined fontSize="small" color="action" titleAccess={t('quiz-question-has-video') as string} />}
+                                                                        {q.knowledgeTag && <Chip size="small" label={q.knowledgeTag} />}
+                                                                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); bloc.openEditQuestion(q); }}>
+                                                                            <EditOutlined fontSize="small" />
+                                                                        </IconButton>
+                                                                        <IconButton size="small" onClick={(e) => { e.stopPropagation(); askRemove(q); }}>
+                                                                            <DeleteOutlined fontSize="small" />
+                                                                        </IconButton>
+                                                                    </Stack>
+                                                                </AccordionSummary>
+                                                                <AccordionDetails>
+                                                                    {q.questionType === 'SPEAKING' ? (
+                                                                        <Typography variant="body2" color="text.secondary">{t('quiz-question-type-speaking-hint')}</Typography>
+                                                                    ) : (
+                                                                        <Stack spacing={0.5} sx={{ mb: 1 }}>
+                                                                            {q.choices.map((c) => (
+                                                                                <Stack key={c.id} direction="row" alignItems="center" spacing={1}>
+                                                                                    {c.correct ? <CheckCircleOutlined color="success" fontSize="small" /> : <Box sx={{ width: 20 }} />}
+                                                                                    <Typography variant="body2" color={c.correct ? 'success.main' : 'text.primary'} fontWeight={c.correct ? 700 : 400}>
+                                                                                        {c.content}
+                                                                                    </Typography>
+                                                                                </Stack>
+                                                                            ))}
+                                                                        </Stack>
+                                                                    )}
+                                                                </AccordionDetails>
+                                                            </Accordion>
+                                                        ))}
+                                                    </Card>
+                                                );
+                                            }}
+                                        />
 
                                         <UIStream
                                             initialData={{ isShow: false, id: 0 }}

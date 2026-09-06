@@ -50,6 +50,14 @@ export class QuizQuestionApi {
         return QuizRequestBase.delete(`${QUIZ_PARENT_PREFIX}/questions/${id}`);
     }
 
+    // Xoá nhiều câu hỏi cùng lúc (2026-09-06, "xoa nhieu cau hoi cua mot bai hoac xoa all cau
+    // hoi") - body là mảng id (QuestionApi.java's deleteMany(@RequestBody List<Long> ids)), cùng
+    // cách gửi body qua DELETE như QuizLanguageApi.deleteMany. Best-effort phía backend - 1 id
+    // lỗi không chặn các id còn lại, xem BulkDeleteResponse.
+    static removeMany(ids: number[]) {
+        return QuizRequestBase.deleteWithBody(`${QUIZ_PARENT_PREFIX}/questions/deletes`, ids);
+    }
+
     // responseType:'blob' - QuizApiService.ts's response interceptor để nguyên response.data (byte[]
     // thật) trong trường hợp này, không dịch envelope - xem QuizApiService.ts.
     static downloadTemplate(format: 'xlsx' | 'csv') {

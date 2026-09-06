@@ -9,10 +9,11 @@ import TextField from "@mui/material/TextField";
 import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import Card from "@mui/material/Card";
-import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridActionsCellItem, GridRowSelectionModel } from "@mui/x-data-grid";
 import AddOutlined from "@mui/icons-material/AddOutlined";
 import EditOutlined from "@mui/icons-material/EditOutlined";
 import DeleteOutlined from "@mui/icons-material/DeleteOutlined";
+import DeleteSweepOutlined from "@mui/icons-material/DeleteSweepOutlined";
 import CloseOutlined from "@mui/icons-material/CloseOutlined";
 import CheckOutlined from "@mui/icons-material/CheckOutlined";
 import { AppContext, reUseBlocContent } from "../../../base/AppContext";
@@ -24,8 +25,12 @@ import { quizErrorMessage } from "../../../quiz-net/quizErrors";
 
 // Trang "Lớp học" (khu vực Phụ huynh, /app/parent/classrooms - MỚI, đứng đầu chuỗi Lớp -> Môn học
 // -> Bài học -> Câu hỏi). Danh sách/CRUD đơn giản 1 cấp, cùng khuôn Students.tsx (DataGrid + Dialog
-// thêm/sửa/xoá). Xoá Lớp bị chặn nếu còn Học sinh hoặc Môn học thuộc lớp đó (QUIZ_014/QUIZ_015,
-// xem ClassroomService.java) - hiện lỗi rõ ràng qua quizErrorMessage như mọi trang khác.
+// thêm/sửa/xoá). Xoá Lớp (2026-09-06 revision) CASCADE luôn Học sinh/Môn học/Bài học/Câu hỏi/Đề
+// kiểm tra thuộc lớp đó, không còn bị chặn (QUIZ_014/QUIZ_015 đã retired - xem
+// CascadeDeleteService.java's javadoc).
+//
+// Xoá nhiều (2026-09-06, "xoa lop") - DataGrid checkboxSelection, stream 'classroomSelection'
+// (BlocParentClassrooms), 2 nút "Xoá đã chọn"/"Xoá tất cả" dùng chung askRemoveMany().
 //
 // STATE MANAGEMENT (đổi 2026-09-01) - Dialog form dồn vào BlocParentClassrooms (form_view/req/
 // submitting), xem comment ở BlocParentStudents.ts cho lý do chi tiết. TextField "name" uncontrolled.
@@ -62,6 +67,24 @@ export default function Classrooms() {
         });
     };
 
+    // Xoá nhiều Lớp (2026-09-06, "xoa lop") - "Xoá đã chọn" dùng đúng ids đang tick trong
+    // DataGrid; "Xoá tất cả" không phụ thuộc tick, tự lấy toàn bộ id đang hiện trong bảng (client-
+    // side, không cần endpoint riêng - xem BulkDeleteSupport.java's javadoc). Cả 2 dùng chung 1
+    // hàm bên dưới, chỉ khác nguồn ids + message confirm.
+    const askRemoveMany = (ids: number[]) => {
+        if (ids.length === 0) return;
+        bloc.confirm({
+            title: 'delete',
+            message: t('quiz-delete-selected-classrooms-confirm', { count: ids.length }) as string,
+            onYes: () => {
+                bloc.removeMany(ids, (result) => {
+                    enqueueSnackbar(t('quiz-classrooms-bulk-deleted', { deleted: result.deletedCount, total: result.requested }) as string,
+                        { variant: result.deletedCount === result.requested ? 'success' : 'warning' });
+                }, (error) => showError(error));
+            }
+        });
+    };
+
     const columns: GridColDef[] = useMemo(() => [
         { field: 'name', headerName: t('quiz-classroom-name') as string, flex: 1, minWidth: 200 },
         {
@@ -82,20 +105,45 @@ export default function Classrooms() {
                 const rows: QuizClassroom[] = snapshot.data ?? [];
                 return (
                     <>
-                        <Card sx={{ p: { xs: 2, sm: 3 } }}>
-                            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
-                                <Typography variant="h6" fontWeight={700}>{t('quiz-classrooms')}</Typography>
-                                <Button variant="contained" startIcon={<AddOutlined />} onClick={() => bloc.openNew()}>{t('new')}</Button>
-                            </Stack>
-                            <Box sx={{ height: 420 }}>
-                                <DataGrid
-                                    rows={rows}
-                                    columns={columns}
-                                    loading={snapshot.data == null}
-                                    disableRowSelectionOnClick
-                                />
-                            </Box>
-                        </Card>
+                        <UIStream
+                            initialData={[]}
+                            stream={bloc.getStream('classroomSelection')}
+                            builder={(selSnap) => {
+                                const selectedIds: number[] = selSnap.data ?? [];
+                                return (
+                                    <Card sx={{ p: { xs: 2, sm: 3 } }}>
+                                        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }} flexWrap="wrap" rowGap={1}>
+                                            <Typography variant="h6" fontWeight={700}>{t('quiz-classrooms')}</Typography>
+                                            <Stack direction="row" spacing={1} alignItems="center">
+                                                {selectedIds.length > 0 && (
+                                                    <Typography variant="body2" color="text.secondary">
+                                                        {t('quiz-selected-count', { count: selectedIds.length })}
+                                                    </Typography>
+                                                )}
+                                                <Button size="small" color="error" startIcon={<DeleteOutlined />} disabled={selectedIds.length === 0} onClick={() => askRemoveMany(selectedIds)}>
+                                                    {t('quiz-delete-selected')}
+                                                </Button>
+                                                <Button size="small" color="error" startIcon={<DeleteSweepOutlined />} disabled={rows.length === 0} onClick={() => askRemoveMany(rows.map((r) => r.id))}>
+                                                    {t('quiz-delete-all')}
+                                                </Button>
+                                                <Button variant="contained" startIcon={<AddOutlined />} onClick={() => bloc.openNew()}>{t('new')}</Button>
+                                            </Stack>
+                                        </Stack>
+                                        <Box sx={{ height: 420 }}>
+                                            <DataGrid
+                                                rows={rows}
+                                                columns={columns}
+                                                loading={snapshot.data == null}
+                                                disableRowSelectionOnClick
+                                                checkboxSelection
+                                                rowSelectionModel={selectedIds}
+                                                onRowSelectionModelChange={(model: GridRowSelectionModel) => bloc.changeClassroomSelection(model as number[])}
+                                            />
+                                        </Box>
+                                    </Card>
+                                );
+                            }}
+                        />
 
                         <UIStream
                             initialData={{ isShow: false, id: 0 }}

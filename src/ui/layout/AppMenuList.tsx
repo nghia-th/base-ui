@@ -100,7 +100,15 @@ export default function AppMenuList({ items, depth = 0, onNavigate, variant = 'p
                         key={key}
                         sx={[itemSx, activeSx]}
                         onClick={() => {
-                            if (item.to) navigate(item.to);
+                            // 2026-09-06 - item "Trợ giúp" có externalUrl (Sổ Tay Hiểu Bài) mở tab
+                            // mới thay vì điều hướng route nội bộ - xem MenuItem.externalUrl's
+                            // comment trong AppMenuData.ts cho lý do vì sao KHÔNG dùng navigate()
+                            // cho trường hợp này.
+                            if (item.externalUrl) {
+                                window.open(item.externalUrl, '_blank', 'noopener,noreferrer');
+                            } else if (item.to) {
+                                navigate(item.to);
+                            }
                             onNavigate?.();
                         }}
                     >

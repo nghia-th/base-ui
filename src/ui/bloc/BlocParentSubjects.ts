@@ -6,6 +6,7 @@ import { QuizParentLibraryApi } from "../../api/QuizParentLibraryApi";
 import { QuizParentCurriculumApi } from "../../api/QuizParentCurriculumApi";
 import { QuizCurriculum } from "../../api/QuizCurriculumApi";
 import { QuizLibraryDocument, QuizSubjectLibraryLink } from "../../api/QuizLibraryApi";
+import { QuizBulkDeleteResult } from "./QuizBulkDelete";
 
 // Khớp SubjectResponse.java / LessonResponse.java. classroomId thay cho parentId cũ - Subject giờ
 // là con của Classroom (không còn gán trực tiếp vào Parent nữa), xem ClassroomApi.ts.
@@ -108,6 +109,26 @@ export class BlocParentSubjects extends IBlocUI {
         }, { onError })
     }
 
+    // Xoá nhiều Môn học cùng lúc (2026-09-06, "xoa muon hoc") - dùng chung cho "Xoá đã chọn"/"Xoá
+    // tất cả" ở cột trái (List Subject), xem askRemoveMany trong Subjects.tsx. Nếu Subject đang
+    // được chọn (cột phải đang hiện Lesson của nó) nằm trong danh sách vừa xoá, dọn luôn
+    // 'lessons'/'selectedSubject' giống hệt removeSubject ở trên - kiểm tra qua askRemoveSubjectCleanup
+    // sau khi biết CHẮC id nào xoá thành công (không giả định mọi id trong request đều xoá được -
+    // best-effort, xem BulkDeleteResponse).
+    removeSubjects(ids: number[], onComplete: (result: QuizBulkDeleteResult) => void, onError: (error: any) => void) {
+        this.apiRequest(QuizSubjectApi.removeMany(ids), (res) => {
+            this.setStream('subjectSelection', [])
+            const result = res.data as QuizBulkDeleteResult
+            onComplete(result)
+            this.reloadSubjects()
+            const selectedId = this.getField('selectedSubject')?.id
+            const failedIds = new Set((result.errors ?? []).map((e) => e.id))
+            if (selectedId != null && ids.includes(selectedId) && !failedIds.has(selectedId)) {
+                this.selectSubject(null)
+            }
+        }, { onError })
+    }
+
     loadLessons(subjectId: number) {
         this.apiRequest(QuizLessonApi.list(subjectId), (res) => {
             this.setStream('lessons', res.data as QuizLesson[])
@@ -131,6 +152,17 @@ export class BlocParentSubjects extends IBlocUI {
     removeLesson(id: number, subjectId: number, onComplete: () => void, onError: (error: any) => void) {
         this.apiRequest(QuizLessonApi.remove(id), () => {
             onComplete()
+            this.loadLessons(subjectId)
+        }, { onError })
+    }
+
+    // Xoá nhiều Bài học cùng lúc (2026-09-06, "xoa bai cua muon hoc") - dùng chung cho "Xoá đã
+    // chọn"/"Xoá tất cả" của DataGrid Bài học bên cột phải, xem askRemoveManyLessons trong
+    // Subjects.tsx.
+    removeLessons(ids: number[], subjectId: number, onComplete: (result: QuizBulkDeleteResult) => void, onError: (error: any) => void) {
+        this.apiRequest(QuizLessonApi.removeMany(ids), (res) => {
+            this.setStream('lessonSelection', [])
+            onComplete(res.data as QuizBulkDeleteResult)
             this.loadLessons(subjectId)
         }, { onError })
     }
@@ -178,11 +210,27 @@ export class BlocParentSubjects extends IBlocUI {
     // --- Chọn Subject / lọc Lớp ---
     selectSubject(subject: QuizSubject | null) {
         this.setStream('selectedSubject', subject)
+        this.setStream('lessonSelection', [])
         if (subject) this.loadLessons(subject.id)
+    }
+
+    // --- Chọn nhiều dòng (2026-09-06) ---
+    toggleSubjectSelection(id: number) {
+        const current: number[] = this.getField('subjectSelection') ?? []
+        this.setStream('subjectSelection', current.includes(id) ? current.filter((x) => x !== id) : [...current, id])
+    }
+
+    changeSubjectSelection(ids: number[]) {
+        this.setStream('subjectSelection', ids)
+    }
+
+    changeLessonSelection(ids: number[]) {
+        this.setStream('lessonSelection', ids)
     }
 
     changeFilterClassroom(value: number | '') {
         this.setStream('filterClassroomId', value)
+        this.setStream('subjectSelection', [])
         this.reloadSubjects(value === '' ? undefined : value)
         this.selectSubject(null)
     }

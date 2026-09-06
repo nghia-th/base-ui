@@ -34,6 +34,12 @@ export class QuizSubjectApi {
         return QuizRequestBase.delete(`${QUIZ_PARENT_PREFIX}/subjects/${id}`);
     }
 
+    // Xoá nhiều môn học cùng lúc (2026-09-06, "xoa muon hoc") - cùng cách làm hệt
+    // QuizQuestionApi.removeMany ở trên.
+    static removeMany(ids: number[]) {
+        return QuizRequestBase.deleteWithBody(`${QUIZ_PARENT_PREFIX}/subjects/deletes`, ids);
+    }
+
     // Import môn học bằng file (2026-09-05, mục 2/11) - responseType 'blob' + cách gọi giống hệt
     // QuizLessonApi.downloadImportTemplate, chỉ khác endpoint.
     static downloadImportTemplate(format: 'xlsx' | 'csv') {
